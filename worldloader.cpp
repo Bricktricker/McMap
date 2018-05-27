@@ -6,6 +6,7 @@
 #include "globals.h"
 #include <list>
 #include <map>
+#include <vector>
 #include <cstring>
 #include <string>
 #include <cstdio>
@@ -939,13 +940,15 @@ static bool loadTerrainRegion(const char *fromPath, int &loadedChunks)
 
 static bool loadRegion(const char* file, const bool mustExist, int &loadedChunks)
 {
-	uint8_t buffer[COMPRESSED_BUFFER], decompressedBuffer[DECOMPRESSED_BUFFER];
+	//uint8_t buffer[COMPRESSED_BUFFER], decompressedBuffer[DECOMPRESSED_BUFFER];
+	std::vector<uint8_t> buffer(COMPRESSED_BUFFER);
+	std::vector<uint8_t> decompressedBuffer(DECOMPRESSED_BUFFER);
 	FILE *rp = fopen(file, "rb");
 	if (rp == NULL) {
 		if (mustExist) printf("Error opening region file %s\n", file);
 		return false;
 	}
-	if (fread(buffer, 4, REGIONSIZE * REGIONSIZE, rp) != REGIONSIZE * REGIONSIZE) {
+	if (fread(buffer.data(), 4, REGIONSIZE * REGIONSIZE, rp) != REGIONSIZE * REGIONSIZE) {
 		printf("Header too short in %s\n", file);
 		fclose(rp);
 		return false;
@@ -953,7 +956,7 @@ static bool loadRegion(const char* file, const bool mustExist, int &loadedChunks
 	// Sort chunks using a map, so we access the file as sequential as possible
 	chunkMap localChunks;
 	for (uint32_t i = 0; i < REGION_HEADER_SIZE; i += 4) {
-		uint32_t offset = (_ntohl(buffer + i) >> 8) * 4096;
+		uint32_t offset = (_ntohl(buffer.data() + i) >> 8) * 4096;
 		if (offset == 0) continue;
 		localChunks[offset] = i;
 	}
@@ -969,11 +972,11 @@ static bool loadRegion(const char* file, const bool mustExist, int &loadedChunks
 			printf("Error seeking to chunk in region file %s\n", file);
 			continue;
 		}
-		if (1 != fread(buffer, 5, 1, rp)) {
+		if (1 != fread(buffer.data(), 5, 1, rp)) {
 			printf("Error reading chunk size from region file %s\n", file);
 			continue;
 		}
-		uint32_t len = _ntohl(buffer);
+		uint32_t len = _ntohl(buffer.data());
 		uint8_t version = buffer[4];
 		if (len == 0) continue;
 		len--;
@@ -981,16 +984,16 @@ static bool loadRegion(const char* file, const bool mustExist, int &loadedChunks
 			printf("Chunk too big in %s\n", file);
 			continue;
 		}
-		if (fread(buffer, 1, len, rp) != len) {
+		if (fread(buffer.data(), 1, len, rp) != len) {
 			printf("Not enough input for chunk in %s\n", file);
 			continue;
 		}
 		if (version == 1 || version == 2) { // zlib/gzip deflate
 			memset(&zlibStream, 0, sizeof(z_stream));
-			zlibStream.next_out = (Bytef*)decompressedBuffer;
+			zlibStream.next_out = (Bytef*)decompressedBuffer.data();
 			zlibStream.avail_out = DECOMPRESSED_BUFFER;
 			zlibStream.avail_in = len;
-			zlibStream.next_in = (Bytef*)buffer;
+			zlibStream.next_in = (Bytef*)buffer.data();
 
 			inflateInit2(&zlibStream, 32 + MAX_WBITS);
 			int status = inflate(&zlibStream, Z_FINISH); // decompress in one step
@@ -1006,7 +1009,7 @@ static bool loadRegion(const char* file, const bool mustExist, int &loadedChunks
 			printf("Unsupported McRegion version: %d\n", (int)version);
 			continue;
 		}
-		if (loadChunk((char*)decompressedBuffer, len)) {
+		if (loadChunk((char*)decompressedBuffer.data(), len)) {
 			loadedChunks++;
 		}
 	}
