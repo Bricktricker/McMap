@@ -43,7 +43,7 @@
 #include <sys/stat.h>
 #endif
 #if defined(_WIN32) && !defined(__GNUC__)
-#  include <direct.h>
+#include <direct.h>
 #endif
 
 using std::string;
@@ -74,13 +74,13 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	bool wholeworld = false;
-	char *filename = NULL, *outfile = NULL, *colorfile = NULL, *texturefile = NULL, *infoFile = NULL;
+	std::string filename, outfile, colorfile, texturefile, infoFile;
 	bool dumpColors = false, infoOnly = false, end = false;
 	char *biomepath = NULL;
 	uint64_t memlimit;
-	if (sizeof(size_t) < 8) {
+	if (sizeof(size_t) < 8) { //testen auf 32Bit
 		memlimit = 1500 * uint64_t(1024 * 1024);
-	} else {
+	} else { //64Bit
 		memlimit = 2000 * uint64_t(1024 * 1024);
 	}
 	bool memlimitSet = false;

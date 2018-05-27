@@ -577,10 +577,12 @@ void loadColors()
 
 }
 
-
-bool loadColorsFromFile(const char *file)
+/**
+* TODO: Funktion umschreiben, das sie fstream nutzt
+*/
+bool loadColorsFromFile(const std::string& file)
 {
-	FILE *f = fopen(file, "r");
+	FILE *f = fopen(file.c_str(), "r");
 	if (f == NULL) {
 		return false;
 	}
@@ -686,10 +688,12 @@ bool loadColorsFromFile(const char *file)
 	fclose(f);
 	return true;
 }
-
-bool dumpColorsToFile(const char *file)
+/*
+* TODO: Funktion umschreiben, das sie fstream nutzt
+*/
+bool dumpColorsToFile(const std::string& file)
 {
-	FILE *f = fopen(file, "w");
+	FILE *f = fopen(file.c_str(), "w");
 	if (f == NULL) {
 		return false;
 	}
@@ -733,10 +737,11 @@ bool dumpColorsToFile(const char *file)
 
 /**
  * Extract block colors from given terrain.png file
+ * TODO: Funktion umschreiben, das sie fstream nutzt
  */
-bool extractColors(const char* file)
+bool extractColors(const std::string& file)
 {
-	PngReader png(file);
+	PngReader png(file.c_str());
 	if (!png.isValidImage()) return false;
 	if (png.getWidth() != png.getHeight() // Quadratic
 			|| (png.getWidth() / 16) * 16 != png.getWidth() // Has to be multiple of 16
@@ -770,8 +775,9 @@ static PngReader *pngLeaf = NULL;
 /**
  * This loads grasscolor.png and foliagecolor.png where the
  * biome colors will be read from upon rendering
+ * TODO: Funktion umschreiben, das sie fstream nutzt
  */
-bool loadBiomeColors(const char* path)
+bool loadBiomeColors(const std::string& path)
 {
 	size_t len = strlen(path) + 21;
 	char *grass = new char[len], *foliage = new char[len];

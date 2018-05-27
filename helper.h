@@ -70,15 +70,13 @@
 // If this is missing for you in Visual Studio: See http://en.wikipedia.org/wiki/Stdint.h#External_links
 #include <stdint.h>
 
-using std::string;
-
-string base36(int val);
-int base10(char *val);
+std::string base36(int val);
+int base10(const std::string& val);
 uint8_t clamp(int32_t val);
 void printProgress(const size_t current, const size_t max);
-bool fileExists(const char *strFilename);
-bool dirExists(const char *strFilename);
-bool isNumeric(char *str);
-bool isAlphaWorld(char *path);
+bool fileExists(const std::string& strFilename);
+bool dirExists(const std::string& strFilename);
+bool isNumeric(const std::string& str);
+bool isAlphaWorld(const std::string& path);
 
 #endif

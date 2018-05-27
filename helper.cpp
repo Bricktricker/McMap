@@ -11,6 +11,8 @@
 #define	S_ISDIR(m)	(((m) & S_IFMT) == S_IFDIR)
 #endif
 
+#include <fstream>
+
 uint8_t clamp(int32_t val)
 {
 	if (val < 0) {
@@ -22,24 +24,26 @@ uint8_t clamp(int32_t val)
 	return (uint8_t)val;
 }
 
-string base36(int val)
+std::string base36(int val)
 {
 	if (val < 0) {
-		return string("-") + base36(-val);
+		return std::string("-") + base36(-val);
 	}
 	if (val / 36 == 0) {
 		if (val < 10) {
 			char x = '0' + val;
-			return string(&x, 1);
+			return std::string(&x, 1);
 		}
 		char x = 'a' + (val - 10);
-		return string(&x, 1);
+		return std::string(&x, 1);
 	}
 	return base36(val / 36) + base36(val % 36);
 }
 
-int base10(char *val)
+int base10(const std::string& val)
 {
+	return atoi(val.c_str());
+	/*
 	//printf("Turning %s into ", val);
 	int res = 0;
 	bool neg = false;
@@ -67,6 +71,7 @@ int base10(char *val)
 	}
 	//printf("%d\n", res);
 	return res;
+	*/
 }
 
 void printProgress(const size_t current, const size_t max)
@@ -90,8 +95,12 @@ void printProgress(const size_t current, const size_t max)
 	}
 }
 
-bool fileExists(const char *strFilename)
+bool fileExists(const std::string& strFilename)
 {
+	std::ifstream f(strFilename);
+	return f.good();
+
+	/*
 	struct stat stFileInfo;
 	int ret;
 	ret = stat(strFilename, &stFileInfo);
@@ -99,40 +108,27 @@ bool fileExists(const char *strFilename)
 		return S_ISREG(stFileInfo.st_mode);
 	}
 	return false;
+	*/
 }
 
-bool dirExists(const char *strFilename)
+bool dirExists(const std::string& strFilename)
 {
 	struct stat stFileInfo;
 	int ret;
-	ret = stat(strFilename, &stFileInfo);
+	ret = stat(strFilename.c_str(), &stFileInfo);
 	if(ret == 0) {
 		return S_ISDIR(stFileInfo.st_mode);
 	}
 	return false;
 }
 
-bool isNumeric(char *str)
+bool isNumeric(const std::string& str)
 {
-	if (str[0] == '-' && str[1] != '\0') {
-		++str;
-	}
-	while (*str != '\0') {
-		if (*str < '0' || *str > '9') {
-			return false;
-		}
-		++str;
-	}
-	return true;
+	return isdigit(str.c_str()[0]);
 }
 
-bool isAlphaWorld(char *path)
+bool isAlphaWorld(const std::string& path)
 {
-	// Check if this path is a valid minecraft world... in a pretty sloppy way
-	char *tmp = new char[strlen(path) + 20];
-	strcpy(tmp, path);
-	strcat(tmp, "/level.dat");
-	bool b = fileExists(tmp);
-	delete[] tmp;
-	return b;
+	std::string pathToFile = path + "/level.dat";
+	return fileExists(pathToFile);
 }
