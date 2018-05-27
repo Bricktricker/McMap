@@ -3,10 +3,11 @@
 
 #include <cstdlib>
 #include <stdint.h>
+#include <string>
 
-int getWorldFormat(const char *worldPath);
-bool scanWorldDirectory(const char *fromPath);
-bool loadTerrain(const char *fromPath, int &loadedChunks);
+int getWorldFormat(const std::string& worldPath);
+bool scanWorldDirectory(const std::string& fromPath);
+bool loadTerrain(const std::string& fromPath, int &loadedChunks);
 bool loadEntireTerrain();
 uint64_t calcTerrainSize(const int chunksX, const int chunksZ);
 void clearLightmap();

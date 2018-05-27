@@ -90,7 +90,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>C:\Users\Philipp\Documents\Visual Studio 2015\Projects\McMap\middleware\zlib\include\;C:\Users\Philipp\Documents\Visual Studio 2015\Projects\McMap\middleware\pnglib\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)middleware\zlib\include\;C:\Users\Philipp\Documents\Visual Studio 2015\Projects\McMap\middleware\pnglib\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

@@ -68,17 +68,17 @@ static void loadBiomeChunk(const char* path, const int chunkX, const int chunkZ)
 static bool loadAllRegions();
 static bool loadRegion(const char* file, const bool mustExist, int &loadedChunks);
 static bool loadTerrainRegion(const char *fromPath, int &loadedChunks);
-static bool scanWorldDirectoryRegion(const char *fromPath);
+static bool scanWorldDirectoryRegion(const std::string& fromPath);
 static inline void assignBlock(const uint16_t &source, uint8_t* &dest, int &x, int &y, int &z, uint8_t* &justData);
 static inline void assignBlock(const uint16_t &source, uint8_t* &dest, int &x, int &y, int &z, uint8_t* &justData, uint8_t* &addData);
 static inline void lightCave(const int x, const int y, const int z);
 
-int getWorldFormat(const char *worldPath)
+int getWorldFormat(const std::string& worldPath)
 {
 	int format = 0; // alpha (single chunk files)
-	size_t len = strlen(worldPath);
+	size_t len = worldPath.size();
 	char *path = new char[len + 40];
-	memcpy(path, worldPath, len);
+	memcpy(path, worldPath.c_str(), len);
 	memcpy(path + len, "/region", 8);
 	myFile file;
 	DIRHANDLE sd = Dir::open(path, file);
@@ -93,15 +93,16 @@ int getWorldFormat(const char *worldPath)
 		} while (Dir::next(sd, path, file));
 		Dir::close(sd);
 	}
+	delete[] path;
 	return format;
 }
 
-bool scanWorldDirectory(const char *fromPath)
+bool scanWorldDirectory(const std::string& fromPath)
 {
 	if (g_WorldFormat != 0) return scanWorldDirectoryRegion(fromPath);
 	charList subdirs;
 	myFile file;
-	DIRHANDLE d = Dir::open((char *)fromPath, file);
+	DIRHANDLE d = Dir::open((char*)fromPath.c_str(), file);
 	if (d == NULL) {
 		return false;
 	}
@@ -110,7 +111,7 @@ bool scanWorldDirectory(const char *fromPath)
 			char *s = strdup(file.name);
 			subdirs.push_back(s);
 		}
-	} while (Dir::next(d, (char *)fromPath, file));
+	} while (Dir::next(d, (char *)fromPath.c_str(), file));
 	Dir::close(d);
 	if (subdirs.empty()) {
 		return false;
@@ -191,7 +192,7 @@ bool scanWorldDirectory(const char *fromPath)
 	return true;
 }
 
-static bool scanWorldDirectoryRegion(const char *fromPath)
+static bool scanWorldDirectoryRegion(const std::string& fromPath)
 {
 	// OK go
 	for (chunkList::iterator it = chunks.begin(); it != chunks.end(); it++) {
@@ -307,11 +308,11 @@ bool loadEntireTerrain()
 	return true;
 }
 
-bool loadTerrain(const char *fromPath, int &loadedChunks)
+bool loadTerrain(const std::string& fromPath, int &loadedChunks)
 {
 	loadedChunks = 0;
 	if (g_WorldFormat != 0) return loadTerrainRegion(fromPath, loadedChunks);
-	if (fromPath == NULL || *fromPath == '\0') {
+	if (fromPath.empty()) {
 		return false;
 	}
 	allocateTerrain();

@@ -279,22 +279,22 @@ int main(int argc, char **argv)
 	// Load colormap from file
 	loadColors(); // Default base, in case some are missing in colors.txt (if used)
 	// Load files from colors.txt
-	if (colorfile != NULL && fileExists(colorfile)) {
+	if (fileExists(colorfile)) {
 		if (!loadColorsFromFile(colorfile)) {
 			printf("Error loading colors from %s: Opening failed.\n", colorfile);
 			return 1;
 		}
-	} else if (colorfile != NULL) {
+	} else if (!colorfile.empty()) {
 		printf("Error loading colors from %s: File not found.\n", colorfile);
 		return 1;
 	}
 	// Extract colors from terrain.png
-	if (texturefile != NULL && fileExists(texturefile)) {
+	if (fileExists(texturefile)) {
 		if (!extractColors(texturefile)) {
 			printf("Error extracting colors from %s: Opening failed (not a valid terrain png?).\n", texturefile);
 			return 1;
 		}
-	} else if (texturefile != NULL) {
+	} else if (!texturefile.empty()) {
 		printf("Error loading colors from %s: File not found.\n", texturefile);
 		return 1;
 	}

@@ -97,6 +97,7 @@ void printProgress(const size_t current, const size_t max)
 
 bool fileExists(const std::string& strFilename)
 {
+	if (strFilename.empty()) return false;
 	std::ifstream f(strFilename);
 	return f.good();
 
