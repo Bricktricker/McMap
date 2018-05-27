@@ -61,7 +61,7 @@ void optimizeTerrain2(int cropLeft, int cropRight);
 void optimizeTerrain3();
 void undergroundMode(bool explore);
 bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStartY);
-void writeInfoFile(const char* file, int xo, int yo, int bitmapx, int bitmapy);
+void writeInfoFile(const std::string& file, int xo, int yo, int bitmapx, int bitmapy);
 static const inline int floorChunkX(const int val);
 static const inline int floorChunkZ(const int val);
 void printHelp(char *binary);
@@ -74,9 +74,8 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	bool wholeworld = false;
-	std::string filename, outfile, colorfile, texturefile, infoFile;
+	std::string filename, outfile, colorfile, texturefile, infoFile, biomepath;
 	bool dumpColors = false, infoOnly = false, end = false;
-	char *biomepath = NULL;
 	uint64_t memlimit;
 	if (sizeof(size_t) < 8) { //testen auf 32Bit
 		memlimit = 1500 * uint64_t(1024 * 1024);
@@ -308,7 +307,7 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	if (filename == NULL) {
+	if (filename.empty()) {
 		printf("Error: No world given. Please add the path to your world to the command line.\n");
 		return 1;
 	}
@@ -317,26 +316,21 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	if (g_Hell) {
-		char *tmp = new char[strlen(filename) + 20];
-		strcpy(tmp, filename);
-		strcat(tmp, "/DIM-1");
+		std::string tmp = filename + "/DIM-1";
 		if (!dirExists(tmp)) {
 			printf("Error: This world does not have a hell world yet. Build a portal first!\n");
 			return 1;
 		}
 		filename = tmp;
 	} else if (end) {
-		char *tmp = new char[strlen(filename) + 20];
-		strcpy(tmp, filename);
-		strcat(tmp, "/DIM1");
+		std::string tmp = filename + "/DIM1";
 		if (!dirExists(tmp)) {
 			printf("Error: This world does not have an end-world yet. Find an ender portal first!\n");
 			return 1;
 		}
 		filename = tmp;
 	} else if (g_MystCraftAge) {
-        char *tmp = new char[strlen(filename) + 20];
-        sprintf(tmp, "%s/DIM_MYST%d", filename, g_MystCraftAge);
+		std::string tmp = filename + "/DIM_MYST" + std::to_string(g_MystCraftAge);
 		if (!dirExists(tmp)) {
 			printf("Error: This world does not have Age %d!\n", g_MystCraftAge);
 			return 1;
@@ -384,15 +378,13 @@ int main(int argc, char **argv)
 
 	// Load biomes
 	if (g_UseBiomes) if (g_WorldFormat != 2) {
-		char *bpath = new char[strlen(filename) + 30];
-		strcpy(bpath, filename);
-		strcat(bpath, "/biomes");
+		std::string bpath = filename + "/biomes";
 		if (!dirExists(bpath)) {
 			printf("Error loading biome information. '%s' does not exist.\n", bpath);
 			g_UseBiomes = false;	//user want biomes but world is non-anvil and biome folder is missing
 		}
 		else
-		if (biomepath == NULL) {
+		if (biomepath.empty()) {
 			biomepath = bpath;
 		}
 		if (!loadBiomeColors(biomepath)) return 1;
@@ -411,13 +403,13 @@ int main(int argc, char **argv)
 		bitmapBytes = uint64_t(bitmapX) * BYTESPERPIXEL * uint64_t(bitmapY);
 	}
 
-	if (infoFile != NULL) {
+	if (!infoFile.empty()) {
 		writeInfoFile(infoFile,
 				-cropLeft,
 				-cropTop,
 				bitmapX, bitmapY);
-		infoFile = NULL;
-		if (infoOnly) exit(0);
+		infoFile.clear();
+		if (infoOnly) return 0;
 	}
 
 	bool splitImage = false;
@@ -461,14 +453,15 @@ int main(int argc, char **argv)
 	// Always same random seed, as this is only used for block noise, which should give the same result for the same input every time
 	srand(1337);
 
-	if (outfile == NULL) {
-		outfile = (char *) "output.png";
+	if (outfile.empty()) {
+		outfile = "output.png";
 	}
 
 	// open output file only if not doing the tiled output
+	//TODO rewrite to use fstream
 	FILE *fileHandle = NULL;
 	if (g_TilePath == NULL) {
-		fileHandle = fopen(outfile, (splitImage ? "w+b" : "wb"));
+		fileHandle = fopen(outfile.c_str(), (splitImage ? "w+b" : "wb"));
 
 		if (fileHandle == NULL) {
 			printf("Error opening '%s' for writing.\n", outfile);
@@ -1049,7 +1042,7 @@ bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStart
 	return false; // not done yet, return false
 }
 
-void writeInfoFile(const char* file, int xo, int yo, int bitmapX, int bitmapY)
+void writeInfoFile(const std::string& file, int xo, int yo, int bitmapX, int bitmapY)
 {
 	char *direction = NULL;
 	if (g_Orientation == North) {
@@ -1069,10 +1062,10 @@ void writeInfoFile(const char* file, int xo, int yo, int bitmapX, int bitmapY)
 		yo += ((g_TotalToChunkZ) * CHUNKSIZE_Z - g_TotalFromChunkX * CHUNKSIZE_X) + g_MapsizeY * g_OffsetY;
 		direction = (char*)"West";
 	}
-	FILE *fh = fopen(file, "w");
+	FILE *fh = fopen(file.c_str(), "w");
 	if (fh == NULL) return;
 	yo += 4;
-	if (strcmp(".json", RIGHTSTRING(file, 5)) == 0) {
+	if (strcmp(".json", RIGHTSTRING(file.c_str(), 5)) == 0) {
 		fprintf(fh, "{\n"
 				" \"origin\" : {\n"
 				"  \"x\" : %d,\n"
@@ -1090,7 +1083,7 @@ void writeInfoFile(const char* file, int xo, int yo, int bitmapX, int bitmapY)
 				"  \"timestamp\" : %lu\n"
 				" }\n"
 				"}\n", xo, yo, g_OffsetY, direction, bitmapX, bitmapY, (unsigned long)time(NULL));
-	} else if (strcmp(".xml", RIGHTSTRING(file, 4)) == 0) {
+	} else if (strcmp(".xml", RIGHTSTRING(file.c_str(), 4)) == 0) {
 		fprintf(fh, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n"
 				"<map>\n"
 				" <origin x=\"%d\" y=\"%d\" />\n"

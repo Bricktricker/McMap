@@ -311,7 +311,7 @@ bool loadEntireTerrain()
 bool loadTerrain(const std::string& fromPath, int &loadedChunks)
 {
 	loadedChunks = 0;
-	if (g_WorldFormat != 0) return loadTerrainRegion(fromPath, loadedChunks);
+	if (g_WorldFormat != 0) return loadTerrainRegion(fromPath.c_str(), loadedChunks);
 	if (fromPath.empty()) {
 		return false;
 	}
@@ -858,7 +858,7 @@ static const inline int floorRegion(const int val)
 /**
  * Load all the 8x8-chunks-files containing biome information
  */
-void loadBiomeMap(const char* path)
+void loadBiomeMap(const std::string& path)
 {
 	printf("Loading biome data...\n");
 	const uint64_t size = g_MapsizeX * g_MapsizeZ;
@@ -873,7 +873,7 @@ void loadBiomeMap(const char* path)
 	for (int x = floorBiome(g_FromChunkX); x <= floorBiome(g_ToChunkX); x += CHUNKS_PER_BIOME_FILE) {
 		printProgress(size_t(x + tmpMin), size_t(floorBiome(g_ToChunkX) + tmpMin));
 		for (int z = floorBiome(g_FromChunkZ); z <= floorBiome(g_ToChunkZ); z += CHUNKS_PER_BIOME_FILE) {
-			loadBiomeChunk(path, x, z);
+			loadBiomeChunk(path.c_str(), x, z);
 		}
 	}
 	printProgress(10, 10);

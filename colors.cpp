@@ -779,23 +779,23 @@ static PngReader *pngLeaf = NULL;
  */
 bool loadBiomeColors(const std::string& path)
 {
-	size_t len = strlen(path) + 21;
+	size_t len = path.size() + 21;
 	char *grass = new char[len], *foliage = new char[len];
 	snprintf(grass, len + 20, "%s/grasscolor.png", path);
 	snprintf(foliage, len + 20, "%s/foliagecolor.png", path);
 	pngGrass = new PngReader(grass);
 	pngLeaf = new PngReader(foliage);
 	if (!pngGrass->isValidImage() || !pngLeaf->isValidImage()) {
-		delete pngGrass;
-		delete pngLeaf;
+		delete[] pngGrass;
+		delete[] pngLeaf;
 		printf("Could not load %s and %s: no valid PNG files. Biomes disabled.\n", grass, foliage);
 		return false;
 	}
 	if ((pngGrass->getColorType() != PngReader::RGBA && pngGrass->getColorType() != PngReader::RGB) || pngGrass->getBitsPerChannel() != 8
 			|| (pngLeaf->getColorType() != PngReader::RGBA && pngLeaf->getColorType() != PngReader::RGB) || pngLeaf->getBitsPerChannel() != 8
 			|| pngGrass->getWidth() != 256 || pngGrass->getHeight() != 256 || pngLeaf->getWidth() != 256 || pngLeaf->getHeight() != 256) {
-		delete pngGrass;
-		delete pngLeaf;
+		delete[] pngGrass;
+		delete[] pngLeaf;
 		printf("Could not load %s and %s; Expecting RGB(A), 8 bits per channel.\n", grass, foliage);
 		return false;
 	}
