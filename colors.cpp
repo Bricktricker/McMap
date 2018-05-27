@@ -775,7 +775,7 @@ static PngReader *pngLeaf = NULL;
 /**
  * This loads grasscolor.png and foliagecolor.png where the
  * biome colors will be read from upon rendering
- * TODO: Funktion umschreiben, das sie fstream nutzt
+ * TODO: Funktion umschreiben, das sie fstream nutzt, strings korrigieren
  */
 bool loadBiomeColors(const std::string& path)
 {

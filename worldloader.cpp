@@ -939,6 +939,9 @@ static bool loadTerrainRegion(const char *fromPath, int &loadedChunks)
 	return true;
 }
 
+/*
+  TODO: Funktion umschreiben um fstream zu nutzen
+ */
 static bool loadRegion(const char* file, const bool mustExist, int &loadedChunks)
 {
 	//uint8_t buffer[COMPRESSED_BUFFER], decompressedBuffer[DECOMPRESSED_BUFFER];

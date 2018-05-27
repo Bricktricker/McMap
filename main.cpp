@@ -32,6 +32,7 @@
 #include "worldloader.h"
 #include "globals.h"
 #include <string>
+#include <vector>
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
@@ -488,7 +489,7 @@ int main(int argc, char **argv)
 	}
 
 	// Precompute brightness adjustment factor
-	float *brightnessLookup = new float[g_MapsizeY];
+	std::vector<float> brightnessLookup(g_MapsizeY);
 	for (int y = 0; y < g_MapsizeY; ++y) {
 		brightnessLookup[y] = ((100.0f / (1.0f + exp(- (1.3f * (float(y) * MIN(g_MapsizeY, 200) / g_MapsizeY) / 16.0f) + 6.0f))) - 91);   // thx Donkey Kong
 	}
