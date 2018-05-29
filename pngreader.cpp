@@ -9,7 +9,7 @@
 #include <png.h>
 #include <cstdio>
 
-PngReader::PngReader(const char* filename)
+PngReader::PngReader(const std::string& filename)
 {
 	_width = _height = _bitDepth = 0;
 	_chans = Unknown;
@@ -17,7 +17,7 @@ PngReader::PngReader(const char* filename)
 	uint8_t **rows = NULL;
 	_bytesPerPixel = 0;
 	// Open PNG file
-	FILE *fh = fopen(filename, "rb");
+	FILE *fh = fopen(filename.c_str(), "rb");
 	if (fh == NULL) {
 		return;
 	}

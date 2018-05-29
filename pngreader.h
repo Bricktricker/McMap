@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <cstdlib>
+#include <string>
 
 class PngReader
 {
@@ -32,7 +33,7 @@ private:
 	int _bytesPerPixel;
 
 public:
-	PngReader(const char* filename);
+	PngReader(const std::string& filename);
 	virtual ~PngReader();
 	uint32_t getWidth() { return _width; }
 	uint32_t getHeight() { return _height; }

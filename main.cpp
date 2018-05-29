@@ -1045,23 +1045,23 @@ bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStart
 
 void writeInfoFile(const std::string& file, int xo, int yo, int bitmapX, int bitmapY)
 {
-	char *direction = NULL;
+	std::string direction;
 	if (g_Orientation == North) {
 		xo += (g_TotalToChunkZ * CHUNKSIZE_Z - g_FromChunkX * CHUNKSIZE_X) * 2 + 4;
 		yo -= (g_TotalFromChunkX * CHUNKSIZE_X + g_TotalFromChunkZ * CHUNKSIZE_Z) - g_MapsizeY * g_OffsetY;
-		direction = (char*)"North";
+		direction = "North";
 	} else if (g_Orientation == South) {
 		xo += (g_TotalToChunkX * CHUNKSIZE_X - g_TotalFromChunkZ * CHUNKSIZE_Z) * 2 + 4;
 		yo += ((g_TotalToChunkX) * CHUNKSIZE_X + (g_TotalToChunkZ) * CHUNKSIZE_Z) + g_MapsizeY * g_OffsetY;
-		direction = (char*)"South";
+		direction = "South";
 	} else if (g_Orientation == East) {
 		xo -= (g_TotalFromChunkX * CHUNKSIZE_X + g_TotalFromChunkZ * CHUNKSIZE_Z) * g_OffsetY - 6;
 		yo += ((g_TotalToChunkX) * CHUNKSIZE_X - g_TotalFromChunkZ * CHUNKSIZE_Z) + g_MapsizeY * g_OffsetY;
-		direction = (char*)"East";
+		direction = "East";
 	} else {
 		xo += (g_TotalToChunkX * CHUNKSIZE_X + g_TotalToChunkZ * CHUNKSIZE_Z) * g_OffsetY + 2;
 		yo += ((g_TotalToChunkZ) * CHUNKSIZE_Z - g_TotalFromChunkX * CHUNKSIZE_X) + g_MapsizeY * g_OffsetY;
-		direction = (char*)"West";
+		direction = "West";
 	}
 	FILE *fh = fopen(file.c_str(), "w");
 	if (fh == NULL) return;

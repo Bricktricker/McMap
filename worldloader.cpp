@@ -11,6 +11,7 @@
 #include <string>
 #include <cstdio>
 #include <zlib.h>
+#include <iostream>
 
 #define CHUNKS_PER_BIOME_FILE 32
 #define REGIONSIZE 32
@@ -64,10 +65,10 @@ namespace
 static bool loadChunk(const char *streamOrFile, const size_t len = 0);
 static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t chunkZ);
 static void allocateTerrain();
-static void loadBiomeChunk(const char* path, const int chunkX, const int chunkZ);
+static void loadBiomeChunk(const std::string& path, const int chunkX, const int chunkZ);
 static bool loadAllRegions();
-static bool loadRegion(const char* file, const bool mustExist, int &loadedChunks);
-static bool loadTerrainRegion(const char *fromPath, int &loadedChunks);
+static bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks);
+static bool loadTerrainRegion(const std::string& fromPath, int &loadedChunks);
 static bool scanWorldDirectoryRegion(const std::string& fromPath);
 static inline void assignBlock(const uint16_t &source, uint8_t* &dest, int &x, int &y, int &z, uint8_t* &justData);
 static inline void assignBlock(const uint16_t &source, uint8_t* &dest, int &x, int &y, int &z, uint8_t* &justData, uint8_t* &addData);
@@ -907,15 +908,15 @@ static bool loadAllRegions()
 /**
  * Load all the 32x32 region files withing the specified bounds
  */
-static bool loadTerrainRegion(const char *fromPath, int &loadedChunks)
+static bool loadTerrainRegion(const std::string& fromPath, int &loadedChunks)
 {
 	loadedChunks = 0;
-	if (fromPath == NULL || *fromPath == '\0') {
+	if (fromPath.empty()) {
 		return false;
 	}
 	allocateTerrain();
-	size_t maxlen = strlen(fromPath) + 40;
-	char *path = new char[maxlen];
+	size_t maxlen = fromPath.length() + 40;
+	std::string path;
 
 	printf("Loading all chunks..\n");
 	//
@@ -924,36 +925,35 @@ static bool loadTerrainRegion(const char *fromPath, int &loadedChunks)
 		printProgress(size_t(x + tmpMin), size_t(floorRegion(g_ToChunkX) + tmpMin));
 		for (int z = floorRegion(g_FromChunkZ); z <= floorRegion(g_ToChunkZ); z += REGIONSIZE) {
 			if (g_WorldFormat == 2) {
-				snprintf(path, maxlen, "%s/region/r.%d.%d.mca", fromPath, int(x / REGIONSIZE), int(z / REGIONSIZE));
+				path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".mca";
 				loadRegion(path, false, loadedChunks);
 			} else {
-				snprintf(path, maxlen, "%s/region/r.%d.%d.mcr", fromPath, int(x / REGIONSIZE), int(z / REGIONSIZE));
+				path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".mcr";
 				if (!loadRegion(path, false, loadedChunks)) {
-					snprintf(path, maxlen, "%s/region/r.%d.%d.data", fromPath, int(x / REGIONSIZE), int(z / REGIONSIZE));
+					path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".data";
 					loadRegion(path, false, loadedChunks);
 				}
 			}
 		}
 	}
-	delete[] path;
 	return true;
 }
 
 /*
   TODO: Funktion umschreiben um fstream zu nutzen
  */
-static bool loadRegion(const char* file, const bool mustExist, int &loadedChunks)
+static bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks)
 {
 	//uint8_t buffer[COMPRESSED_BUFFER], decompressedBuffer[DECOMPRESSED_BUFFER];
 	std::vector<uint8_t> buffer(COMPRESSED_BUFFER);
 	std::vector<uint8_t> decompressedBuffer(DECOMPRESSED_BUFFER);
-	FILE *rp = fopen(file, "rb");
+	FILE *rp = fopen(file.c_str(), "rb");
 	if (rp == NULL) {
-		if (mustExist) printf("Error opening region file %s\n", file);
+		if (mustExist) std::cerr << "Error opening region file " << file << '\n';
 		return false;
 	}
 	if (fread(buffer.data(), 4, REGIONSIZE * REGIONSIZE, rp) != REGIONSIZE * REGIONSIZE) {
-		printf("Header too short in %s\n", file);
+		std::cerr << "Header too short in " << file << '\n';
 		fclose(rp);
 		return false;
 	}
@@ -1026,24 +1026,28 @@ static const inline uint16_t ntoh16(const uint16_t val)
 	return (uint16_t(*(uint8_t*)&val) << 8) + uint16_t(*(((uint8_t*)&val) + 1));
 }
 
-static void loadBiomeChunk(const char* path, const int chunkX, const int chunkZ)
+/*
+TODO: Funktion umschreiben um fstream zu nutzen
+*/
+static void loadBiomeChunk(const std::string& path, const int chunkX, const int chunkZ)
 {
 #	define BIOME_ENTRIES CHUNKS_PER_BIOME_FILE * CHUNKS_PER_BIOME_FILE * CHUNKSIZE_X * CHUNKSIZE_Z
 #	define RECORDS_PER_LINE CHUNKSIZE_X * CHUNKS_PER_BIOME_FILE
-	const size_t size = strlen(path) + 50;
-	char *file = new char[size];
-	snprintf(file, size, "%s/b.%d.%d.biome", path, chunkX / CHUNKS_PER_BIOME_FILE, chunkZ / CHUNKS_PER_BIOME_FILE);
+
+	const size_t size = path.length() + 50;
+	std::string file;
+	file += path + "/b." + std::to_string(chunkX / CHUNKS_PER_BIOME_FILE) + "." + std::to_string(chunkZ / CHUNKS_PER_BIOME_FILE) + ".biome";
+	//snprintf(file, size, "%s/b.%d.%d.biome", path, chunkX / CHUNKS_PER_BIOME_FILE, chunkZ / CHUNKS_PER_BIOME_FILE);
 	if (!fileExists(file)) {
-		printf("'%s' doesn't exist. Please update biome cache.\n", file);
-		delete[] file;
+		std::cerr << file << " doesn't exist. Please update biome cache.\n";
 		return;
 	}
-	FILE *fh = fopen(file, "rb");
-	uint16_t *data = new uint16_t[BIOME_ENTRIES];
-	const bool success = (fread(data, sizeof(uint16_t), BIOME_ENTRIES, fh) == BIOME_ENTRIES);
+	FILE *fh = fopen(file.c_str(), "rb");
+	std::vector<uint16_t> data(BIOME_ENTRIES);
+	const bool success = (fread(data.data(), sizeof(uint16_t), BIOME_ENTRIES, fh) == BIOME_ENTRIES);
 	fclose(fh);
 	if (!success) {
-		printf("'%s' seems to be truncated. Try rebuilding biome cache.\n", file);
+		std::cerr << file << " seems to be truncated. Try rebuilding biome cache.\n";
 	} else {
 		const int fromX = g_FromChunkX * CHUNKSIZE_X;
 		const int toX   = g_ToChunkX * CHUNKSIZE_X;
@@ -1067,8 +1071,6 @@ static void loadBiomeChunk(const char* path, const int chunkX, const int chunkZ)
 			}
 		}
 	}
-	delete[] data;
-	delete[] file;
 }
 
 static inline void assignBlock(const uint16_t &block, uint8_t* &targetBlock, int &x, int &y, int &z, uint8_t* &justData, uint8_t* &addData)
