@@ -74,9 +74,12 @@ static inline void assignBlock(const uint16_t &source, uint8_t* &dest, int &x, i
 static inline void assignBlock(const uint16_t &source, uint8_t* &dest, int &x, int &y, int &z, uint8_t* &justData, uint8_t* &addData);
 static inline void lightCave(const int x, const int y, const int z);
 
-int getWorldFormat(const std::string& worldPath)
+/*
+ TODO: UMschreiben std::string zu nutzen
+*/
+WorldFormat getWorldFormat(const std::string& worldPath)
 {
-	int format = 0; // alpha (single chunk files)
+	WorldFormat format = ALPHA; // alpha (single chunk files)
 	size_t len = worldPath.size();
 	char *path = new char[len + 40];
 	memcpy(path, worldPath.c_str(), len);
@@ -86,10 +89,10 @@ int getWorldFormat(const std::string& worldPath)
 	if (sd != NULL) {
 		do { // Here we finally arrived at the region files
 			if (strcmp(".mca", RIGHTSTRING(file.name, 4)) == 0) {
-				format = 2;
+				format = ANVIL;
 				break;
 			} else if (format != 1 && strcmp(".mcr", RIGHTSTRING(file.name, 4)) == 0) {
-				format = 1;
+				format = REGION;
 			}
 		} while (Dir::next(sd, path, file));
 		Dir::close(sd);

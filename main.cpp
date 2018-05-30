@@ -76,9 +76,9 @@ int main(int argc, char **argv)
 	}
 	bool wholeworld = false;
 	std::string filename, outfile, colorfile, texturefile, infoFile, biomepath;
-	bool dumpColors = false, infoOnly = false, end = false;
+	bool dumpColors = false, infoOnly = false;
 	uint64_t memlimit;
-	if (sizeof(size_t) < 8) { //testen auf 32Bit
+	if (sizeof(size_t) < 8) { //test for 32Bit
 		memlimit = 1500 * uint64_t(1024 * 1024);
 	} else { //64Bit
 		memlimit = 2000 * uint64_t(1024 * 1024);
@@ -88,145 +88,146 @@ int main(int argc, char **argv)
 	// First, for the sake of backward compatibility, try to parse command line arguments the old way first
 	if (argc >= 7
 	      && isNumeric(argv[1]) && isNumeric(argv[2]) && isNumeric(argv[3]) && isNumeric(argv[4])) {     // Specific area of world
-		g_FromChunkX = atoi(argv[1]);
-		g_FromChunkZ = atoi(argv[2]);
-		g_ToChunkX	= atoi(argv[3]) + 1;
-		g_ToChunkZ	= atoi(argv[4]) + 1;
-		g_MapsizeY = atoi(argv[5]);
+		Global::FromChunkX = atoi(argv[1]);
+		Global::FromChunkZ = atoi(argv[2]);
+		Global::ToChunkX = atoi(argv[3]) + 1;
+		Global::ToChunkZ = atoi(argv[4]) + 1;
+		Global::MapsizeY = atoi(argv[5]);
 		filename = argv[6];
 		if (argc > 7) {
-			g_Nightmode = (atoi(argv[7]) == 1);
-			g_Underground = (atoi(argv[7]) == 2);
+			Global::settings.nightmode = (atoi(argv[7]) == 1);
+			Global::settings.underground = (atoi(argv[7]) == 2);
 		}
 	} else if (argc == 3 && isNumeric(argv[2])) {  // Whole world - old way
 		filename = argv[1];
-		g_Nightmode = (atoi(argv[2]) == 1);
-		g_Underground = (atoi(argv[2]) == 2);
+		Global::settings.nightmode = (atoi(argv[2]) == 1);
+		Global::settings.underground = (atoi(argv[2]) == 2);
 	} else { // -- New command line parsing --
 #		define MOREARGS(x) (argpos + (x) < argc)
 #		define NEXTARG argv[++argpos]
 #		define POLLARG(x) argv[argpos + (x)]
 		int argpos = 0;
 		while (MOREARGS(1)) {
-			const char *option = NEXTARG;
-			if (strcmp(option, "-from") == 0) {
+			const std::string option = NEXTARG;
+			if (option == "-from") {
 				if (!MOREARGS(2) || !isNumeric(POLLARG(1)) || !isNumeric(POLLARG(2))) {
 					printf("Error: %s needs two integer arguments, ie: %s -10 5\n", option, option);
 					return 1;
 				}
-				g_FromChunkX = atoi(NEXTARG);
-				g_FromChunkZ = atoi(NEXTARG);
-			} else if (strcmp(option, "-to") == 0) {
+				Global::FromChunkX = atoi(NEXTARG);
+				Global::FromChunkZ = atoi(NEXTARG);
+			} else if (option == "-to") {
 				if (!MOREARGS(2) || !isNumeric(POLLARG(1)) || !isNumeric(POLLARG(2))) {
 					printf("Error: %s needs two integer arguments, ie: %s -5 20\n", option, option);
 					return 1;
 				}
-				g_ToChunkX = atoi(NEXTARG) + 1;
-				g_ToChunkZ = atoi(NEXTARG) + 1;
-			} else if (strcmp(option, "-night") == 0) {
-				g_Nightmode = true;
-			} else if (strcmp(option, "-cave") == 0 || strcmp(option, "-caves") == 0 || strcmp(option, "-underground") == 0) {
-				g_Underground = true;
-			} else if (strcmp(option, "-blendcave") == 0 || strcmp(option, "-blendcaves") == 0) {
-				g_BlendUnderground = true;
-			} else if (strcmp(option, "-skylight") == 0) {
-				g_Skylight = true;
-			} else if (strcmp(option, "-nether") == 0 || strcmp(option, "-hell") == 0 || strcmp(option, "-slip") == 0) {
-				g_Hell = true;
-			} else if (strcmp(option, "-end") == 0) {
-				end = true;
-			} else if (strcmp(option, "-serverhell") == 0) {
-				g_ServerHell = true;
-			} else if (strcmp(option, "-biomes") == 0) {
-				g_UseBiomes = true;
-			} else if (strcmp(option, "-biomecolors") == 0) {
+				Global::ToChunkX = atoi(NEXTARG) + 1;
+				Global::ToChunkZ = atoi(NEXTARG) + 1;
+			} else if (option == "-night") {
+				Global::settings.nightmode = true;
+			} else if ((option == "-cave") || (option == "-caves") || (option == "-underground") ) {
+				Global::settings.underground = true;
+			} else if ((option == "-blendcave") || (option == "-blendcaves")) {
+				Global::settings.blendUnderground = true;
+			} else if ((option == "-skylight")) {
+				Global::settings.skylight = true;
+			} else if ((option == "-nether") || (option == "-hell") || (option == "-slip")) {
+				Global::settings.hell = true;
+			} else if (option == "-end") {
+				Global::settings.end = true;
+			} else if (option == "-serverhell") {
+				Global::settings.serverHell = true;
+			} else if (option == "-biomes") {
+				Global::useBiomes = true;
+			} else if (option == "-biomecolors") {
 				if (!MOREARGS(1)) {
 					printf("Error: %s needs path to grasscolor.png and foliagecolor.png, ie: %s ./subdir\n", option, option);
 					return 1;
 				}
-				g_UseBiomes = true;
+				Global::useBiomes = true;
 				biomepath = NEXTARG;
-			} else if (strcmp(option, "-png") == 0) {
-				// void
-			} else if (strcmp(option, "-blendall") == 0) {
-				g_BlendAll = true;
-			} else if (strcmp(option, "-lowmemory") == 0) {
-				g_lowMemory = true;
-			} else if (strcmp(option, "-noise") == 0 || strcmp(option, "-dither") == 0) {
+			} else if (option == "-png") {
+				// void ?
+				__debugbreak();
+			} else if (option == "-blendall") {
+				Global::settings.blendAll = true;
+			} else if (option == "-lowmemory") {
+				Global::settings.lowMemory = true;
+			} else if ((option == "-noise") || (option == "-dither")) {
 				if (!MOREARGS(1) || !isNumeric(POLLARG(1))) {
 					printf("Error: %s needs an integer argument, ie: %s 10\n", option, option);
 					return 1;
 				}
-				g_Noise = atoi(NEXTARG);
-			} else if (strcmp(option, "-height") == 0 || strcmp(option, "-max") == 0) {
+				Global::settings.noise = atoi(NEXTARG);
+			} else if ((option == "-height") || (option == "-max")) {
 				if (!MOREARGS(1) || !isNumeric(POLLARG(1))) {
 					printf("Error: %s needs an integer argument, ie: %s 100\n", option, option);
 					return 1;
 				}
-				g_MapsizeY = atoi(NEXTARG);
-				if (strcmp(option, "-max") == 0) g_MapsizeY++;
-			} else if (strcmp(option, "-min") == 0) {
+				Global::MapsizeY = atoi(NEXTARG);
+				if (option == "-max")  Global::MapsizeY++;
+			} else if (option == "-min") {
 				if (!MOREARGS(1) || !isNumeric(POLLARG(1))) {
 					printf("Error: %s needs an integer argument, ie: %s 50\n", option, option);
 					return 1;
 				}
-				g_MapminY = atoi(NEXTARG);
-			} else if (strcmp(option, "-mem") == 0) {
+				Global::MapminY = atoi(NEXTARG);
+			} else if (option == "-mem") {
 				if (!MOREARGS(1) || !isNumeric(POLLARG(1)) || atoi(POLLARG(1)) <= 0) {
 					printf("Error: %s needs a positive integer argument, ie: %s 1000\n", option, option);
 					return 1;
 				}
 				memlimitSet = true;
 				memlimit = size_t (atoi(NEXTARG)) * size_t (1024 * 1024);
-			} else if (strcmp(option, "-file") == 0) {
+			} else if (option == "-file") {
 				if (!MOREARGS(1)) {
-					printf("Error: %s needs one argument, ie: %s myworld.bmp\n", option, option);
+					printf("Error: %s needs one argument, ie: %s myworld.png\n", option, option);
 					return 1;
 				}
 				outfile = NEXTARG;
-			} else if (strcmp(option, "-colors") == 0) {
+			} else if (option == "-colors") {
 				if (!MOREARGS(1)) {
 					printf("Error: %s needs one argument, ie: %s colors.txt\n", option, option);
 					return 1;
 				}
 				colorfile = NEXTARG;
-			} else if (strcmp(option, "-texture") == 0) {
+			} else if (option == "-texture") {
 				if (!MOREARGS(1)) {
 					printf("Error: %s needs one argument, ie: %s terrain.png\n", option, option);
 					return 1;
 				}
 				texturefile = NEXTARG;
-			} else if (strcmp(option, "-info") == 0) {
+			} else if (option == "-info") {
 				if (!MOREARGS(1)) {
 					printf("Error: %s needs one argument, ie: %s data.json\n", option, option);
 					return 1;
 				}
 				infoFile = NEXTARG;
-			} else if (strcmp(option, "-infoonly") == 0) {
+			} else if (option == "-infoonly") {
 				infoOnly = true;
-			} else if (strcmp(option, "-dumpcolors") == 0) {
+			} else if (option == "-dumpcolors") {
 				dumpColors = true;
-			} else if (strcmp(option, "-north") == 0) {
-				g_Orientation = North;
-			} else if (strcmp(option, "-south") == 0) {
-				g_Orientation = South;
-			} else if (strcmp(option, "-east") == 0) {
-				g_Orientation = East;
-			} else if (strcmp(option, "-west") == 0) {
-				g_Orientation = West;
-			} else if (strcmp(option, "-3") == 0) {
-				g_OffsetY = 3;
-			} else if (strcmp(option, "-split") == 0) {
+			} else if (option == "-north") {
+				Global::settings.orientation = North;
+			} else if (option == "-south") {
+				Global::settings.orientation = South;
+			} else if (option == "-east") {
+				Global::settings.orientation = East;
+			} else if (option == "-west") {
+				Global::settings.orientation = West;
+			} else if (option == "-3") {
+				Global::OffsetY = 3;
+			} else if (option == "-split") {
 				if (!MOREARGS(1)) {
 					printf("Error: %s needs a path argument, ie: %s tiles/\n", option, option);
 					return 1;
 				}
-				g_TilePath = NEXTARG;
-			} else if (strcmp(option, "-help") == 0 || strcmp(option, "-h") == 0 || strcmp(option, "-?") == 0) {
+				Global::tilePath = NEXTARG;
+			} else if ((option == "-help") || (option == "-h") || (option == "-?")) {
 				printHelp(argv[0]);
 				return 0;
-			} else if (strcmp(option, "-marker") == 0) {
-				if (g_MarkerCount >= MAX_MARKERS) {
+			} else if (option == "-marker") {
+				if (Global::markers.size() >= MAX_MARKERS) {
 					printf("Too many markers, ignoring additional ones\n");
 					continue;
 				}
@@ -234,7 +235,7 @@ int main(int argc, char **argv)
 					printf("Error: %s needs a char and two integer arguments, ie: %s r -15 240\n", option, option);
 					return 1;
 				}
-				Marker &marker = g_Markers[g_MarkerCount];
+				Marker marker;
 				switch (*NEXTARG) {
 				case 'r':
 					marker.color = 253;
@@ -254,21 +255,21 @@ int main(int argc, char **argv)
 				marker.chunkZ = floorChunkZ(z);
 				marker.offsetX = x - (marker.chunkX * CHUNKSIZE_X);
 				marker.offsetZ = z - (marker.chunkZ * CHUNKSIZE_Z);
-				g_MarkerCount++;
-            } else if (strcmp(option, "-mystcraftage") == 0) {
+				Global::markers.push_back(marker);
+            } else if (option == "-mystcraftage") {
                 if (!MOREARGS(1)) {
                     printf("Error: %s needs an integer age number argument", option);
                     return 1;
                 }
-                g_MystCraftAge = atoi(NEXTARG);
+                Global::mystCraftAge = atoi(NEXTARG);
 			} else {
-				filename = (char *) option;
+				filename = option;
 			}
 		}
-		wholeworld = (g_FromChunkX == UNDEFINED || g_ToChunkX == UNDEFINED);
+		wholeworld = (Global::FromChunkX == UNDEFINED || Global::ToChunkX == UNDEFINED);
 	}
 	// ########## end of command line parsing ##########
-	if (g_Hell || g_ServerHell || end) g_UseBiomes = false;
+	if (Global::settings.hell || Global::settings.serverHell || Global::settings.end) Global::useBiomes = false;
 
 	printf("mcmap " VERSION " %dbit by Zahl & mcmap3 by WRIM\n", (int)(8*sizeof(size_t)));
 
@@ -316,75 +317,74 @@ int main(int argc, char **argv)
 		printf("Error: Given path does not contain a Minecraft world.\n");
 		return 1;
 	}
-	if (g_Hell) {
+	if (Global::settings.hell) {
 		std::string tmp = filename + "/DIM-1";
 		if (!dirExists(tmp)) {
 			printf("Error: This world does not have a hell world yet. Build a portal first!\n");
 			return 1;
 		}
 		filename = tmp;
-	} else if (end) {
+	} else if (Global::settings.end) {
 		std::string tmp = filename + "/DIM1";
 		if (!dirExists(tmp)) {
 			printf("Error: This world does not have an end-world yet. Find an ender portal first!\n");
 			return 1;
 		}
 		filename = tmp;
-	} else if (g_MystCraftAge) {
-		std::string tmp = filename + "/DIM_MYST" + std::to_string(g_MystCraftAge);
+	} else if (Global::mystCraftAge) {
+		std::string tmp = filename + "/DIM_MYST" + std::to_string(Global::mystCraftAge);
 		if (!dirExists(tmp)) {
-			printf("Error: This world does not have Age %d!\n", g_MystCraftAge);
+			printf("Error: This world does not have Age %d!\n", Global::mystCraftAge);
 			return 1;
 		}
         filename = tmp;
     }
 	// Figure out whether this is the old save format or McRegion or Anvil
-	g_WorldFormat = getWorldFormat(filename);
+	Global::worldFormat = getWorldFormat(filename);
 
-	if (g_WorldFormat < 2) {
-		if (g_MapsizeY > CHUNKSIZE_Y) {
-			g_MapsizeY = CHUNKSIZE_Y;
+	if (Global::worldFormat != ANVIL) { //g_WorldFormat < 2
+		if (Global::MapsizeY > CHUNKSIZE_Y) {
+			Global::MapsizeY = CHUNKSIZE_Y;
 		}
-		if (g_MapminY > CHUNKSIZE_Y) {
-			g_MapminY = CHUNKSIZE_Y;
+		if (Global::MapminY > CHUNKSIZE_Y) {
+			Global::MapminY = CHUNKSIZE_Y;
 		}
 	}
 	if (wholeworld && !scanWorldDirectory(filename)) {
 		printf("Error accessing terrain at '%s'\n", filename);
 		return 1;
 	}
-	if (g_ToChunkX <= g_FromChunkX || g_ToChunkZ <= g_FromChunkZ) {
+	if (Global::ToChunkX <= Global::FromChunkX || Global::ToChunkZ <= Global::FromChunkZ) {
 		printf("Nothing to render: -from X Z has to be <= -to X Z\n");
 		return 1;
 	}
-	if (g_MapsizeY - g_MapminY < 1) {
+	if (Global::MapsizeY - Global::MapminY < 1) {
 		printf("Nothing to render: -min Y has to be < -max/-height Y\n");
 		return 1;
 	}
-	g_SectionMin = g_MapminY >> SECTION_Y_SHIFT;
-	g_SectionMax = (g_MapsizeY - 1) >> SECTION_Y_SHIFT;
-	g_MapsizeY -= g_MapminY;
-	printf("MinY: %d ... MaxY: %d ... MinSecY: %d ... MaxSecY: %d\n", g_MapminY, g_MapsizeY, g_SectionMin, g_SectionMax);
+	Global::sectionMin = Global::MapminY >> SECTION_Y_SHIFT;
+	Global::sectionMax = (Global::MapsizeY - 1) >> SECTION_Y_SHIFT;
+	Global::MapsizeY -= Global::MapminY;
+	printf("MinY: %d ... MaxY: %d ... MinSecY: %d ... MaxSecY: %d\n", Global::MapminY, Global::MapsizeY, Global::sectionMin, Global::sectionMax);
 	// Whole area to be rendered, in chunks
 	// If -mem is omitted or high enough, this won't be needed
-	g_TotalFromChunkX = g_FromChunkX;
-	g_TotalFromChunkZ = g_FromChunkZ;
-	g_TotalToChunkX = g_ToChunkX;
-	g_TotalToChunkZ = g_ToChunkZ;
+	Global::TotalFromChunkX = Global::FromChunkX;
+	Global::TotalFromChunkZ = Global::FromChunkZ;
+	Global::TotalToChunkX = Global::ToChunkX;
+	Global::TotalToChunkX = Global::ToChunkX;
 	// Don't allow ridiculously small values for big maps
-	if (memlimit && memlimit < 200000000 && memlimit < size_t(g_MapsizeX * g_MapsizeZ * 150000)) {
-		printf("Need at least %d MiB of RAM to render a map of that size.\n", int(float(g_MapsizeX) * g_MapsizeZ * .15f + 1));
+	if (memlimit && memlimit < 200000000 && memlimit < size_t(Global::MapsizeX * Global::MapsizeZ * 150000)) {
+		printf("Need at least %d MiB of RAM to render a map of that size.\n", int(float(Global::MapsizeX) * Global::MapsizeZ * .15f + 1));
 		return 1;
 	}
 
 	// Load biomes
-	if (g_UseBiomes) if (g_WorldFormat != 2) {
+	if (Global::useBiomes) if (Global::worldFormat != ANVIL) {
 		std::string bpath = filename + "/biomes";
 		if (!dirExists(bpath)) {
 			printf("Error loading biome information. '%s' does not exist.\n", bpath);
-			g_UseBiomes = false;	//user want biomes but world is non-anvil and biome folder is missing
-		}
-		else
+			Global::useBiomes = false;	//user want biomes but world is non-anvil and biome folder is missing
+		}else
 		if (biomepath.empty()) {
 			biomepath = bpath;
 		}
@@ -394,7 +394,7 @@ int main(int argc, char **argv)
 
 	// Mem check
 	int bitmapX, bitmapY;
-	uint64_t bitmapBytes = calcImageSize(g_ToChunkX - g_FromChunkX, g_ToChunkZ - g_FromChunkZ, g_MapsizeY, bitmapX, bitmapY, false);
+	uint64_t bitmapBytes = calcImageSize(Global::ToChunkX - Global::FromChunkX, Global::ToChunkZ - Global::FromChunkZ, Global::MapsizeY, bitmapX, bitmapY, false);
 	// Cropping
 	int cropLeft = 0, cropRight = 0, cropTop = 0, cropBottom = 0;
 	if (wholeworld) {
@@ -413,10 +413,10 @@ int main(int argc, char **argv)
 		if (infoOnly) return 0;
 	}
 
-	bool splitImage = false;
+	bool splitImage = false; //true if we need to split the image in multiple smaller images (memlimit)
 	int numSplitsX = 0;
 	int numSplitsZ = 0;
-	if (memlimit && memlimit < bitmapBytes + calcTerrainSize(g_ToChunkX - g_FromChunkX, g_ToChunkZ - g_FromChunkZ)) {
+	if (memlimit && memlimit < bitmapBytes + calcTerrainSize(Global::ToChunkX - Global::FromChunkX, Global::ToChunkZ - Global::FromChunkZ)) {
 		// If we'd need more mem than allowed, we have to render groups of chunks...
 		if (memlimit < bitmapBytes + 220 * uint64_t(1024 * 1024)) {
 			// Warn about using incremental rendering if user didn't set limit manually
@@ -434,10 +434,10 @@ int main(int argc, char **argv)
 		}
 		// Split up map more and more, until the mem requirements are satisfied
 		for (numSplitsX = 1, numSplitsZ = 2;;) {
-			int subAreaX = ((g_TotalToChunkX - g_TotalFromChunkX) + (numSplitsX - 1)) / numSplitsX;
-			int subAreaZ = ((g_TotalToChunkZ - g_TotalFromChunkZ) + (numSplitsZ - 1)) / numSplitsZ;
+			int subAreaX = ((Global::TotalToChunkX - Global::TotalFromChunkX) + (numSplitsX - 1)) / numSplitsX;
+			int subAreaZ = ((Global::TotalToChunkZ - Global::TotalFromChunkZ) + (numSplitsZ - 1)) / numSplitsZ;
 			int subBitmapX, subBitmapY;
-			if (splitImage && calcImageSize(subAreaX, subAreaZ, g_MapsizeY, subBitmapX, subBitmapY, true) + calcTerrainSize(subAreaX, subAreaZ) <= memlimit) {
+			if (splitImage && calcImageSize(subAreaX, subAreaZ, Global::MapsizeY, subBitmapX, subBitmapY, true) + calcTerrainSize(subAreaX, subAreaZ) <= memlimit) {
 				break; // Found a suitable partitioning
 			} else if (!splitImage && bitmapBytes + calcTerrainSize(subAreaX, subAreaZ) <= memlimit) {
 				break; // Found a suitable partitioning
@@ -461,7 +461,7 @@ int main(int argc, char **argv)
 	// open output file only if not doing the tiled output
 	//TODO rewrite to use fstream
 	FILE *fileHandle = NULL;
-	if (g_TilePath == NULL) {
+	if (Global::tilePath.empty()) {
 		fileHandle = fopen(outfile.c_str(), (splitImage ? "w+b" : "wb"));
 
 		if (fileHandle == NULL) {
@@ -477,21 +477,21 @@ int main(int argc, char **argv)
 	} else {
 		// This would mean tiled output
 #ifdef _WIN32
-		mkdir(g_TilePath);
+		mkdir(Global::tilePath.c_str());
 #else
-		mkdir(g_TilePath, 0755);
+		mkdir(Global::tilePath.c_str(), 0755);
 #endif
-		if (!dirExists(g_TilePath)) {
-			printf("Error: '%s' does not exist.\n", g_TilePath);
+		if (!dirExists(Global::tilePath)) {
+			printf("Error: '%s' does not exist.\n", Global::tilePath);
 			return 1;
 		}
 		createImageBuffer(bitmapX, bitmapY, splitImage);
 	}
 
 	// Precompute brightness adjustment factor
-	std::vector<float> brightnessLookup(g_MapsizeY);
-	for (int y = 0; y < g_MapsizeY; ++y) {
-		brightnessLookup[y] = ((100.0f / (1.0f + exp(- (1.3f * (float(y) * MIN(g_MapsizeY, 200) / g_MapsizeY) / 16.0f) + 6.0f))) - 91);   // thx Donkey Kong
+	std::vector<float> brightnessLookup(Global::MapsizeY);
+	for (int y = 0; y < brightnessLookup.size(); ++y) {
+		brightnessLookup[y] = ((100.0f / (1.0f + exp(- (1.3f * (float(y) * MIN(Global::MapsizeY, 200) / Global::MapsizeY) / 16.0f) + 6.0f))) - 91);   // thx Donkey Kong
 	}
 
 	// Now here's the loop rendering all the required parts of the image.
@@ -508,8 +508,8 @@ int main(int argc, char **argv)
 			// if image is split up, prepare memory block for next part
 			if (splitImage) {
 				bitmapStartX += 2;
-				const int sizex = (g_ToChunkX - g_FromChunkX) * CHUNKSIZE_X * 2 + (g_ToChunkZ - g_FromChunkZ) * CHUNKSIZE_Z * 2;
-				const int sizey = (int)g_MapsizeY * g_OffsetY + (g_ToChunkX - g_FromChunkX) * CHUNKSIZE_X + (g_ToChunkZ - g_FromChunkZ) * CHUNKSIZE_Z + 3;
+				const int sizex = (Global::ToChunkX - Global::FromChunkX) * CHUNKSIZE_X * 2 + (Global::ToChunkZ - Global::FromChunkZ) * CHUNKSIZE_Z * 2;
+				const int sizey = (int)Global::MapsizeY * Global::OffsetY + (Global::ToChunkX - Global::FromChunkX) * CHUNKSIZE_X + (Global::ToChunkZ - Global::FromChunkZ) * CHUNKSIZE_Z + 3;
 				if (sizex <= 0 || sizey <= 0) continue; // Don't know if this is right, might also be that the size calulation is plain wrong
 				int res = loadImagePart(bitmapStartX - cropLeft, bitmapStartY - cropTop, sizex, sizey);
 				if (res == -1) {
@@ -523,18 +523,18 @@ int main(int argc, char **argv)
 		// This makes code below a bit messy, as most of the time the surrounding chunks are ignored
 		// By starting loops at CHUNKSIZE_X instead of 0.
 		// printf("CHUNKS: X: %d %d, Z: %d %d\n",g_FromChunkX,g_ToChunkX,g_FromChunkZ,g_ToChunkZ);
-		++g_ToChunkX;
-		++g_ToChunkZ;
-		--g_FromChunkX;
-		--g_FromChunkZ;
+		++Global::ToChunkX;
+		++Global::ToChunkZ;
+		--Global::FromChunkX;
+		--Global::FromChunkZ;
 
 		// For rotation, X and Z have to be swapped (East and West)
-		if (g_Orientation == North || g_Orientation == South) {
-			g_MapsizeZ = (g_ToChunkZ - g_FromChunkZ) * CHUNKSIZE_Z;
-			g_MapsizeX = (g_ToChunkX - g_FromChunkX) * CHUNKSIZE_X;
+		if (Global::settings.orientation == North || Global::settings.orientation == South) {
+			Global::MapsizeZ = (Global::ToChunkZ - Global::FromChunkZ) * CHUNKSIZE_Z;
+			Global::MapsizeX = (Global::ToChunkX - Global::FromChunkX) * CHUNKSIZE_X;
 		} else {
-			g_MapsizeX = (g_ToChunkZ - g_FromChunkZ) * CHUNKSIZE_Z;
-			g_MapsizeZ = (g_ToChunkX - g_FromChunkX) * CHUNKSIZE_X;
+			Global::MapsizeX = (Global::ToChunkZ - Global::FromChunkZ) * CHUNKSIZE_Z;
+			Global::MapsizeZ = (Global::ToChunkX - Global::FromChunkX) * CHUNKSIZE_X;
 		}
 
 		// Load world or part of world
@@ -554,21 +554,21 @@ int main(int argc, char **argv)
 			}
 		}
 
-		if (g_WorldFormat == 2 && (g_Hell || g_ServerHell)) {
+		if (Global::worldFormat == ANVIL && (Global::settings.hell || Global::settings.serverHell)) {
 			uncoverNether();
 		}
 
 		// Load biome data if requested
-		if (g_UseBiomes && g_WorldFormat != 2) {
+		if (Global::useBiomes && Global::worldFormat != ANVIL) {
 			loadBiomeMap(biomepath);
 		}
 
 		// If underground mode, remove blocks that don't seem to belong to caves
-		if (g_Underground) {
+		if (Global::settings.underground) {
 			undergroundMode(false);
 		}
 
-		if (g_OffsetY == 2) {
+		if (Global::OffsetY == 2) {
 			optimizeTerrain2((numSplitsX == 0 ? cropLeft : 0), (numSplitsX == 0 ? cropRight : 0));
 		} else {
 			optimizeTerrain3();
@@ -576,21 +576,21 @@ int main(int argc, char **argv)
 
 		// Finally, render terrain to file
 		printf("Drawing map...\n");
-		for (size_t x = CHUNKSIZE_X; x < g_MapsizeX - CHUNKSIZE_X; ++x) {
-			printProgress(x - CHUNKSIZE_X, g_MapsizeX);
-			for (size_t z = CHUNKSIZE_Z; z < g_MapsizeZ - CHUNKSIZE_Z; ++z) {
+		for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) {
+			printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
+			for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
 				// Biome colors
 				uint16_t biome = 0; //wrim - should be 8bit, fix it
-				if (g_BiomeMap != NULL) if (g_WorldFormat != 2) {
+				if (!Global::biomeMap.empty()) if (Global::worldFormat != ANVIL) {
 					uint16_t &offset = BIOMEAT(x,z);
 					// This is getting a bit stupid here, there should be a better solution than a dozen copy ops
-					memcpy(colors[GRASS], g_Grasscolor + offset * g_GrasscolorDepth, 3);
-					memcpy(colors[LEAVES], g_Leafcolor + offset * g_FoliageDepth, 3);
-					memcpy(colors[TALL_GRASS], g_TallGrasscolor + offset * g_GrasscolorDepth, 3);
-					memcpy(colors[PUMPKIN_STEM], g_TallGrasscolor + offset * g_GrasscolorDepth, 3);
-					memcpy(colors[MELON_STEM], g_TallGrasscolor + offset * g_GrasscolorDepth, 3);
-					memcpy(colors[VINES], g_Grasscolor + offset * g_GrasscolorDepth, 3);
-					memcpy(colors[LILYPAD], g_Grasscolor + offset * g_GrasscolorDepth, 3);
+					memcpy(colors[GRASS], &Global::grasscolor[offset * Global::grasscolorDepth], 3);
+					memcpy(colors[LEAVES], &Global::leafcolor[offset * Global::foliageDepth], 3);
+					memcpy(colors[TALL_GRASS], &Global::tallGrasscolor[offset * Global::grasscolorDepth], 3);
+					memcpy(colors[PUMPKIN_STEM], &Global::tallGrasscolor[offset * Global::grasscolorDepth], 3);
+					memcpy(colors[MELON_STEM], &Global::tallGrasscolor[offset * Global::grasscolorDepth], 3);
+					memcpy(colors[VINES], &Global::grasscolor[offset * Global::grasscolorDepth], 3);
+					memcpy(colors[LILYPAD], &Global::grasscolor[offset * Global::grasscolorDepth], 3);
 					// Leaves: This is just an approximation to get different leaf colors at all
 					colors[PINELEAVES][PRED] = clamp(int32_t(colors[LEAVES][PRED]) - 17);
 					colors[PINELEAVES][PGREEN] = clamp(int32_t(colors[LEAVES][PGREEN]) - 12);
@@ -608,17 +608,17 @@ int main(int argc, char **argv)
 				    biome = BIOMEAT(x, z);
 				}
 				//
-				const int bmpPosX = int((g_MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX - cropLeft));
-				int bmpPosY = int(g_MapsizeY * g_OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY - cropTop)) + 2 - (HEIGHTAT(x, z) & 0xFF) * g_OffsetY;
+				const int bmpPosX = int((Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX - cropLeft));
+				int bmpPosY = int(Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY - cropTop)) + 2 - (HEIGHTAT(x, z) & 0xFF) * Global::OffsetY;
 				const int max = (HEIGHTAT(x, z) & 0xFF00) >> 8;
 				for (int y = uint8_t(HEIGHTAT(x, z)); y < max; ++y) {
-					bmpPosY -= g_OffsetY;
+					bmpPosY -= Global::OffsetY;
 					uint8_t &c = BLOCKAT(x, y, z);
 					if (c == AIR) {
 						continue;
 					}
 					uint16_t c16;
-					if (g_lowMemory)
+					if (Global::settings.lowMemory)
 						c16 = colorsToID[c];
 					else
 					{
@@ -627,17 +627,17 @@ int main(int argc, char **argv)
 					}
 					//float col = float(y) * .78f - 91;
 					float brightnessAdjustment = brightnessLookup[y];
-					if (g_BlendUnderground) {
+					if (Global::settings.blendUnderground) {
 						brightnessAdjustment -= 168;
 					}
 					// we use light if...
-					if (g_Nightmode // nightmode is active, or
-					      || (g_Skylight // skylight is used and
+					if (Global::settings.nightmode // nightmode is active, or
+					      || (Global::settings.skylight // skylight is used and
 					          && (!BLOCK_AT_MAPEDGE(x, z))  // block is not edge of map (or if it is, has non-opaque block above)
 					         )) {
 						int l = GETLIGHTAT(x, y, z);  // find out how much light hits that block
 						if (l == 0 && y + 1 == g_MapsizeY) {
-							l = (g_Nightmode ? 3 : 15);   // quickfix: assume maximum strength at highest level
+							l = (Global::settings.nightmode ? 3 : 15);   // quickfix: assume maximum strength at highest level
 						} else {
 							const bool up = y + 1 < g_MapsizeY;
 							if (x + 1 < g_MapsizeX && (!up || BLOCKAT(x + 1, y + 1, z) == 0)) {
@@ -651,7 +651,7 @@ int main(int argc, char **argv)
 							if (up) l = MAX(l, GETLIGHTAT(x, y + 1, z));
 							//if (y + 2 < g_MapsizeY) l = MAX(l, GETLIGHTAT(x, y + 2, z) - 1);
 						}
-						if (!g_Skylight) { // Night
+						if (!Global::settings.skylight) { // Night
 							brightnessAdjustment -= (100 - l * 8);
 						} else { // Day
 							brightnessAdjustment -= (210 - l * 14);
@@ -660,7 +660,7 @@ int main(int argc, char **argv)
 					// Edge detection (this means where terrain goes 'down' and the side of the block is not visible)
 					uint8_t &b = BLOCKAT(x - 1, y - 1, z - 1);
 					uint16_t b16;
-					if (g_lowMemory)
+					if (Global::settings.lowMemory)
 						b16 = colorsToID[c];
 					else
 					{
@@ -682,7 +682,7 @@ int main(int argc, char **argv)
 		// Bitmap creation complete
 		// unless using....
 		// Underground overlay mode
-		if (g_BlendUnderground && !g_Underground) {
+		if (Global::settings.blendUnderground && !Global::settings.underground) {
 			// Load map data again, since block culling removed most of the blocks
 			if (numSplitsX == 0 && wholeworld && !loadEntireTerrain()) {
 				printf("Error loading terrain from '%s'\n", filename);
@@ -695,23 +695,23 @@ int main(int argc, char **argv)
 				}
 			}
 			undergroundMode(true);
-			if (g_OffsetY == 2) {
+			if (Global::OffsetY == 2) {
 				optimizeTerrain2((numSplitsX == 0 ? cropLeft : 0), (numSplitsX == 0 ? cropRight : 0));
 			} else {
 				optimizeTerrain3();
 			}
 			printf("Creating cave overlay...\n");
-			for (size_t x = CHUNKSIZE_X; x < g_MapsizeX - CHUNKSIZE_X; ++x) {
-				printProgress(x - CHUNKSIZE_X, g_MapsizeX);
-				for (size_t z = CHUNKSIZE_Z; z < g_MapsizeZ - CHUNKSIZE_Z; ++z) {
-					const size_t bmpPosX = (g_MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX) - cropLeft;
-					size_t bmpPosY = g_MapsizeY * g_OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY) - cropTop;
-					for (int y = 0; y < MIN(g_MapsizeY, 64); ++y) {
+			for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) {
+				printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
+				for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
+					const size_t bmpPosX = (Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX) - cropLeft;
+					size_t bmpPosY = Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY) - cropTop;
+					for (int y = 0; y < MIN(Global::MapsizeY, 64); ++y) {
 						uint8_t &c = BLOCKAT(x, y, z);
 						if (c != AIR) { // If block is not air (colors[c][3] != 0)
 							blendPixel(bmpPosX, bmpPosY, c, float(y + 30) * .0048f);
 						}
-						bmpPosY -= g_OffsetY;
+						bmpPosY -= Global::OffsetY;
 					}
 				}
 			}

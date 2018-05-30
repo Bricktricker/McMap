@@ -24,12 +24,11 @@ struct Marker {
 };
 
 enum WorldFormat {
-	FORMAT1,
-	FORMAT2,
-	FORMAT3,
-	NUM_FORMATS
+	ALPHA, //old 0
+	REGION, //old 1
+	ANVIL //old 2
 };
-
+/*
 // Global area of world being rendered
 extern int g_TotalFromChunkX, g_TotalFromChunkZ, g_TotalToChunkX, g_TotalToChunkZ;
 // Current area of world being rendered
@@ -72,6 +71,7 @@ extern char *g_TilePath;
 extern int8_t g_SectionMin, g_SectionMax;
 
 extern uint8_t g_MystCraftAge;
+*/
 
 struct Settings {
 	Orientation orientation; // North, West, South, East
@@ -82,6 +82,7 @@ struct Settings {
 	int noise;
 	bool blendAll; // If set, do not assume certain blocks (like grass) are always opaque
 	bool hell, serverHell; // rendering the nether
+	bool end; //erndering the End
 	bool lowMemory;
 };
 
@@ -91,9 +92,9 @@ public:
 	static int TotalFromChunkX, TotalFromChunkZ, TotalToChunkX, TotalToChunkZ; //global area from - to
 	static int FromChunkX, FromChunkZ, ToChunkX, ToChunkZ; // Current area of world being rendered
 	static size_t MapsizeZ, MapsizeX, Terrainsize; // size of that area in blocks (no offset)
-	static int MapminY, MapsizeY; //no idea
+	static int MapminY, MapsizeY; //no idea max CHUNKSIZE_Y (128)
 	static int OffsetY; // y pixel offset in the final image for one y step in 3d array (2 or 3)
-	static WorldFormat wolrdFormat;
+	static WorldFormat worldFormat;
 	static Settings settings; //Used settings
 
 	// For rendering biome colors properly, external png files are used
@@ -108,8 +109,8 @@ public:
 	static std::vector<uint16_t> heightMap; // 2D array to store min and max block height per X/Z - it's 2 bytes per index, upper for highest, lower for lowest (don't ask!)
 
 	static std::string tilePath; // If output is to be split up (for google maps etc) this contains the path to output to, "" otherwise
-	static int8_t g_SectionMin, g_SectionMax;
-	uint8_t g_MystCraftAge;
+	static int8_t sectionMin, sectionMax; //No idea
+	static uint8_t mystCraftAge;
 };
 
 #endif
