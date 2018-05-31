@@ -140,13 +140,18 @@ int main(int argc, char **argv)
 			} else if (option == "-serverhell") {
 				Global::settings.serverHell = true;
 			} else if (option == "-biomes") {
-				Global::useBiomes = true;
+				std::cerr << "-biomes no longer supported\n";
+				__debugbreak();
+				return 1;
+				//Global::useBiomes = true;
 			} else if (option == "-biomecolors") {
 				if (!MOREARGS(1)) {
 					printf("Error: %s needs path to grasscolor.png and foliagecolor.png, ie: %s ./subdir\n", option, option);
 					return 1;
 				}
-				Global::useBiomes = true;
+				std::cerr << "-biomecolors no longer supported\n";
+				__debugbreak();
+				return 1;
 				biomepath = NEXTARG;
 			} else if (option == "-png") {
 				// void ?
@@ -271,7 +276,7 @@ int main(int argc, char **argv)
 		wholeworld = (Global::FromChunkX == UNDEFINED || Global::ToChunkX == UNDEFINED);
 	}
 	// ########## end of command line parsing ##########
-	if (Global::settings.hell || Global::settings.serverHell || Global::settings.end) Global::useBiomes = false;
+	//if (Global::settings.hell || Global::settings.serverHell || Global::settings.end) Global::useBiomes = false;
 #pragma endregion
 
 	printf("mcmap " VERSION " %dbit by Zahl & mcmap3 by WRIM\n", (int)(8*sizeof(size_t)));
@@ -349,7 +354,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (Global::worldFormat != ANVIL) { //g_WorldFormat < 2
+	if (Global::worldFormat < ANVIL) { //g_WorldFormat < 2
 		if (Global::MapsizeY > CHUNKSIZE_Y) {
 			Global::MapsizeY = CHUNKSIZE_Y;
 		}
@@ -385,7 +390,8 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	// Load biomes
+	// Load biomes (no longer supported)
+	/*
 	if (Global::useBiomes) if (Global::worldFormat != ANVIL) {
 		std::string bpath = filename + "/biomes";
 		if (!dirExists(bpath)) {
@@ -397,7 +403,7 @@ int main(int argc, char **argv)
 		}
 		if (!loadBiomeColors(biomepath)) return 1;
 		biomepath = bpath;
-	}
+	}*/
 
 	// Mem check
 	int bitmapX, bitmapY;
@@ -565,10 +571,11 @@ int main(int argc, char **argv)
 			uncoverNether();
 		}
 
-		// Load biome data if requested
+		// Load biome data if requested (no longer supported)
+		/*
 		if (Global::useBiomes && Global::worldFormat != ANVIL) {
 			loadBiomeMap(biomepath);
-		}
+		}*/
 
 		// If underground mode, remove blocks that don't seem to belong to caves
 		if (Global::settings.underground) {

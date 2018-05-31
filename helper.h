@@ -4,7 +4,7 @@
 // Just in case these ever change
 #define CHUNKSIZE_Z 16
 #define CHUNKSIZE_X 16
-#define CHUNKSIZE_Y 128
+#define CHUNKSIZE_Y 256 //old 128
 #define SECTION_Y 16
 #define SECTION_Y_SHIFT 4
 // Some macros for easier array access
@@ -39,6 +39,8 @@
 #define RIGHTSTRING(x,y) (strlen(x) >= (y) ? (x) + strlen(x) - (y) : (x))
 
 #include <string>
+#include <vector>
+#include <iterator>
 
 // Difference between MSVC++ and gcc/others
 #if defined(_WIN32) && !defined(__GNUC__)
@@ -79,4 +81,19 @@ bool dirExists(const std::string& strFilename);
 bool isNumeric(const std::string& str);
 bool isAlphaWorld(const std::string& path);
 bool strEndsWith(std::string const &fullString, std::string const &ending);
+
+template<typename Out>
+void strSplit(const std::string &s, char delim, Out result) {
+	std::stringstream ss(s);
+	std::string item;
+	while (std::getline(ss, item, delim)) {
+		*(result++) = item;
+	}
+}
+
+std::vector<std::string> strSplit(const std::string &s, char delim) {
+	std::vector<std::string> elems;
+	strSplit(s, delim, std::back_inserter(elems));
+	return elems;
+}
 #endif

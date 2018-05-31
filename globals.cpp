@@ -1,4 +1,6 @@
 #include "globals.h"
+
+#include "worldloader.h"
 /*
 int g_TotalFromChunkX, g_TotalFromChunkZ, g_TotalToChunkX, g_TotalToChunkZ;
 int g_FromChunkX = UNDEFINED, g_FromChunkZ = UNDEFINED, g_ToChunkX = UNDEFINED, g_ToChunkZ = UNDEFINED;
@@ -39,14 +41,14 @@ uint8_t g_MystCraftAge;
 
 
 int Global::TotalFromChunkX, Global::TotalFromChunkZ, Global::TotalToChunkX, Global::TotalToChunkZ;
-int Global::FromChunkX, Global::FromChunkZ, Global::ToChunkX, Global::ToChunkZ;
+int Global::FromChunkX = UNDEFINED, Global::FromChunkZ = UNDEFINED, Global::ToChunkX = UNDEFINED, Global::ToChunkZ = UNDEFINED;
 size_t Global::MapsizeZ, Global::MapsizeX, Global::Terrainsize;
 int Global::MapminY, Global::MapsizeY;
 int Global::OffsetY;
 WorldFormat Global::worldFormat;
 Settings Global::settings = { East, false, false, false, false, 0, false, false, false, false, false };
 
-bool Global::useBiomes;
+//bool Global::useBiomes;
 uint64_t Global::biomeMapSize;
 std::vector<uint8_t> Global::grasscolor, Global::leafcolor, Global::tallGrasscolor;
 std::vector<uint16_t> Global::biomeMap;
@@ -55,7 +57,10 @@ int Global::grasscolorDepth, Global::foliageDepth;
 std::vector<Marker> Global::markers;
 std::vector<uint8_t> Global::terrain, Global::light;
 std::vector<uint16_t> Global::heightMap;
+size_t Global::lightsize;
 
 std::string Global::tilePath;
 int8_t Global::sectionMin, Global::sectionMax;
 uint8_t Global::mystCraftAge = 0U;
+
+World Global::world;
