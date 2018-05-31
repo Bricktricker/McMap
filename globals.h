@@ -24,9 +24,10 @@ struct Marker {
 };
 
 enum WorldFormat {
-	ALPHA, //old 0
-	REGION, //old 1
-	ANVIL //old 2
+	ALPHA = 0, //old 0
+	REGION = 1, //old 1
+	ANVIL = 2, //old 2
+	ANVIL13 = 3 //New Anvil format in Minecraft 1.13
 };
 /*
 // Global area of world being rendered
@@ -92,9 +93,10 @@ public:
 	static int TotalFromChunkX, TotalFromChunkZ, TotalToChunkX, TotalToChunkZ; //global area from - to
 	static int FromChunkX, FromChunkZ, ToChunkX, ToChunkZ; // Current area of world being rendered
 	static size_t MapsizeZ, MapsizeX, Terrainsize; // size of that area in blocks (no offset)
-	static int MapminY, MapsizeY; //no idea max CHUNKSIZE_Y (128)
+	static int MapminY; //minimum height to render from
+	static int MapsizeY; //maximum height to rendrer (max CHUNKSIZE_Y (128))
 	static int OffsetY; // y pixel offset in the final image for one y step in 3d array (2 or 3)
-	static WorldFormat worldFormat;
+	static WorldFormat worldFormat; //Format of the world
 	static Settings settings; //Used settings
 
 	// For rendering biome colors properly, external png files are used

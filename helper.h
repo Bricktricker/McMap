@@ -9,28 +9,28 @@
 #define SECTION_Y_SHIFT 4
 // Some macros for easier array access
 // First: Block array
-#define BLOCKAT(x,y,z) g_Terrain[(y) + ((z) + ((x) * g_MapsizeZ)) * g_MapsizeY]
-#define BLOCKDATA(x,y,z) g_Terrain[(y) + ((z) + ((x) * g_MapsizeZ)) * g_MapsizeY + g_Terrainsize]
-#define BLOCKEAST(x,y,z) g_Terrain[(y) + ((g_MapsizeZ - ((x) + 1)) + ((z) * g_MapsizeZ)) * g_MapsizeY]
-#define BLOCKWEST(x,y,z) g_Terrain[(y) + ((x) + ((g_MapsizeX - ((z) + 1)) * g_MapsizeZ)) * g_MapsizeY]
-#define BLOCKNORTH(x,y,z) g_Terrain[(y) + ((z) + ((x) * g_MapsizeZ)) * g_MapsizeY]
-#define BLOCKSOUTH(x,y,z) g_Terrain[(y) + ((g_MapsizeZ - ((z) + 1)) + ((g_MapsizeX - ((x) + 1)) * g_MapsizeZ)) * g_MapsizeY]
-//#define BLOCKAT(x,y,z) g_Terrain[(x) + ((z) + ((y) * g_MapsizeZ)) * g_MapsizeX]
-//#define BLOCKEAST(x,y,z) g_Terrain[(z) + ((g_MapsizeZ - ((x) + 1)) + ((y) * g_MapsizeZ)) * g_MapsizeX]
+#define BLOCKAT(x,y,z) Global::terrain[(y) + ((z) + ((x) * Global::MapsizeZ)) * Global::MapsizeY]
+#define BLOCKDATA(x,y,z) Global::terrain[(y) + ((z) + ((x) * Global::MapsizeZ)) * Global::MapsizeY + Global::Terrainsize]
+#define BLOCKEAST(x,y,z) Global::terrain[(y) + ((Global::MapsizeZ - ((x) + 1)) + ((z) * Global::MapsizeZ)) * Global::MapsizeY]
+#define BLOCKWEST(x,y,z) Global::terrain[(y) + ((x) + ((Global::MapsizeX - ((z) + 1)) * Global::MapsizeZ)) * Global::MapsizeY]
+#define BLOCKNORTH(x,y,z) Global::terrain[(y) + ((z) + ((x) * Global::MapsizeZ)) * Global::MapsizeY]
+#define BLOCKSOUTH(x,y,z) Global::terrain[(y) + ((Global::MapsizeZ - ((z) + 1)) + ((Global::MapsizeX - ((x) + 1)) * Global::MapsizeZ)) * Global::MapsizeY]
+//#define BLOCKAT(x,y,z) Global::terrain[(x) + ((z) + ((y) * Global::MapsizeZ)) * Global::MapsizeX]
+//#define BLOCKEAST(x,y,z) Global::terrain[(z) + ((Global::MapsizeZ - ((x) + 1)) + ((y) * Global::MapsizeZ)) * Global::MapsizeX]
 // Same for lightmap
-#define GETLIGHTAT(x,y,z) ((g_Light[((y) / 2) + ((z) + ((x) * g_MapsizeZ)) * ((g_MapsizeY + 1) / 2)] >> (((y) % 2) * 4)) & 0xF)
-#define SETLIGHTEAST(x,y,z) g_Light[((y) / 2) + ((g_MapsizeZ - ((x) + 1)) + ((z) * g_MapsizeZ)) * ((g_MapsizeY + 1) / 2)]
-#define SETLIGHTWEST(x,y,z) g_Light[((y) / 2) + ((x) + ((g_MapsizeX - ((z) + 1)) * g_MapsizeZ)) * ((g_MapsizeY + 1) / 2)]
-#define SETLIGHTNORTH(x,y,z) g_Light[((y) / 2) + ((z) + ((x) * g_MapsizeZ)) * ((g_MapsizeY + 1) / 2)]
-#define SETLIGHTSOUTH(x,y,z) g_Light[((y) / 2) + ((g_MapsizeZ - ((z) + 1)) + ((g_MapsizeX - ((x) + 1)) * g_MapsizeZ)) * ((g_MapsizeY + 1) / 2)]
+#define GETLIGHTAT(x,y,z) ((Global::light[((y) / 2) + ((z) + ((x) * Global::MapsizeZ)) * ((Global::MapsizeY + 1) / 2)] >> (((y) % 2) * 4)) & 0xF)
+#define SETLIGHTEAST(x,y,z) Global::light[((y) / 2) + ((Global::MapsizeZ - ((x) + 1)) + ((z) * Global::MapsizeZ)) * ((Global::MapsizeY + 1) / 2)]
+#define SETLIGHTWEST(x,y,z) Global::light[((y) / 2) + ((x) + ((Global::MapsizeX - ((z) + 1)) * Global::MapsizeZ)) * ((Global::MapsizeY + 1) / 2)]
+#define SETLIGHTNORTH(x,y,z) Global::light[((y) / 2) + ((z) + ((x) * Global::MapsizeZ)) * ((Global::MapsizeY + 1) / 2)]
+#define SETLIGHTSOUTH(x,y,z) Global::light[((y) / 2) + ((Global::MapsizeZ - ((z) + 1)) + ((Global::MapsizeX - ((x) + 1)) * Global::MapsizeZ)) * ((Global::MapsizeY + 1) / 2)]
 // Biome array
-#define BIOMEAT(x,z) g_BiomeMap[(z) + ((x) * g_MapsizeZ)]
-#define BIOMEEAST(x,z) g_BiomeMap[(g_MapsizeZ - ((x) + 1)) + ((z) * g_MapsizeZ)]
-#define BIOMEWEST(x,z) g_BiomeMap[(x) + ((g_MapsizeX - ((z) + 1)) * g_MapsizeZ)]
-#define BIOMENORTH(x,z) g_BiomeMap[(z) + ((x) * g_MapsizeZ)]
-#define BIOMESOUTH(x,z) g_BiomeMap[(g_MapsizeZ - ((z) + 1)) + ((g_MapsizeX - ((x) + 1)) * g_MapsizeZ)]
+#define BIOMEAT(x,z) Global::biomeMap[(z) + ((x) * Global::MapsizeZ)]
+#define BIOMEEAST(x,z) Global::biomeMap[(Global::MapsizeZ - ((x) + 1)) + ((z) * Global::MapsizeZ)]
+#define BIOMEWEST(x,z) Global::biomeMap[(x) + ((Global::MapsizeX - ((z) + 1)) * Global::MapsizeZ)]
+#define BIOMENORTH(x,z) Global::biomeMap[(z) + ((x) * Global::MapsizeZ)]
+#define BIOMESOUTH(x,z) Global::biomeMap[(Global::MapsizeZ - ((z) + 1)) + ((Global::MapsizeX - ((x) + 1)) * Global::MapsizeZ)]
 // Heightmap array
-#define HEIGHTAT(x,z) g_HeightMap[(z) + ((x) * g_MapsizeZ)]
+#define HEIGHTAT(x,z) Global::heightMap[(z) + ((x) * Global::MapsizeZ)]
 
 
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
@@ -78,5 +78,5 @@ bool fileExists(const std::string& strFilename);
 bool dirExists(const std::string& strFilename);
 bool isNumeric(const std::string& str);
 bool isAlphaWorld(const std::string& path);
-
+bool strEndsWith(std::string const &fullString, std::string const &ending);
 #endif

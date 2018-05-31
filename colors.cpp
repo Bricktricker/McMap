@@ -30,7 +30,7 @@
 	} while (false)
 
 // See header for description
-uint8_t colors[65536][8];
+uint8_t colors[65536][8]; //first Block-ID, second blockdata (PRED PGREEN PBLUE PALPHA NOISE BRIGHTNESS BLOCKTYPE)
 int16_t biomes[256][4];
 uint8_t colorsToMap[65536];
 uint16_t colorsToID[256] =
@@ -79,7 +79,7 @@ void SET_COLORNOISE(uint16_t col, uint16_t r, uint16_t g, uint16_t b, uint16_t a
 		SETCOLORNOISE(x, r, g, b, a, n);
 	}
 }
-void SET_COLOR(uint16_t col, uint16_t r, uint16_t g, uint16_t b, uint16_t a)
+void SET_COLOR(uint16_t col, uint16_t r, uint16_t g, uint16_t b, uint16_t a) //col is Block-ID
 {
 	SET_COLORNOISE(col,r,g,b,a,0);
 }
@@ -109,11 +109,11 @@ void COLOR_COPY(uint16_t from, uint16_t to)
 		memcpy(colors[(i<<12)+to], colors[(i<<12)+from], 6);
 	}
 }
-void SET_BLOCK(uint8_t type, uint8_t block)
+void SET_BLOCK(uint8_t type, uint8_t block) //type e.g BLOCKFLAT, blog e.g SNOW
 {
 	for (int i = 0; i < 16; i++)
 	{
-		colors[(i<<12)+block][BLOCKTYPE] = type;
+		colors[(i<<12)+block][BLOCKTYPE] = type; //1<<12 = 4096
 	}
 }
 

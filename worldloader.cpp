@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <zlib.h>
 #include <iostream>
+#include <climits>
 
 #define CHUNKS_PER_BIOME_FILE 32
 #define REGIONSIZE 32
@@ -51,6 +52,35 @@ namespace
 	chunkList chunks; // list of all chunks/regions of a world
 	pointList points; // all existing chunk X|Z found in region files
 
+	template <typename T>
+	T ntoh(T u)
+	{
+		static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
+
+		{ //Check for big endiness
+			union {
+				uint32_t i;
+				char c[4];
+			} b = { 0x01020304 };
+
+			if (b.c[0] == 1) return u;
+		}
+
+		union
+		{
+			T u;
+			unsigned char u8[sizeof(T)];
+		} source, dest;
+
+		source.u = u;
+
+		for (size_t k = 0; k < sizeof(T); k++)
+			dest.u8[k] = source.u8[sizeof(T) - k - 1];
+
+		return dest.u;
+	}
+	
+	
 	// network byte order to host byte order (32 bit, reads from 8 bit stream/array)
 	inline uint32_t _ntohl(uint8_t *val)
 	{
@@ -75,35 +105,35 @@ static inline void assignBlock(const uint16_t &source, uint8_t* &dest, int &x, i
 static inline void lightCave(const int x, const int y, const int z);
 
 /*
- TODO: UMschreiben std::string zu nutzen
+ TODO: Umschreiben std::string zu nutzen
 */
 WorldFormat getWorldFormat(const std::string& worldPath)
 {
 	WorldFormat format = ALPHA; // alpha (single chunk files)
-	size_t len = worldPath.size();
-	char *path = new char[len + 40];
-	memcpy(path, worldPath.c_str(), len);
-	memcpy(path + len, "/region", 8);
+	std::string path = worldPath;
+	path.append("/region");
+
 	myFile file;
-	DIRHANDLE sd = Dir::open(path, file);
+	DIRHANDLE sd = Dir::open(path.c_str(), file);
 	if (sd != NULL) {
 		do { // Here we finally arrived at the region files
-			if (strcmp(".mca", RIGHTSTRING(file.name, 4)) == 0) {
+			if (strEndsWith(file.name, ".mca")) {
 				format = ANVIL;
 				break;
-			} else if (format != 1 && strcmp(".mcr", RIGHTSTRING(file.name, 4)) == 0) {
+			} else if (format != REGION && strEndsWith(file.name, ".mcr")) {
 				format = REGION;
 			}
-		} while (Dir::next(sd, path, file));
+		} while (Dir::next(sd, path.c_str(), file));
 		Dir::close(sd);
 	}
-	delete[] path;
 	return format;
 }
 
 bool scanWorldDirectory(const std::string& fromPath)
 {
 	if (g_WorldFormat != 0) return scanWorldDirectoryRegion(fromPath);
+
+	//Alpha format
 	charList subdirs;
 	myFile file;
 	DIRHANDLE d = Dir::open((char*)fromPath.c_str(), file);

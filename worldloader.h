@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <stdint.h>
 #include <string>
+#include "globals.h"
 
 WorldFormat getWorldFormat(const std::string& worldPath);
 bool scanWorldDirectory(const std::string& fromPath);

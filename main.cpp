@@ -37,6 +37,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
+#include <iostream>
 #ifdef _DEBUG
 #include <cassert>
 #endif
@@ -56,7 +57,7 @@ namespace
 }
 
 // Macros to make code more readable
-#define BLOCK_AT_MAPEDGE(x,z) (((z)+1 == g_MapsizeZ-CHUNKSIZE_Z && gAtBottomLeft) || ((x)+1 == g_MapsizeX-CHUNKSIZE_X && gAtBottomRight))
+#define BLOCK_AT_MAPEDGE(x,z) (((z)+1 == Global::MapsizeZ-CHUNKSIZE_Z && gAtBottomLeft) || ((x)+1 == Global::MapsizeX-CHUNKSIZE_X && gAtBottomRight))
 
 void optimizeTerrain2(int cropLeft, int cropRight);
 void optimizeTerrain3();
@@ -85,6 +86,7 @@ int main(int argc, char **argv)
 	}
 	bool memlimitSet = false;
 
+#pragma region CommandLineParsing
 	// First, for the sake of backward compatibility, try to parse command line arguments the old way first
 	if (argc >= 7
 	      && isNumeric(argv[1]) && isNumeric(argv[2]) && isNumeric(argv[3]) && isNumeric(argv[4])) {     // Specific area of world
@@ -270,6 +272,7 @@ int main(int argc, char **argv)
 	}
 	// ########## end of command line parsing ##########
 	if (Global::settings.hell || Global::settings.serverHell || Global::settings.end) Global::useBiomes = false;
+#pragma endregion
 
 	printf("mcmap " VERSION " %dbit by Zahl & mcmap3 by WRIM\n", (int)(8*sizeof(size_t)));
 
@@ -341,6 +344,10 @@ int main(int argc, char **argv)
     }
 	// Figure out whether this is the old save format or McRegion or Anvil
 	Global::worldFormat = getWorldFormat(filename);
+	if (!(Global::worldFormat == ANVIL || Global::worldFormat == ANVIL13)) {
+		std::cerr << "World in old format, please convert to new anvil format first\n";
+		return 1;
+	}
 
 	if (Global::worldFormat != ANVIL) { //g_WorldFormat < 2
 		if (Global::MapsizeY > CHUNKSIZE_Y) {
@@ -522,7 +529,7 @@ int main(int argc, char **argv)
 		// More chunks are needed at the sides to get light and edge detection right at the edges
 		// This makes code below a bit messy, as most of the time the surrounding chunks are ignored
 		// By starting loops at CHUNKSIZE_X instead of 0.
-		// printf("CHUNKS: X: %d %d, Z: %d %d\n",g_FromChunkX,g_ToChunkX,g_FromChunkZ,g_ToChunkZ);
+		// printf("CHUNKS: X: %d %d, Z: %d %d\n",g_FromChunkX,Global::ToChunkX,g_FromChunkZ,Global::ToChunkZ);
 		++Global::ToChunkX;
 		++Global::ToChunkZ;
 		--Global::FromChunkX;
@@ -636,20 +643,20 @@ int main(int argc, char **argv)
 					          && (!BLOCK_AT_MAPEDGE(x, z))  // block is not edge of map (or if it is, has non-opaque block above)
 					         )) {
 						int l = GETLIGHTAT(x, y, z);  // find out how much light hits that block
-						if (l == 0 && y + 1 == g_MapsizeY) {
+						if (l == 0 && y + 1 == Global::MapsizeY) {
 							l = (Global::settings.nightmode ? 3 : 15);   // quickfix: assume maximum strength at highest level
 						} else {
-							const bool up = y + 1 < g_MapsizeY;
-							if (x + 1 < g_MapsizeX && (!up || BLOCKAT(x + 1, y + 1, z) == 0)) {
+							const bool up = y + 1 < Global::MapsizeY;
+							if (x + 1 < Global::MapsizeX && (!up || BLOCKAT(x + 1, y + 1, z) == 0)) {
 								l = MAX(l, GETLIGHTAT(x + 1, y, z));
-								if (x + 2 < g_MapsizeX) l = MAX(l, GETLIGHTAT(x + 2, y, z) - 1);
+								if (x + 2 < Global::MapsizeX) l = MAX(l, GETLIGHTAT(x + 2, y, z) - 1);
 							}
-							if (z + 1 < g_MapsizeZ && (!up || BLOCKAT(x, y + 1, z + 1) == 0)) {
+							if (z + 1 < Global::MapsizeZ && (!up || BLOCKAT(x, y + 1, z + 1) == 0)) {
 								l = MAX(l, GETLIGHTAT(x, y, z + 1));
-								if (z + 2 < g_MapsizeZ) l = MAX(l, GETLIGHTAT(x, y, z + 2) - 1);
+								if (z + 2 < Global::MapsizeZ) l = MAX(l, GETLIGHTAT(x, y, z + 2) - 1);
 							}
 							if (up) l = MAX(l, GETLIGHTAT(x, y + 1, z));
-							//if (y + 2 < g_MapsizeY) l = MAX(l, GETLIGHTAT(x, y + 2, z) - 1);
+							//if (y + 2 < Global::MapsizeY) l = MAX(l, GETLIGHTAT(x, y + 2, z) - 1);
 						}
 						if (!Global::settings.skylight) { // Night
 							brightnessAdjustment -= (100 - l * 8);
@@ -667,7 +674,7 @@ int main(int argc, char **argv)
 						uint8_t &b2 = BLOCKDATA(x - 1, y - 1, z - 1);
 						b16 = (b) + (b2 << 8);
 					}
-					if ((y && y + 1 < g_MapsizeY)  // In bounds?
+					if ((y && y + 1 < Global::MapsizeY)  // In bounds?
 					      && BLOCKAT(x, y + 1, z) == AIR  // Only if block above is air
 					      && BLOCKAT(x - 1, y + 1, z - 1) == AIR  // and block above and behind is air
 					      && (b == AIR || b16 == c16)   // block behind (from pov) this one is same type or air
@@ -752,9 +759,9 @@ void optimizeTerrain2(int cropLeft, int cropRight)
 #ifdef _DEBUG
 	gBlocksRemoved = 0;
 #endif
-	const int maxX = g_MapsizeX - CHUNKSIZE_X;
-	const int maxZ = g_MapsizeZ - CHUNKSIZE_Z;
-	const int modZ = maxZ * g_MapsizeY;
+	const int maxX = Global::MapsizeX - CHUNKSIZE_X;
+	const int maxZ = Global::MapsizeZ - CHUNKSIZE_Z;
+	const int modZ = maxZ * Global::MapsizeY;
 	uint8_t * const blocked = new uint8_t[modZ];
 	int offsetZ = 0, offsetY = 0, offsetGlobal = 0;
 	memset(blocked, 0, modZ);
@@ -764,8 +771,8 @@ void optimizeTerrain2(int cropLeft, int cropRight)
 		for (int z = CHUNKSIZE_Z; z < maxZ; ++z) {
 			const uint8_t *block = &BLOCKAT(x, 0, z); // Get the lowest block at that point
 			int highest = 0, lowest = 0xFF; // remember lowest and highest block which are visible to limit the Y-for-loop later
-			for (int y = 0; y < g_MapsizeY; ++y) { // Go up
-				uint8_t &current = blocked[((y+offsetY) % g_MapsizeY) + (offsetZ % modZ)];
+			for (int y = 0; y < Global::MapsizeY; ++y) { // Go up
+				uint8_t &current = blocked[((y+offsetY) % Global::MapsizeY) + (offsetZ % modZ)];
 				if (current) { // Block is hidden, remove
 #ifdef _DEBUG
 					if (*block != AIR) {
@@ -784,13 +791,13 @@ void optimizeTerrain2(int cropLeft, int cropRight)
 				++block; // Go up
 			}
 			HEIGHTAT(x, z) = (((uint16_t)highest + 1) << 8) | (uint16_t)lowest; // cram them both into a 16bit int
-			blocked[(offsetY % g_MapsizeY) + (offsetZ % modZ)] = 0;
-			offsetZ += g_MapsizeY;
+			blocked[(offsetY % Global::MapsizeY) + (offsetZ % modZ)] = 0;
+			offsetZ += Global::MapsizeY;
 		}
-		for (int y = 0; y < g_MapsizeY; ++y) {
+		for (int y = 0; y < Global::MapsizeY; ++y) {
 			blocked[y + (offsetGlobal % modZ)] = 0;
 		}
-		offsetGlobal += g_MapsizeY;
+		offsetGlobal += Global::MapsizeY;
 		++offsetY;
 	}
 	delete[] blocked;
@@ -810,22 +817,22 @@ void optimizeTerrain3()
 #endif
 	printProgress(0, 10);
 	// Helper arrays to remember which block is blocked from being seen. This allows to traverse the array in a slightly more sequential way, which leads to better usage of the CPU cache
-	uint8_t *blocked = new uint8_t[g_MapsizeY*3];
-	const int max = (int)MIN(g_MapsizeX - CHUNKSIZE_X * 2, g_MapsizeZ - CHUNKSIZE_Z * 2);
-	const int maxX = int(g_MapsizeX - CHUNKSIZE_X - 1);
-	const int maxZ = int(g_MapsizeZ - CHUNKSIZE_Z - 1);
+	uint8_t *blocked = new uint8_t[Global::MapsizeY * 3];
+	const int max = (int)MIN(Global::MapsizeX - CHUNKSIZE_X * 2, Global::MapsizeZ - CHUNKSIZE_Z * 2);
+	const int maxX = int(Global::MapsizeX - CHUNKSIZE_X - 1);
+	const int maxZ = int(Global::MapsizeZ - CHUNKSIZE_Z - 1);
 	const size_t maxProgress = size_t(maxX + maxZ);
 	// The following needs to be done twice, once for the X-Y front plane, once for the Z-Y front plane
 	for (int x = CHUNKSIZE_X; x <= maxX; ++x) {
-		memset(blocked, 0, g_MapsizeY*3); // Nothing is blocked at first
+		memset(blocked, 0, Global::MapsizeY*3); // Nothing is blocked at first
 		int offset = 0; // The helper array had to be shifted after each run of the inner most loop. As this is expensive, just use an offset that increases instead
 		const int max2 = MIN(max, x - CHUNKSIZE_X + 1); // Block array will be traversed diagonally, determine how many blocks there are
 		for (int i = 0; i < max2; ++i) { // This traverses the block array diagonally, which would be upwards in the image
-			const int blockedOffset = g_MapsizeY * (i % 3);
+			const int blockedOffset = Global::MapsizeY * (i % 3);
 			uint8_t *block = &BLOCKAT(x - i, 0, maxZ - i); // Get the lowest block at that point
 			int highest = 0, lowest = 0xFF;
-			for (int j = 0; j < g_MapsizeY; ++j) { // Go up
-				if (blocked[blockedOffset + (j+offset) % g_MapsizeY]) { // Block is hidden, remove
+			for (int j = 0; j < Global::MapsizeY; ++j) { // Go up
+				if (blocked[blockedOffset + (j+offset) % Global::MapsizeY]) { // Block is hidden, remove
 #ifdef _DEBUG
 					if (*block != AIR) {
 						++gBlocksRemoved;
@@ -836,15 +843,15 @@ void optimizeTerrain3()
 						lowest = j;
 					}
 					if (colors[*block][PALPHA] == 255) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration
-						blocked[blockedOffset + (j+offset) % g_MapsizeY] = 1;
+						blocked[blockedOffset + (j+offset) % Global::MapsizeY] = 1;
 					}
 					if (*block != AIR) highest = j;
 				}
 				++block; // Go up
 			}
 			HEIGHTAT(x - i, maxZ - i) = (((uint16_t)highest + 1) << 8) | (uint16_t)lowest;
-			blocked[blockedOffset + ((offset + 1) % g_MapsizeY)] = 0; // This will be the array index responsible for the top most block in the next itaration. Set it to 0 as it can't be hidden.
-			blocked[blockedOffset + (offset % g_MapsizeY)] = 0;
+			blocked[blockedOffset + ((offset + 1) % Global::MapsizeY)] = 0; // This will be the array index responsible for the top most block in the next itaration. Set it to 0 as it can't be hidden.
+			blocked[blockedOffset + (offset % Global::MapsizeY)] = 0;
 			if (i % 3 == 2) {
 				offset += 2; // Increase offset, as block at height n in current row will hide block at n-1 in next row
 			}
@@ -852,15 +859,15 @@ void optimizeTerrain3()
 		printProgress(size_t(x), maxProgress);
 	}
 	for (int z = CHUNKSIZE_Z; z < maxZ; ++z) {
-		memset(blocked, 0, g_MapsizeY*3);
+		memset(blocked, 0, Global::MapsizeY *3);
 		int offset = 0;
 		const int max2 = MIN(max, z - CHUNKSIZE_Z + 1);
 		for (int i = 0; i < max2; ++i) {
-			const int blockedOffset = g_MapsizeY * (i % 3);
+			const int blockedOffset = Global::MapsizeY * (i % 3);
 			uint8_t *block = &BLOCKAT(maxX - i, 0, z - i);
 			int highest = 0, lowest = 0xFF;
-			for (int j = 0; j < g_MapsizeY; ++j) {
-				if (blocked[blockedOffset + (j+offset) % g_MapsizeY]) {
+			for (int j = 0; j < Global::MapsizeY; ++j) {
+				if (blocked[blockedOffset + (j+offset) % Global::MapsizeY]) {
 #ifdef _DEBUG
 					if (*block != AIR) {
 						++gBlocksRemoved;
@@ -871,15 +878,15 @@ void optimizeTerrain3()
 						lowest = j;
 					}
 					if (colors[*block][PALPHA] == 255) {
-						blocked[blockedOffset + (j+offset) % g_MapsizeY] = 1;
+						blocked[blockedOffset + (j+offset) % Global::MapsizeY] = 1;
 					}
 					if (*block != AIR) highest = j;
 				}
 				++block;
 			}
 			HEIGHTAT(maxX - i, z - i) = (((uint16_t)highest + 1) << 8) | (uint16_t)lowest;
-			blocked[blockedOffset + ((offset + 1) % g_MapsizeY)] = 0;
-			blocked[blockedOffset + (offset % g_MapsizeY)] = 0;
+			blocked[blockedOffset + ((offset + 1) % Global::MapsizeY)] = 0;
+			blocked[blockedOffset + (offset % Global::MapsizeY)] = 0;
 			if (i % 3 == 2) {
 				offset += 2;
 			}
@@ -901,10 +908,10 @@ void undergroundMode(bool explore)
 	printf("Exploring underground...\n");
 	if (explore) {
 		clearLightmap();
-		for (size_t x = CHUNKSIZE_X; x < g_MapsizeX - CHUNKSIZE_X; ++x) {
-			printProgress(x - CHUNKSIZE_X, g_MapsizeX);
-			for (size_t z = CHUNKSIZE_Z; z < g_MapsizeZ - CHUNKSIZE_Z; ++z) {
-				for (int y = 0; y < MIN(g_MapsizeY, 64) - 1; y++) {
+		for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) {
+			printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
+			for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
+				for (int y = 0; y < MIN(Global::MapsizeY, 64) - 1; y++) {
 					if (BLOCKAT(x, y, z) == TORCH) {
 						// Torch
 						BLOCKAT(x, y, z) = AIR;
@@ -912,21 +919,21 @@ void undergroundMode(bool explore)
 							if (ty < 0) {
 								continue;   // areas around torches.
 							}
-							if (ty >= int(g_MapsizeY) - 1) {
+							if (ty >= int(Global::MapsizeY) - 1) {
 								break;
 							}
 							for (int tz = int(z) - 18; tz < int(z) + 18; ++tz) {
 								if (tz < CHUNKSIZE_Z) {
 									continue;
 								}
-								if (tz >= int(g_MapsizeZ) - CHUNKSIZE_Z) {
+								if (tz >= int(Global::MapsizeZ) - CHUNKSIZE_Z) {
 									break;
 								}
 								for (int tx = int(x) - 18; tx < int(x) + 18; ++tx) {
 									if (tx < CHUNKSIZE_X) {
 										continue;
 									}
-									if (tx >= int(g_MapsizeX) - CHUNKSIZE_X) {
+									if (tx >= int(Global::MapsizeX) - CHUNKSIZE_X) {
 										break;
 									}
 									SETLIGHTNORTH(tx, ty, tz) = 0xFF;
@@ -939,12 +946,12 @@ void undergroundMode(bool explore)
 			}
 		}
 	}
-	for (size_t x = 0; x < g_MapsizeX; ++x) {
-		printProgress(x + g_MapsizeX * (explore ? 1 : 0), g_MapsizeX * (explore ? 2 : 1));
-		for (size_t z = 0; z < g_MapsizeZ; ++z) {
+	for (size_t x = 0; x < Global::MapsizeX; ++x) {
+		printProgress(x + Global::MapsizeX * (explore ? 1 : 0), Global::MapsizeX * (explore ? 2 : 1));
+		for (size_t z = 0; z < Global::MapsizeZ; ++z) {
 			size_t ground = 0;
 			size_t cave = 0;
-			for (int y = g_MapsizeY - 1; y >= 0; --y) {
+			for (int y = Global::MapsizeY - 1; y >= 0; --y) {
 				uint8_t &c = BLOCKAT(x, y, z);
 				if (c != AIR && cave > 0) { // Found a cave, leave floor
 					if (c == GRASS || c == LEAVES || c == SNOW || GETLIGHTAT(x, y, z) == 0) {
@@ -987,7 +994,7 @@ bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStart
 		return true;
 	}
 	// For bright map edges
-	if (g_Orientation == West || g_Orientation == East) {
+	if (Global::settings.orientation == West || Global::settings.orientation == East) {
 		gAtBottomRight = (currentAreaZ + 1 == splitZ);
 		gAtBottomLeft = (currentAreaX + 1 == splitX);
 	} else {
@@ -995,50 +1002,50 @@ bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStart
 		gAtBottomRight = (currentAreaX + 1 == splitX);
 	}
 	// Calc size of area to be rendered (in chunks)
-	const int subAreaX = ((g_TotalToChunkX - g_TotalFromChunkX) + (splitX - 1)) / splitX;
-	const int subAreaZ = ((g_TotalToChunkZ - g_TotalFromChunkZ) + (splitZ - 1)) / splitZ;
+	const int subAreaX = ((Global::TotalToChunkX - Global::TotalFromChunkX) + (splitX - 1)) / splitX;
+	const int subAreaZ = ((Global::TotalToChunkZ - Global::TotalFromChunkZ) + (splitZ - 1)) / splitZ;
 	// Adjust values for current frame. order depends on map orientation
-	g_FromChunkX = g_TotalFromChunkX + subAreaX * (g_Orientation == North || g_Orientation == West ? currentAreaX : splitX - (currentAreaX + 1));
-	g_FromChunkZ = g_TotalFromChunkZ + subAreaZ * (g_Orientation == North || g_Orientation == East ? currentAreaZ : splitZ - (currentAreaZ + 1));
-	g_ToChunkX = g_FromChunkX + subAreaX;
-	g_ToChunkZ = g_FromChunkZ + subAreaZ;
+	Global::FromChunkX = Global::TotalFromChunkX + subAreaX * (Global::settings.orientation == North || Global::settings.orientation == West ? currentAreaX : splitX - (currentAreaX + 1));
+	Global::FromChunkZ = Global::TotalFromChunkZ + subAreaZ * (Global::settings.orientation == North || Global::settings.orientation == East ? currentAreaZ : splitZ - (currentAreaZ + 1));
+	Global::ToChunkX = Global::FromChunkX + subAreaX;
+	Global::ToChunkZ = Global::FromChunkZ + subAreaZ;
 	// Bounds checking
-	if (g_ToChunkX > g_TotalToChunkX) {
-		g_ToChunkX = g_TotalToChunkX;
+	if (Global::ToChunkX > Global::TotalToChunkX) {
+		Global::ToChunkX = Global::TotalToChunkX;
 	}
-	if (g_ToChunkZ > g_TotalToChunkZ) {
-		g_ToChunkZ = g_TotalToChunkZ;
+	if (Global::ToChunkZ > Global::TotalToChunkZ) {
+		Global::ToChunkZ = Global::TotalToChunkZ;
 	}
 	printf("Pass %d of %d...\n", int(currentAreaX + (currentAreaZ * splitX) + 1), int(splitX * splitZ));
 	// Calulate pixel offsets in bitmap. Forgot how this works right after writing it, really.
-	if (g_Orientation == North) {
-		bitmapStartX = (((g_TotalToChunkZ - g_TotalFromChunkZ) * CHUNKSIZE_Z) * 2 + 3)   // Center of image..
-		               - ((g_ToChunkZ - g_TotalFromChunkZ) * CHUNKSIZE_Z * 2)  // increasing Z pos will move left in bitmap
-		               + ((g_FromChunkX - g_TotalFromChunkX) * CHUNKSIZE_X * 2);  // increasing X pos will move right in bitmap
-		bitmapStartY = 5 + (g_FromChunkZ - g_TotalFromChunkZ) * CHUNKSIZE_Z + (g_FromChunkX - g_TotalFromChunkX) * CHUNKSIZE_X;
-	} else if (g_Orientation == South) {
-		const int tox = g_TotalToChunkX - g_FromChunkX + g_TotalFromChunkX;
-		const int toz = g_TotalToChunkZ - g_FromChunkZ + g_TotalFromChunkZ;
-		const int fromx = tox - (g_ToChunkX - g_FromChunkX);
-		const int fromz = toz - (g_ToChunkZ - g_FromChunkZ);
-		bitmapStartX = (((g_TotalToChunkZ - g_TotalFromChunkZ) * CHUNKSIZE_Z) * 2 + 3)   // Center of image..
-		               - ((toz - g_TotalFromChunkZ) * CHUNKSIZE_Z * 2)  // increasing Z pos will move left in bitmap
-		               + ((fromx - g_TotalFromChunkX) * CHUNKSIZE_X * 2);  // increasing X pos will move right in bitmap
-		bitmapStartY = 5 + (fromz - g_TotalFromChunkZ) * CHUNKSIZE_Z + (fromx - g_TotalFromChunkX) * CHUNKSIZE_X;
-	} else if (g_Orientation == East) {
-		const int tox = g_TotalToChunkX - g_FromChunkX + g_TotalFromChunkX;
-		const int fromx = tox - (g_ToChunkX - g_FromChunkX);
-		bitmapStartX = (((g_TotalToChunkX - g_TotalFromChunkX) * CHUNKSIZE_X) * 2 + 3)   // Center of image..
-		               - ((tox - g_TotalFromChunkX) * CHUNKSIZE_X * 2)  // increasing Z pos will move left in bitmap
-		               + ((g_FromChunkZ - g_TotalFromChunkZ) * CHUNKSIZE_Z * 2);  // increasing X pos will move right in bitmap
-		bitmapStartY = 5 + (fromx - g_TotalFromChunkX) * CHUNKSIZE_X + (g_FromChunkZ - g_TotalFromChunkZ) * CHUNKSIZE_Z;
+	if (Global::settings.orientation == North) {
+		bitmapStartX = (((Global::TotalToChunkZ - Global::TotalFromChunkZ) * CHUNKSIZE_Z) * 2 + 3)   // Center of image..
+		               - ((Global::ToChunkZ - Global::TotalFromChunkZ) * CHUNKSIZE_Z * 2)  // increasing Z pos will move left in bitmap
+		               + ((Global::FromChunkX - Global::TotalFromChunkX) * CHUNKSIZE_X * 2);  // increasing X pos will move right in bitmap
+		bitmapStartY = 5 + (Global::FromChunkZ - Global::TotalFromChunkZ) * CHUNKSIZE_Z + (Global::FromChunkX - Global::TotalFromChunkX) * CHUNKSIZE_X;
+	} else if (Global::settings.orientation == South) {
+		const int tox = Global::TotalToChunkX - Global::FromChunkX + Global::TotalFromChunkX;
+		const int toz = Global::TotalToChunkZ - Global::FromChunkZ + Global::TotalFromChunkZ;
+		const int fromx = tox - (Global::ToChunkX - Global::FromChunkX);
+		const int fromz = toz - (Global::ToChunkZ - Global::FromChunkZ);
+		bitmapStartX = (((Global::TotalToChunkZ - Global::TotalFromChunkZ) * CHUNKSIZE_Z) * 2 + 3)   // Center of image..
+		               - ((toz - Global::TotalFromChunkZ) * CHUNKSIZE_Z * 2)  // increasing Z pos will move left in bitmap
+		               + ((fromx - Global::TotalFromChunkX) * CHUNKSIZE_X * 2);  // increasing X pos will move right in bitmap
+		bitmapStartY = 5 + (fromz - Global::TotalFromChunkZ) * CHUNKSIZE_Z + (fromx - Global::TotalFromChunkX) * CHUNKSIZE_X;
+	} else if (Global::settings.orientation == East) {
+		const int tox = Global::TotalToChunkX - Global::FromChunkX + Global::TotalFromChunkX;
+		const int fromx = tox - (Global::ToChunkX - Global::FromChunkX);
+		bitmapStartX = (((Global::TotalToChunkX - Global::TotalFromChunkX) * CHUNKSIZE_X) * 2 + 3)   // Center of image..
+		               - ((tox - Global::TotalFromChunkX) * CHUNKSIZE_X * 2)  // increasing Z pos will move left in bitmap
+		               + ((Global::FromChunkZ - Global::TotalFromChunkZ) * CHUNKSIZE_Z * 2);  // increasing X pos will move right in bitmap
+		bitmapStartY = 5 + (fromx - Global::TotalFromChunkX) * CHUNKSIZE_X + (Global::FromChunkZ - Global::TotalFromChunkZ) * CHUNKSIZE_Z;
 	} else {
-		const int toz = g_TotalToChunkZ - g_FromChunkZ + g_TotalFromChunkZ;
-		const int fromz = toz - (g_ToChunkZ - g_FromChunkZ);
-		bitmapStartX = (((g_TotalToChunkX - g_TotalFromChunkX) * CHUNKSIZE_X) * 2 + 3)   // Center of image..
-		               - ((g_ToChunkX - g_TotalFromChunkX) * CHUNKSIZE_X * 2)  // increasing Z pos will move left in bitmap
-		               + ((fromz - g_TotalFromChunkZ) * CHUNKSIZE_Z * 2);  // increasing X pos will move right in bitmap
-		bitmapStartY = 5 + (g_FromChunkX - g_TotalFromChunkX) * CHUNKSIZE_X + (fromz - g_TotalFromChunkZ) * CHUNKSIZE_Z;
+		const int toz = Global::TotalToChunkZ - Global::FromChunkZ + Global::TotalFromChunkZ;
+		const int fromz = toz - (Global::ToChunkZ - Global::FromChunkZ);
+		bitmapStartX = (((Global::TotalToChunkX - Global::TotalFromChunkX) * CHUNKSIZE_X) * 2 + 3)   // Center of image..
+		               - ((Global::ToChunkX - Global::TotalFromChunkX) * CHUNKSIZE_X * 2)  // increasing Z pos will move left in bitmap
+		               + ((fromz - Global::TotalFromChunkZ) * CHUNKSIZE_Z * 2);  // increasing X pos will move right in bitmap
+		bitmapStartY = 5 + (Global::FromChunkX - Global::TotalFromChunkX) * CHUNKSIZE_X + (fromz - Global::TotalFromChunkZ) * CHUNKSIZE_Z;
 	}
 	return false; // not done yet, return false
 }
@@ -1046,21 +1053,21 @@ bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStart
 void writeInfoFile(const std::string& file, int xo, int yo, int bitmapX, int bitmapY)
 {
 	std::string direction;
-	if (g_Orientation == North) {
-		xo += (g_TotalToChunkZ * CHUNKSIZE_Z - g_FromChunkX * CHUNKSIZE_X) * 2 + 4;
-		yo -= (g_TotalFromChunkX * CHUNKSIZE_X + g_TotalFromChunkZ * CHUNKSIZE_Z) - g_MapsizeY * g_OffsetY;
+	if (Global::settings.orientation == North) {
+		xo += (Global::TotalToChunkZ * CHUNKSIZE_Z - Global::FromChunkX * CHUNKSIZE_X) * 2 + 4;
+		yo -= (Global::TotalFromChunkX * CHUNKSIZE_X + Global::TotalFromChunkZ * CHUNKSIZE_Z) - Global::MapsizeY * Global::OffsetY;
 		direction = "North";
-	} else if (g_Orientation == South) {
-		xo += (g_TotalToChunkX * CHUNKSIZE_X - g_TotalFromChunkZ * CHUNKSIZE_Z) * 2 + 4;
-		yo += ((g_TotalToChunkX) * CHUNKSIZE_X + (g_TotalToChunkZ) * CHUNKSIZE_Z) + g_MapsizeY * g_OffsetY;
+	} else if (Global::settings.orientation == South) {
+		xo += (Global::TotalToChunkX * CHUNKSIZE_X - Global::TotalFromChunkZ * CHUNKSIZE_Z) * 2 + 4;
+		yo += ((Global::TotalToChunkX) * CHUNKSIZE_X + (Global::TotalToChunkZ) * CHUNKSIZE_Z) + Global::MapsizeY * Global::OffsetY;
 		direction = "South";
-	} else if (g_Orientation == East) {
-		xo -= (g_TotalFromChunkX * CHUNKSIZE_X + g_TotalFromChunkZ * CHUNKSIZE_Z) * g_OffsetY - 6;
-		yo += ((g_TotalToChunkX) * CHUNKSIZE_X - g_TotalFromChunkZ * CHUNKSIZE_Z) + g_MapsizeY * g_OffsetY;
+	} else if (Global::settings.orientation == East) {
+		xo -= (Global::TotalFromChunkX * CHUNKSIZE_X + Global::TotalFromChunkZ * CHUNKSIZE_Z) * Global::OffsetY - 6;
+		yo += ((Global::TotalToChunkX) * CHUNKSIZE_X - Global::TotalFromChunkZ * CHUNKSIZE_Z) + Global::MapsizeY * Global::OffsetY;
 		direction = "East";
 	} else {
-		xo += (g_TotalToChunkX * CHUNKSIZE_X + g_TotalToChunkZ * CHUNKSIZE_Z) * g_OffsetY + 2;
-		yo += ((g_TotalToChunkZ) * CHUNKSIZE_Z - g_TotalFromChunkX * CHUNKSIZE_X) + g_MapsizeY * g_OffsetY;
+		xo += (Global::TotalToChunkX * CHUNKSIZE_X + Global::TotalToChunkZ * CHUNKSIZE_Z) * Global::OffsetY + 2;
+		yo += ((Global::TotalToChunkZ) * CHUNKSIZE_Z - Global::TotalFromChunkX * CHUNKSIZE_X) + Global::MapsizeY * Global::OffsetY;
 		direction = "West";
 	}
 	FILE *fh = fopen(file.c_str(), "w");
@@ -1083,7 +1090,7 @@ void writeInfoFile(const std::string& file, int xo, int yo, int bitmapX, int bit
 				" \"meta\" : {\n"
 				"  \"timestamp\" : %lu\n"
 				" }\n"
-				"}\n", xo, yo, g_OffsetY, direction, bitmapX, bitmapY, (unsigned long)time(NULL));
+				"}\n", xo, yo, Global::OffsetY, direction, bitmapX, bitmapY, (unsigned long)time(NULL));
 	} else if (strcmp(".xml", RIGHTSTRING(file.c_str(), 4)) == 0) {
 		fprintf(fh, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n"
 				"<map>\n"
@@ -1091,13 +1098,13 @@ void writeInfoFile(const std::string& file, int xo, int yo, int bitmapX, int bit
 				" <geometry scaling=\"%d\" orientation=\"%s\" />\n"
 				" <image x=\"%d\" y=\"%d\" />\n"
 				" <meta timestamp=\"%lu\" />\n"
-				"</map>\n", xo, yo, g_OffsetY, direction, bitmapX, bitmapY, (unsigned long)time(NULL));
+				"</map>\n", xo, yo, Global::OffsetY, direction, bitmapX, bitmapY, (unsigned long)time(NULL));
 	} else {
 		time_t t = time(NULL);
 		fprintf(fh, "Origin at %d, %d\n"
 				"Y-Offset: %d, Orientation: %s\n"
 				"Image resolution: %dx%d\n"
-				"Rendered on: %s\n", xo, yo, g_OffsetY, direction, bitmapX, bitmapY, asctime(localtime(&t)));
+				"Rendered on: %s\n", xo, yo, Global::OffsetY, direction, bitmapX, bitmapY, asctime(localtime(&t)));
 	}
 	fclose(fh);
 }

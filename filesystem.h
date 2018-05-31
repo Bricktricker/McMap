@@ -1,5 +1,5 @@
-#ifndef _FILESYSTEM_
-#define _FILESYSTEM_
+#ifndef _FILESYSTEM_H_
+#define _FILESYSTEM_H_
 
 #if defined(_WIN32) && !defined(__GNUC__)
 #	define MSVCP
@@ -10,16 +10,18 @@ typedef HANDLE DIRHANDLE;
 typedef DIR *DIRHANDLE;
 #endif
 
+#include <string>
+
 struct myFile {
-	char name[300];
+	std::string name;
 	bool isdir;
 	unsigned long size;
 };
 
 namespace Dir
 {
-	DIRHANDLE open(char *path, myFile &file);
-	bool next(DIRHANDLE handle, char *path, myFile &file);
+	DIRHANDLE open(const std::string& path, myFile &file);
+	bool next(DIRHANDLE handle, const std::string& path, myFile &file);
 	void close(DIRHANDLE handle);
 }
 
