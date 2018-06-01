@@ -41,6 +41,7 @@
 #include <string>
 #include <vector>
 #include <iterator>
+#include <sstream>
 
 // Difference between MSVC++ and gcc/others
 #if defined(_WIN32) && !defined(__GNUC__)

@@ -1,5 +1,4 @@
 #include "worldloader.h"
-#include "helper.h"
 #include "filesystem.h"
 #include "nbt.h"
 #include "colors.h"
@@ -11,6 +10,7 @@
 #include <iostream>
 #include <climits>
 #include <array>
+#include <cassert>
 
 /*
 Callstack:
@@ -32,6 +32,12 @@ loadTerrain()
 
 #define CHUNKS_PER_BIOME_FILE 32
 #define REGIONSIZE 32
+
+namespace {
+	static World world;
+}
+
+#include "helper.h"
 
 using std::string;
 
@@ -75,7 +81,10 @@ T ntoh(void* u, size_t size)
 			char c[4];
 		} b = { 0x01020304 };
 
-		if (b.c[0] == 1) return  static_cast<T>(*u);
+		if (b.c[0] == 1) {
+			__debugbreak(); //check, may not working
+			return *static_cast<T*>(u);
+		}
 	}
 
 	union
@@ -239,7 +248,7 @@ bool scanWorldDirectory(const std::string& fromPath)
 static bool scanWorldDirectoryRegion(const std::string& fromPath)
 {
 	// OK go
-	Global::world.regions.clear();
+	world.regions.clear();
 	//reset, why??
 	//					g_FromChunkX = g_FromChunkZ = 10000000;
 	//					g_ToChunkX   = g_ToChunkZ  = -10000000;
@@ -265,7 +274,7 @@ static bool scanWorldDirectoryRegion(const std::string& fromPath)
 					const int valZ = std::stoi(values.at(1)) * REGIONSIZE;
 					if (valX > -4000 && valX < 4000 && valZ > -4000 && valZ < 4000) {
 						string full = path + "/" + region.name;
-						Global::world.regions.push_back(Region(full, valX, valZ));
+						world.regions.push_back(Region(full, valX, valZ));
 						//printf("Good region at %d %d\n", valX, valZ);
 					}
 					else {
@@ -280,9 +289,9 @@ static bool scanWorldDirectoryRegion(const std::string& fromPath)
 	// Read all region files' headers to figure out which chunks actually exist
 	// It would be sufficient to just do this on those which form the edge
 	// Have yet to find out how slow this is on big maps to see if it's worth the effort
-	Global::world.points.clear();
+	world.points.clear();
 
-	for (regionList::iterator it = Global::world.regions.begin(); it != Global::world.regions.end(); it++) {
+	for (regionList::iterator it = world.regions.begin(); it != world.regions.end(); it++) {
 		Region& region = (*it);
 		FILE *fh = fopen(region.filename.c_str(), "rb");
 		//printf("Plik %s\n",chunk.filename);
@@ -306,7 +315,7 @@ static bool scanWorldDirectoryRegion(const std::string& fromPath)
 
 			const int valX = region.x + i % REGIONSIZE;
 			const int valZ = region.z + i / REGIONSIZE;
-			Global::world.points.push_back(Point(valX, valZ));
+			world.points.push_back(Point(valX, valZ));
 			if (valX < Global::FromChunkX) {
 				Global::FromChunkX = valX;
 			}
@@ -357,7 +366,12 @@ bool loadEntireTerrain()
 bool loadTerrain(const std::string& fromPath, int &loadedChunks)
 {
 	loadedChunks = 0;
-	if (g_WorldFormat != 0) return loadTerrainRegion(fromPath.c_str(), loadedChunks);
+	if (Global::worldFormat != ALPHA) return loadTerrainRegion(fromPath.c_str(), loadedChunks);
+
+	//load Alpha format, support dropped
+	__debugbreak();
+	return false;
+	/*
 	if (fromPath.empty()) {
 		return false;
 	}
@@ -380,6 +394,7 @@ bool loadTerrain(const std::string& fromPath, int &loadedChunks)
 	// Done loading all chunks
 	printProgress(10, 10);
 	return true;
+	*/
 }
 
 static bool loadChunk(const char *streamOrFile, const size_t streamLen)
@@ -412,19 +427,23 @@ static bool loadChunk(const char *streamOrFile, const size_t streamLen)
 		return false;
 	}
 	// Check if chunk is in desired bounds (not a chunk where the filename tells a different position)
-	if (chunkX < g_FromChunkX || chunkX >= g_ToChunkX || chunkZ < g_FromChunkZ || chunkZ >= g_ToChunkZ) {
+	if (chunkX < Global::FromChunkX || chunkX >= Global::ToChunkX || chunkZ < Global::FromChunkZ || chunkZ >= Global::ToChunkZ) {
 		if (streamLen == 0) printf("Chunk is out of bounds. %d %d\n", chunkX, chunkZ);
 		delete chunk;
 		return false; // Nope, its not...
 	}
-	if (g_WorldFormat == 2) {
+	if (Global::worldFormat == ANVIL) {
 		bool ret = loadAnvilChunk(level, chunkX, chunkZ);
 		delete chunk;
 		return ret;
 	}
-	//
-	const int offsetz = (chunkZ - g_FromChunkZ) * CHUNKSIZE_Z;
-	const int offsetx = (chunkX - g_FromChunkX) * CHUNKSIZE_X;
+	//loading old world format, support dropped
+	__debugbreak();
+	return false;
+
+	/*
+	const int offsetz = (chunkZ - Global::FromChunkZ) * CHUNKSIZE_Z;
+	const int offsetx = (chunkX - Global::FromChunkX) * CHUNKSIZE_X;
 	uint8_t *blockdata, *lightdata, *skydata, *justData;
 	int32_t len;
 	ok = level->getByteArray("Blocks", blockdata, len);
@@ -553,22 +572,24 @@ static bool loadChunk(const char *streamOrFile, const size_t streamLen)
 	} // x
 	delete chunk;
 	return true;
+	*/
 }
 
 static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t chunkZ)
 {
 	uint8_t *blockdata, *lightdata, *skydata, *justData, *addData = 0, *biomesdata;
-	int32_t len, yoffset, yoffsetsomething = (g_MapminY + SECTION_Y * 10000) % SECTION_Y;
+	int32_t len, yoffset, yoffsetsomething = (Global::MapminY + SECTION_Y * 10000) % SECTION_Y;
 	int8_t yo;
 	list<NBT_Tag *> *sections = NULL;
 	bool ok;
+	/* Dropped support for biomes
 	if (g_UseBiomes) {
 		ok = level->getByteArray("Biomes", biomesdata, len);
 		if (!ok) {
 			printf("No biomes found in region\n");	
 			return false;
 		}
-	}
+	}*/
 	//
 	ok = level->getList("Sections", sections);
 	if (!ok) {
@@ -576,8 +597,8 @@ static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const in
 		return false;
 	}
 	//
-	const int offsetz = (chunkZ - g_FromChunkZ) * CHUNKSIZE_Z;
-	const int offsetx = (chunkX - g_FromChunkX) * CHUNKSIZE_X;
+	const int offsetz = (chunkZ - Global::FromChunkZ) * CHUNKSIZE_Z;
+	const int offsetx = (chunkX - Global::FromChunkX) * CHUNKSIZE_X;
 	for (list<NBT_Tag *>::iterator it = sections->begin(); it != sections->end(); it++) {
 		NBT_Tag *section = *it;
 		ok = section->getByte("Y", yo);
@@ -585,8 +606,8 @@ static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const in
 			printf("Y-Offset not found in section\n");
 			return false;
 		}
-		if (yo < g_SectionMin || yo > g_SectionMax) continue;
-		yoffset = (SECTION_Y * (int)(yo - g_SectionMin)) - yoffsetsomething;
+		if (yo < Global::sectionMin || yo > Global::sectionMax) continue;
+		yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - yoffsetsomething;
 		if (yoffset < 0) yoffset = 0;
 		ok = section->getByteArray("Blocks", blockdata, len);
 		if (!ok || len < CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) {
@@ -599,14 +620,14 @@ static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const in
 			return false;
 		}
 		ok = section->getByteArray("Add", addData, len);
-		if (g_Nightmode || g_Skylight) { // If nightmode, we need the light information too
+		if (Global::settings.nightmode || Global::settings.skylight) { // If nightmode, we need the light information too
 			ok = section->getByteArray("BlockLight", lightdata, len);
 			if (!ok || len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
 				printf("No block light\n");
 				return false;
 			}
 		}
-		if (g_Skylight) { // Skylight desired - wish granted
+		if (Global::settings.skylight) { // Skylight desired - wish granted
 			ok = section->getByteArray("SkyLight", skydata, len);
 			if (!ok || len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
 				return false;
@@ -616,49 +637,49 @@ static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const in
 		for (int x = 0; x < CHUNKSIZE_X; ++x) {
 			for (int z = 0; z < CHUNKSIZE_Z; ++z) {
 				uint8_t *targetBlock, *lightByte;
-				if (g_Orientation == East) {
+				if (Global::settings.orientation == East) {
 					targetBlock = &BLOCKEAST(x + offsetx, yoffset, z + offsetz);
-					if (g_Skylight || g_Nightmode) lightByte = &SETLIGHTEAST(x + offsetx, yoffset, z + offsetz);
-					if (g_UseBiomes) BIOMEEAST(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
-				} else if (g_Orientation == North) {
+					if (Global::settings.skylight || Global::settings.nightmode) lightByte = &SETLIGHTEAST(x + offsetx, yoffset, z + offsetz);
+					//if (g_UseBiomes) BIOMEEAST(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
+				} else if (Global::settings.orientation == North) {
 					targetBlock = &BLOCKNORTH(x + offsetx, yoffset, z + offsetz);
-					if (g_Skylight || g_Nightmode) lightByte = &SETLIGHTNORTH(x + offsetx, yoffset, z + offsetz);
-					if (g_UseBiomes) BIOMENORTH(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
-				} else if (g_Orientation == South) {
+					if (Global::settings.skylight || Global::settings.nightmode) lightByte = &SETLIGHTNORTH(x + offsetx, yoffset, z + offsetz);
+					//if (g_UseBiomes) BIOMENORTH(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
+				} else if (Global::settings.orientation == South) {
 					targetBlock = &BLOCKSOUTH(x + offsetx, yoffset, z + offsetz);
-					if (g_Skylight || g_Nightmode) lightByte = &SETLIGHTSOUTH(x + offsetx, yoffset, z + offsetz);
-					if (g_UseBiomes) BIOMESOUTH(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
+					if (Global::settings.skylight || Global::settings.nightmode) lightByte = &SETLIGHTSOUTH(x + offsetx, yoffset, z + offsetz);
+					//if (g_UseBiomes) BIOMESOUTH(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
 				} else {
 					targetBlock = &BLOCKWEST(x + offsetx, yoffset, z + offsetz);
-					if (g_Skylight || g_Nightmode) lightByte = &SETLIGHTWEST(x + offsetx, yoffset, z + offsetz);
-					if (g_UseBiomes) BIOMEWEST(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
+					if (Global::settings.skylight || Global::settings.nightmode) lightByte = &SETLIGHTWEST(x + offsetx, yoffset, z + offsetz);
+					//if (g_UseBiomes) BIOMEWEST(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
 				}
 				//const int toY = g_MapsizeY + g_MapminY;
 				for (int y = 0; y < SECTION_Y; ++y) {
 					// In bounds check
-					if (g_SectionMin == yo && y < yoffsetsomething) continue;
-					if (g_SectionMax == yo && y + yoffset >= g_MapsizeY) break;
+					if (Global::sectionMin == yo && y < yoffsetsomething) continue;
+					if (Global::sectionMax == yo && y + yoffset >= Global::MapsizeY) break;
 					// Block data
 					uint8_t &block = blockdata[x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X];
 					assignBlock(block, targetBlock, x, y, z, justData, addData);
 					// Light
-					if (g_Underground) {
+					if (Global::settings.underground) {
 						if (block == TORCH) {
-							if (y + yoffset < g_MapminY) continue;
+							if (y + yoffset < Global::MapminY) continue;
 							printf("Torch at %d %d %d\n", x + offsetx, yoffset + y, z + offsetz);
 							lightCave(x + offsetx, yoffset + y, z + offsetz);
 						}
-					} else if (g_Skylight && (y & 1) == 0) {
+					} else if (Global::settings.skylight && (y & 1) == 0) {
 						const uint8_t highlight = ((lightdata[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
 						const uint8_t lowlight =  ((lightdata[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
 						uint8_t highsky = ((skydata[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
 						uint8_t lowsky =  ((skydata[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
-						if (g_Nightmode) {
+						if (Global::settings.nightmode) {
 							highsky = clamp(highsky / 3 - 2);
 							lowsky = clamp(lowsky / 3 - 2);
 						}
 						*lightByte++ = ((MAX(highlight, highsky) & 0x0F) << 4) | (MAX(lowlight, lowsky) & 0x0F);
-					} else if (g_Nightmode && (y & 1) == 0) {
+					} else if (Global::settings.nightmode && (y & 1) == 0) {
 						*lightByte++ = ((lightdata[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F)
 							| ((lightdata[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) << 4);
 					}
@@ -706,121 +727,123 @@ void calcBitmapOverdraw(int &left, int &right, int &top, int &bottom)
 {
 	top = left = bottom = right = 0x0fffffff;
 	int val, x, z;
-	chunkList::iterator itC;
+	regionList::iterator itR;
 	pointList::iterator itP;
-	if (g_WorldFormat != 0) {
-		itP = points.begin();
+	if (Global::worldFormat != ALPHA) {
+		itP = world.points.begin();
 	} else {
-		itC = chunks.begin();
+		__debugbreak(), //Loading alpha world
+		itR = world.regions.begin();
 	}
 	for (;;) {
-		if (g_WorldFormat != 0) {
-			if (itP == points.end()) break;
-			x = (**itP).x;
-			z = (**itP).z;
+		if (Global::worldFormat != ALPHA) {
+			if (itP == world.points.end()) break;
+			x = (*itP).x;
+			z = (*itP).z;
 		} else {
-			if (itC == chunks.end()) break;
-			x = (**itC).x;
-			z = (**itC).z;
+			__debugbreak(); //loading alpha world
+			if (itR == world.regions.end()) break;
+			x = (*itR).x;
+			z = (*itR).z;
 		}
-		if (g_Orientation == North) {
+		if (Global::settings.orientation == North) {
 			// Right
-			val = (((g_ToChunkX - 1) - x) * CHUNKSIZE_X * 2)
-			      + ((z - g_FromChunkZ) * CHUNKSIZE_Z * 2);
+			val = (((Global::ToChunkX - 1) - x) * CHUNKSIZE_X * 2)
+			      + ((z - Global::FromChunkZ) * CHUNKSIZE_Z * 2);
 			if (val < right) {
 				right = val;
 			}
 			// Left
-			val = (((g_ToChunkZ - 1) - z) * CHUNKSIZE_Z * 2)
-			      + ((x - g_FromChunkX) * CHUNKSIZE_X * 2);
+			val = (((Global::ToChunkZ - 1) - z) * CHUNKSIZE_Z * 2)
+			      + ((x - Global::FromChunkX) * CHUNKSIZE_X * 2);
 			if (val < left) {
 				left = val;
 			}
 			// Top
-			val = (z - g_FromChunkZ) * CHUNKSIZE_Z + (x - g_FromChunkX) * CHUNKSIZE_X;
+			val = (z - Global::FromChunkZ) * CHUNKSIZE_Z + (x - Global::FromChunkX) * CHUNKSIZE_X;
 			if (val < top) {
 				top = val;
 			}
 			// Bottom
-			val = (((g_ToChunkX - 1) - x) * CHUNKSIZE_X) + (((g_ToChunkZ - 1) - z) * CHUNKSIZE_Z);
+			val = (((Global::ToChunkX - 1) - x) * CHUNKSIZE_X) + (((Global::ToChunkZ - 1) - z) * CHUNKSIZE_Z);
 			if (val < bottom) {
 				bottom = val;
 			}
-		} else if (g_Orientation == South) {
+		} else if (Global::settings.orientation == South) {
 			// Right
-			val = (((g_ToChunkZ - 1) - z) * CHUNKSIZE_Z * 2)
-			      + ((x - g_FromChunkX) * CHUNKSIZE_X * 2);
+			val = (((Global::ToChunkZ - 1) - z) * CHUNKSIZE_Z * 2)
+			      + ((x - Global::FromChunkX) * CHUNKSIZE_X * 2);
 			if (val < right) {
 				right = val;
 			}
 			// Left
-			val = (((g_ToChunkX - 1) - x) * CHUNKSIZE_X * 2)
-			      + ((z - g_FromChunkZ) * CHUNKSIZE_Z * 2);
+			val = (((Global::ToChunkX - 1) - x) * CHUNKSIZE_X * 2)
+			      + ((z - Global::FromChunkZ) * CHUNKSIZE_Z * 2);
 			if (val < left) {
 				left = val;
 			}
 			// Top
-			val = ((g_ToChunkZ - 1) - z) * CHUNKSIZE_Z + ((g_ToChunkX - 1) - x) * CHUNKSIZE_X;
+			val = ((Global::ToChunkZ - 1) - z) * CHUNKSIZE_Z + ((Global::ToChunkX - 1) - x) * CHUNKSIZE_X;
 			if (val < top) {
 				top = val;
 			}
 			// Bottom
-			val = ((x - g_FromChunkX) * CHUNKSIZE_X) + ((z - g_FromChunkZ) * CHUNKSIZE_Z);
+			val = ((x - Global::FromChunkX) * CHUNKSIZE_X) + ((z - Global::FromChunkZ) * CHUNKSIZE_Z);
 			if (val < bottom) {
 				bottom = val;
 			}
-		} else if (g_Orientation == East) {
+		} else if (Global::settings.orientation == East) {
 			// Right
-			val = ((g_ToChunkZ - 1) - z) * CHUNKSIZE_Z * 2 + ((g_ToChunkX - 1) - x) * CHUNKSIZE_X * 2;
+			val = ((Global::ToChunkZ - 1) - z) * CHUNKSIZE_Z * 2 + ((Global::ToChunkX - 1) - x) * CHUNKSIZE_X * 2;
 			if (val < right) {
 				right = val;
 			}
 			// Left
-			val = ((x - g_FromChunkX) * CHUNKSIZE_X) * 2 +  + ((z - g_FromChunkZ) * CHUNKSIZE_Z) * 2;
+			val = ((x - Global::FromChunkX) * CHUNKSIZE_X) * 2 +  + ((z - Global::FromChunkZ) * CHUNKSIZE_Z) * 2;
 			if (val < left) {
 				left = val;
 			}
 			// Top
-			val = ((g_ToChunkX - 1) - x) * CHUNKSIZE_X
-			      + (z - g_FromChunkZ) * CHUNKSIZE_Z;
+			val = ((Global::ToChunkX - 1) - x) * CHUNKSIZE_X
+			      + (z - Global::FromChunkZ) * CHUNKSIZE_Z;
 			if (val < top) {
 				top = val;
 			}
 			// Bottom
-			val = ((g_ToChunkZ - 1) - z) * CHUNKSIZE_Z
-			      + (x - g_FromChunkX) * CHUNKSIZE_X;
+			val = ((Global::ToChunkZ - 1) - z) * CHUNKSIZE_Z
+			      + (x - Global::FromChunkX) * CHUNKSIZE_X;
 			if (val < bottom) {
 				bottom = val;
 			}
 		} else {
 			// Right
-			val = ((x - g_FromChunkX) * CHUNKSIZE_X) * 2 +  + ((z - g_FromChunkZ) * CHUNKSIZE_Z) * 2;
+			val = ((x - Global::FromChunkX) * CHUNKSIZE_X) * 2 +  + ((z - Global::FromChunkZ) * CHUNKSIZE_Z) * 2;
 			if (val < right) {
 				right = val;
 			}
 			// Left
-			val = ((g_ToChunkZ - 1) - z) * CHUNKSIZE_Z * 2 + ((g_ToChunkX - 1) - x) * CHUNKSIZE_X * 2;
+			val = ((Global::ToChunkZ - 1) - z) * CHUNKSIZE_Z * 2 + ((Global::ToChunkX - 1) - x) * CHUNKSIZE_X * 2;
 			if (val < left) {
 				left = val;
 			}
 			// Top
-			val = ((g_ToChunkZ - 1) - z) * CHUNKSIZE_Z
-			      + (x - g_FromChunkX) * CHUNKSIZE_X;
+			val = ((Global::ToChunkZ - 1) - z) * CHUNKSIZE_Z
+			      + (x - Global::FromChunkX) * CHUNKSIZE_X;
 			if (val < top) {
 				top = val;
 			}
 			// Bottom
-			val = ((g_ToChunkX - 1) - x) * CHUNKSIZE_X
-			      + (z - g_FromChunkZ) * CHUNKSIZE_Z;
+			val = ((Global::ToChunkX - 1) - x) * CHUNKSIZE_X
+			      + (z - Global::FromChunkZ) * CHUNKSIZE_Z;
 			if (val < bottom) {
 				bottom = val;
 			}
 		}
 		//
-		if (g_WorldFormat != 0) {
+		if (Global::worldFormat != ALPHA) {
 			itP++;
 		} else {
-			itC++;
+			itR++;
 		}
 	}
 }
@@ -923,15 +946,15 @@ void loadBiomeMap(const std::string& path)
  */
 static bool loadAllRegions()
 {
-	if(Global::world.regions.empty()) {
+	if(world.regions.empty()) {
 		__debugbreak(); //no regions loaded
 		return false;
 	}
 	allocateTerrain();
-	const size_t max = Global::world.regions.size();
+	const size_t max = world.regions.size();
 	size_t count = 0;
 	std::cout << "Loading all chunks..\n";
-	for (regionList::iterator it = Global::world.regions.begin(); it != Global::world.regions.end(); it++) {
+	for (regionList::iterator it = world.regions.begin(); it != world.regions.end(); it++) {
 		Region& region = (*it);
 		printProgress(count++, max);
 		int i;
@@ -956,14 +979,15 @@ static bool loadTerrainRegion(const std::string& fromPath, int &loadedChunks)
 
 	printf("Loading all chunks..\n");
 	//
-	const int tmpMin = -floorRegion(g_FromChunkX);
-	for (int x = floorRegion(g_FromChunkX); x <= floorRegion(g_ToChunkX); x += REGIONSIZE) {
-		printProgress(size_t(x + tmpMin), size_t(floorRegion(g_ToChunkX) + tmpMin));
-		for (int z = floorRegion(g_FromChunkZ); z <= floorRegion(g_ToChunkZ); z += REGIONSIZE) {
-			if (g_WorldFormat == 2) {
+	const int tmpMin = -floorRegion(Global::FromChunkX);
+	for (int x = floorRegion(Global::FromChunkX); x <= floorRegion(Global::ToChunkX); x += REGIONSIZE) {
+		printProgress(size_t(x + tmpMin), size_t(floorRegion(Global::ToChunkX) + tmpMin));
+		for (int z = floorRegion(Global::FromChunkZ); z <= floorRegion(Global::ToChunkZ); z += REGIONSIZE) {
+			if (Global::worldFormat == ANVIL) {
 				path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".mca";
 				loadRegion(path, false, loadedChunks);
 			} else {
+				__debugbreak(); //Loading non anvil world
 				path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".mcr";
 				if (!loadRegion(path, false, loadedChunks)) {
 					path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".data";
@@ -1080,21 +1104,21 @@ static void loadBiomeChunk(const std::string& path, const int chunkX, const int 
 	if (!success) {
 		std::cerr << file << " seems to be truncated. Try rebuilding biome cache.\n";
 	} else {
-		const int fromX = g_FromChunkX * CHUNKSIZE_X;
-		const int toX   = g_ToChunkX * CHUNKSIZE_X;
-		const int fromZ = g_FromChunkZ * CHUNKSIZE_Z;
-		const int toZ   = g_ToChunkZ * CHUNKSIZE_Z;
+		const int fromX = Global::FromChunkX * CHUNKSIZE_X;
+		const int toX   = Global::ToChunkX * CHUNKSIZE_X;
+		const int fromZ = Global::FromChunkZ * CHUNKSIZE_Z;
+		const int toZ   = Global::ToChunkZ * CHUNKSIZE_Z;
 		const int offX  = chunkX * CHUNKSIZE_X;
 		const int offZ  = chunkZ * CHUNKSIZE_Z;
 		for (int z = 0; z < CHUNKSIZE_Z * CHUNKS_PER_BIOME_FILE; ++z) {
 			if (z + offZ < fromZ || z + offZ >= toZ) continue;
 			for (int x = 0; x < CHUNKSIZE_X * CHUNKS_PER_BIOME_FILE; ++x) {
 				if (x + offX < fromX || x + offX >= toX) continue;
-				if (g_Orientation == North) {
+				if (Global::settings.orientation == North) {
 					BIOMENORTH(x + offX - fromX, z + offZ - fromZ) = ntoh<uint16_t>(data[RECORDS_PER_LINE * z + x]);
-				} else if (g_Orientation == East) {
+				} else if (Global::settings.orientation == East) {
 					BIOMEEAST(x + offX - fromX, z + offZ - fromZ) = ntoh<uint16_t>(data[RECORDS_PER_LINE * z + x]);
-				} else if (g_Orientation == South) {
+				} else if (Global::settings.orientation == South) {
 					BIOMESOUTH(x + offX - fromX, z + offZ - fromZ) = ntoh<uint16_t>(data[RECORDS_PER_LINE * z + x]);
 				} else {
 					BIOMEWEST(x + offX - fromX, z + offZ - fromZ) = ntoh<uint16_t>(data[RECORDS_PER_LINE * z + x]);
@@ -1113,9 +1137,9 @@ static inline void assignBlock(const uint16_t &block, uint8_t* &targetBlock, int
 	{
 		add = ( addData[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF;
 	}
-	if (!g_lowMemory) //additional data
+	if (!Global::settings.lowMemory) //additional data
 	{
-		*(targetBlock + g_Terrainsize) = (add) + (col << 4);
+		*(targetBlock + Global::Terrainsize) = (add) + (col << 4);
 		*targetBlock++ = block;
 	}
 	else //convert to 256-colors format
@@ -1131,9 +1155,9 @@ static inline void assignBlock(const uint16_t &block, uint8_t* &targetBlock, int
 {
 	//WorldFormat != 2
 	uint8_t col = (justData[(y + (z + (x * CHUNKSIZE_Z)) * CHUNKSIZE_Y) / 2] >> ((y % 2) * 4)) & 0xF;
-	if (!g_lowMemory) //additional data
+	if (!Global::settings.lowMemory) //additional data
 	{
-		*(targetBlock + g_Terrainsize) = (col << 4);
+		*(targetBlock + Global::Terrainsize) = (col << 4);
 		*targetBlock++ = block;
 	}
 	else //convert to 256-colors format
@@ -1148,11 +1172,11 @@ static inline void assignBlock(const uint16_t &block, uint8_t* &targetBlock, int
 static inline void lightCave(const int x, const int y, const int z)
 {
 	for (int ty = y - 9; ty < y + 9; ty+=2) { // The trick here is to only take into account
-		const int oty = ty - g_MapminY;
+		const int oty = ty - Global::MapminY;
 		if (oty < 0) {
 			continue;   // areas around torches.
 		}
-		if (oty >= g_MapsizeY) {
+		if (oty >= Global::MapsizeY) {
 			break;
 		}
 		for (int tz = z - 18; tz < z + 18; ++tz) {
@@ -1163,35 +1187,35 @@ static inline void lightCave(const int x, const int y, const int z)
 				if (tx < CHUNKSIZE_X) {
 					continue;
 				}
-				if (g_Orientation == East) {
-					if (tx >= int(g_MapsizeZ)-CHUNKSIZE_Z) {
+				if (Global::settings.orientation == East) {
+					if (tx >= int(Global::MapsizeZ)-CHUNKSIZE_Z) {
 						break;
 					}
-					if (tz >= int(g_MapsizeX)-CHUNKSIZE_X) {
+					if (tz >= int(Global::MapsizeX)-CHUNKSIZE_X) {
 						break;
 					}
 					SETLIGHTEAST(tx, oty, tz) = 0xFF;
-				} else if (g_Orientation == North) {
-					if (tx >= int(g_MapsizeX)-CHUNKSIZE_X) {
+				} else if (Global::settings.orientation == North) {
+					if (tx >= int(Global::MapsizeX)-CHUNKSIZE_X) {
 						break;
 					}
-					if (tz >= int(g_MapsizeZ)-CHUNKSIZE_Z) {
+					if (tz >= int(Global::MapsizeZ)-CHUNKSIZE_Z) {
 						break;
 					}
 					SETLIGHTNORTH(tx, oty, tz) = 0xFF;
-				} else if (g_Orientation == South) {
-					if (tx >= int(g_MapsizeX)-CHUNKSIZE_X) {
+				} else if (Global::settings.orientation == South) {
+					if (tx >= int(Global::MapsizeX)-CHUNKSIZE_X) {
 						break;
 					}
-					if (tz >= int(g_MapsizeZ)-CHUNKSIZE_Z) {
+					if (tz >= int(Global::MapsizeZ)-CHUNKSIZE_Z) {
 						break;
 					}
 					SETLIGHTSOUTH(tx, oty, tz) = 0xFF;
 				} else {
-					if (tx >= int(g_MapsizeZ)-CHUNKSIZE_Z) {
+					if (tx >= int(Global::MapsizeZ)-CHUNKSIZE_Z) {
 						break;
 					}
-					if (tz >= int(g_MapsizeX)-CHUNKSIZE_X) {
+					if (tz >= int(Global::MapsizeX)-CHUNKSIZE_X) {
 						break;
 					}
 					SETLIGHTWEST(tx , oty, tz) = 0xFF;
@@ -1203,15 +1227,15 @@ static inline void lightCave(const int x, const int y, const int z)
 
 void uncoverNether()
 {
-	const int cap = (g_MapsizeY - g_MapminY) - 57;
-	const int to = (g_MapsizeY - g_MapminY) - 52;
+	const int cap = (Global::MapsizeY - Global::MapminY) - 57;
+	const int to = (Global::MapsizeY - Global::MapminY) - 52;
 	printf("Uncovering Nether...\n");
-	for (size_t x = CHUNKSIZE_X; x < g_MapsizeX - CHUNKSIZE_X; ++x) {
-		printProgress(x - CHUNKSIZE_X, g_MapsizeX);
-		for (size_t z = CHUNKSIZE_Z; z < g_MapsizeZ - CHUNKSIZE_Z; ++z) {
+	for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) {
+		printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
+		for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
 			// Remove blocks on top, otherwise there is not much to see here
 			int massive = 0;
-			uint8_t *bp = g_Terrain + ((z + (x * g_MapsizeZ) + 1) * g_MapsizeY) - 1;
+			uint8_t *bp = &Global::terrain[((z + (x * Global::MapsizeZ) + 1) * Global::MapsizeY) - 1];
 			int i;
 			for (i = 0; i < to; ++i) { // Go down 74 blocks from the ceiling to see if there is anything except solid
 				if (massive && (*bp == AIR || *bp == LAVA || *bp == STAT_LAVA)) {
@@ -1229,7 +1253,7 @@ void uncoverNether()
 			if (i > cap) {
 				i = cap - 25;   // TODO: Make this configurable
 			}
-			bp = g_Terrain + ((z + (x * g_MapsizeZ) + 1) * g_MapsizeY) - 1;
+			bp = &Global::terrain[((z + (x * Global::MapsizeZ) + 1) * Global::MapsizeY) - 1];
 			for (int j = 0; j < i; ++j) {
 				*bp-- = AIR;
 			}

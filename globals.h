@@ -11,8 +11,6 @@
 #define UNDEFINED 0x7FFFFFFF
 #define MAX_MARKERS 200
 
-struct World;
-
 enum Orientation {
 	North,
 	East,
@@ -66,7 +64,7 @@ extern Marker g_Markers[MAX_MARKERS];
 // 3D arrays holding terrain/lightmap
 extern uint8_t *g_Terrain, *g_Light;
 // 2D array to store min and max block height per X/Z - it's 2 bytes per index, upper for highest, lower for lowest (don't ask!)
-extern uint16_t *g_HeightMap;
+extern uint16_t *;
 
 // If output is to be split up (for google maps etc) this contains the path to output to, NULL otherwise
 extern char *g_TilePath;
@@ -117,7 +115,6 @@ public:
 	static int8_t sectionMin, sectionMax; //No idea
 	static uint8_t mystCraftAge;
 
-	static World world;
 };
 
 #endif
