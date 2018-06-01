@@ -120,7 +120,7 @@ void SET_BLOCK(uint8_t type, uint8_t block) //type e.g BLOCKFLAT, blog e.g SNOW
 void loadColors()
 {
 	//biomes
-	if (g_UseBiomes)
+	if (false) //g_useBiomes
 		{
 		/*
 		0	plain
@@ -192,7 +192,7 @@ void loadColors()
 			}
 		}
 	}
-	if (g_lowMemory)
+	if (Global::settings.lowMemory)
 	{
 		memset(colorsToMap, 0, sizeof colorsToMap);
 		for (int i = 1; i < 256; i++)
@@ -586,7 +586,7 @@ bool loadColorsFromFile(const std::string& file)
 	if (f == NULL) {
 		return false;
 	}
-	if (g_lowMemory)
+	if (Global::settings.lowMemory)
 	{
 		memset(colorsToMap, 0, sizeof colorsToMap);
 		memset(colorsToID, 0, sizeof colorsToID);
@@ -645,7 +645,7 @@ bool loadColorsFromFile(const std::string& file)
 		if (!valid) { //TODO
 			if (vals[0] != 0)
 			{
-				if (g_lowMemory)
+				if (Global::settings.lowMemory)
 				{
 
 				}
@@ -659,7 +659,7 @@ bool loadColorsFromFile(const std::string& file)
 			continue;
 		}
 		int blockidSET = (blockid3 << 12) + blockid;
-		if (g_lowMemory)
+		if (Global::settings.lowMemory)
 		{
 			if (lowmemCounter > 255)
 			{
@@ -776,7 +776,7 @@ static PngReader *pngLeaf = NULL;
  * This loads grasscolor.png and foliagecolor.png where the
  * biome colors will be read from upon rendering
  * TODO: Funktion umschreiben, das sie fstream nutzt, strings korrigieren
- */
+ * Dropped support for biomes
 bool loadBiomeColors(const std::string& path)
 {
 	size_t len = path.size() + 21;
@@ -799,9 +799,9 @@ bool loadBiomeColors(const std::string& path)
 		printf("Could not load %s and %s; Expecting RGB(A), 8 bits per channel.\n", grass, foliage);
 		return false;
 	}
-	g_GrasscolorDepth = pngGrass->getBytesPerPixel();
-	g_FoliageDepth = pngLeaf->getBytesPerPixel();
-	g_Grasscolor = pngGrass->getImageData();
+	Global::grasscolorDepth = pngGrass->getBytesPerPixel();
+	Global::foliageDepth = pngLeaf->getBytesPerPixel();
+	Global::grasscolor = pngGrass->getImageData();
 	g_TallGrasscolor = new uint8_t[pngGrass->getBytesPerPixel() * 256 * 256];
 	g_Leafcolor = pngLeaf->getImageData();
 	// Adjust brightness to what colors.txt says
@@ -820,3 +820,4 @@ bool loadBiomeColors(const std::string& path)
 	printf("Loaded biome color maps from %s\n", path);
 	return true;
 }
+*/

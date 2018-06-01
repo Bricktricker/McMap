@@ -158,7 +158,7 @@ bool createImage(FILE *fh, const size_t width, const size_t height, const bool s
 
 bool saveImage()
 {
-	if (g_TilePath == NULL) {
+	if (Global::tilePath.empty()) {
 		// Normal single-file output
 		if (setjmp(png_jmpbuf(pngPtrMain))) { // libpng will issue a longjmp on error, so code flow will end up
 			png_destroy_write_struct(&pngPtrMain, &pngInfoPtrMain); // here if something goes wrong in the code below
@@ -181,8 +181,9 @@ bool saveImage()
 	} else {
 		// Tiled output, suitable for google maps
 		printf("Writing to files...\n");
-		size_t tmpLen = strlen(g_TilePath) + 40;
-		char *tmpString = new char[tmpLen];
+		//size_t tmpLen = strlen(g_TilePath) + 40;
+		//char *tmpString = new char[tmpLen];
+		std::string tmpString;
 		// Prepare a temporary buffer to copy the current line to, since we need the width to be a multiple of 4096
 		// and adjusting the whole image to that would be a waste of memory
 		const size_t tempWidth = ((gPngWidth - 5) / 4096 + 1) * 4096;
@@ -231,12 +232,13 @@ bool saveImage()
 						}
 						if (tileWidth * (tileIndex - sizeOffset[tileSize]) < size_t(gPngWidth)) {
 							// Open new tile file for a while
-							snprintf(tmpString, tmpLen, "%s/x%dy%dz%d.png", g_TilePath,
-									int(tileIndex - sizeOffset[tileSize]), int((y / pow(2, 12 - tileSize))), int(tileSize));
+							tmpString = Global::tilePath + "/x" + std::to_string(int(tileIndex - sizeOffset[tileSize])) + 'y' + std::to_string(int((y / pow(2, 12 - tileSize)))) + 'z' + std::to_string(int(tileSize)) + ".png";
+							//snprintf(tmpString, tmpLen, "%s/x%dy%dz%d.png", g_TilePath,
+									//int(tileIndex - sizeOffset[tileSize]), int((y / pow(2, 12 - tileSize))), int(tileSize));
 #ifdef _DEBUG
 							printf("Starting tile %s of size %d...\n", tmpString, (int)pow(2, 12 - tileSize));
 #endif
-							t.fileHandle = fopen(tmpString, "wb");
+							t.fileHandle = fopen(tmpString.c_str(), "wb");
 							if (t.fileHandle == NULL) {
 								printf("Error opening file!\n");
 								return false;
@@ -424,9 +426,9 @@ bool discardImagePart()
 
 bool composeFinalImage()
 {
-	char *tmpString = NULL;
+	std::string tmpString;
 	size_t tmpLen = 0;
-	if (g_TilePath == NULL) {
+	if (Global::tilePath.empty()) {
 		printf("Composing final png file...\n");
 		if (setjmp(png_jmpbuf(pngPtrMain))) {
 			png_destroy_write_struct(&pngPtrMain, NULL);
@@ -435,12 +437,13 @@ bool composeFinalImage()
 	} else {
 		// Tiled output, suitable for google maps
 		printf("Composing final png files...\n");
-		tmpLen = strlen(g_TilePath) + 40;
-		tmpString = new char[tmpLen];
+		//tmpLen = strlen(g_TilePath) + 40;
+		//tmpString = new char[tmpLen];
+		std::string tmpString;
 		// Prepare a temporary buffer to copy the current line to, since we need the width to be a multiple of 4096
 		// and adjusting the whole image to that would be a waste of memory
 	}
-	const size_t tempWidth = (g_TilePath == NULL ? gPngLineWidthChans : ((gPngWidth - 5) / 4096 + 1) * 4096);
+	const size_t tempWidth = (Global::tilePath.empty() ? gPngLineWidthChans : ((gPngWidth - 5) / 4096 + 1) * 4096);
 	const size_t tempWidthChans = tempWidth * CHANSPERPIXEL;
 
 	uint8_t *lineWrite = new uint8_t[tempWidthChans];
@@ -449,7 +452,7 @@ bool composeFinalImage()
 	// Prepare an array of png structs that will output simultaneously to the various tiles
 	size_t sizeOffset[7], last = 0;
 	ImageTile *tile = NULL;
-	if (g_TilePath != NULL) {
+	if (!Global::tilePath.empty()) {
 		for (size_t i = 0; i < 7; ++i) {
 			sizeOffset[i] = last;
 			last += ((tempWidth - 1) / pow(2, 12 - i)) + 1;
@@ -518,7 +521,7 @@ bool composeFinalImage()
 			}
 		}
 		// Done composing this line, write to final image
-		if (g_TilePath == NULL) {
+		if (Global::tilePath.empty()) {
 			// Single file
 			png_write_row(pngPtrMain, (png_bytep)lineWrite);
 		} else {
@@ -546,12 +549,13 @@ bool composeFinalImage()
 						}
 						if (tileWidth * (tileIndex - sizeOffset[tileSize]) < size_t(gPngWidth)) {
 							// Open new tile file for a while
-							snprintf(tmpString, tmpLen, "%s/x%dy%dz%d.png", g_TilePath,
-									int(tileIndex - sizeOffset[tileSize]), int((y / pow(2, 12 - tileSize))), int(tileSize));
+							tmpString = Global::tilePath + "/x" + std::to_string(int(tileIndex - sizeOffset[tileSize])) + 'y' + std::to_string(int((y / pow(2, 12 - tileSize)))) + 'z' + std::to_string(int(tileSize)) + ".png";
+							//snprintf(tmpString, tmpLen, "%s/x%dy%dz%d.png", g_TilePath,
+									//int(tileIndex - sizeOffset[tileSize]), int((y / pow(2, 12 - tileSize))), int(tileSize));
 #ifdef _DEBUG
 							printf("Starting tile %s of size %d...\n", tmpString, (int)pow(2, 12 - tileSize));
 #endif
-							t.fileHandle = fopen(tmpString, "wb");
+							t.fileHandle = fopen(tmpString.c_str(), "wb");
 							if (t.fileHandle == NULL) {
 								printf("Error opening file!\n");
 								return false;
@@ -592,7 +596,7 @@ bool composeFinalImage()
 		}
 		// Y-Loop
 	}
-	if (g_TilePath == NULL) {
+	if (Global::tilePath.empty()) {
 		png_write_end(pngPtrMain, NULL);
 		png_destroy_write_struct(&pngPtrMain, &pngInfoPtrMain);
 	} else {
@@ -621,7 +625,7 @@ bool composeFinalImage()
 uint64_t calcImageSize(const int mapChunksX, const int mapChunksZ, const size_t mapHeight, int &pixelsX, int &pixelsY, const bool tight)
 {
 	pixelsX = (mapChunksX * CHUNKSIZE_X + mapChunksZ * CHUNKSIZE_Z) * 2 + (tight ? 3 : 10);
-	pixelsY = (mapChunksX * CHUNKSIZE_X + mapChunksZ * CHUNKSIZE_Z + int(mapHeight) * g_OffsetY) + (tight ? 3 : 10);
+	pixelsY = (mapChunksX * CHUNKSIZE_X + mapChunksZ * CHUNKSIZE_Z + int(mapHeight) * Global::OffsetY) + (tight ? 3 : 10);
 	return uint64_t(pixelsX) * BYTESPERPIXEL * uint64_t(pixelsY);
 }
 
@@ -640,10 +644,10 @@ void setPixel(const size_t x, const size_t y, const uint16_t color, const float 
 	// Now make a local copy of the color that we can modify just for this one block
 	memcpy(c, colors[color], BYTESPERPIXEL);
 	modColor(c, sub);
-	if (g_UseBiomes && g_WorldFormat == 2) assignBiome(c, biome, color);
+	//if (g_UseBiomes && g_WorldFormat == 2) assignBiome(c, biome, color); //dropped biom support
 	uint8_t colortype = colors[color][BLOCKTYPE] % BLOCKBIOME;
 
-	if (g_BlendAll) {
+	if (Global::settings.blendAll) {
 		// Then check the block type, as some types will be drawn differently
 		switch (colortype)
 		{
@@ -736,8 +740,8 @@ void setPixel(const size_t x, const size_t y, const uint16_t color, const float 
 	}
 	// In case the user wants noise, calc the strength now, depending on the desired intensity and the block's brightness
 	int noise = 0;
-	if (g_Noise && colors[color][NOISE]) {
-		noise = int(float(g_Noise * colors[color][NOISE]) * (float(GETBRIGHTNESS(c) + 10) / 2650.0f));
+	if (Global::settings.noise && colors[color][NOISE]) {
+		noise = int(float(Global::settings.noise * colors[color][NOISE]) * (float(GETBRIGHTNESS(c) + 10) / 2650.0f));
 	}
 	// Ordinary blocks are all rendered the same way
 	if (c[PALPHA] == 255) { // Fully opaque - faster
@@ -834,8 +838,8 @@ void blendPixel(const size_t x, const size_t y, const uint8_t color, const float
 	modColor(D, -27);
 	// In case the user wants noise, calc the strength now, depending on the desired intensity and the block's brightness
 	int noise = 0;
-	if (g_Noise && colors[color][NOISE]) {
-		noise = int(float(g_Noise * colors[color][NOISE]) * (float(GETBRIGHTNESS(c) + 10) / 2650.0f));
+	if (Global::settings.noise && colors[color][NOISE]) {
+		noise = int(float(Global::settings.noise * colors[color][NOISE]) * (float(GETBRIGHTNESS(c) + 10) / 2650.0f));
 	}
 	// Top row
 	uint8_t *pos = &PIXEL(x, y);
@@ -961,8 +965,8 @@ namespace
 		modColor(D, sub - 25);
 		// consider noise
 		int noise = 0;
-		if (g_Noise && colors[GRASS][NOISE]) {
-			noise = int(float(g_Noise * colors[GRASS][NOISE]) * (float(GETBRIGHTNESS(color) + 10) / 2650.0f));
+		if (Global::settings.noise && colors[GRASS][NOISE]) {
+			noise = int(float(Global::settings.noise * colors[GRASS][NOISE]) * (float(GETBRIGHTNESS(color) + 10) / 2650.0f));
 		}
 		// Top row
 		uint8_t *pos = &PIXEL(x, y);
@@ -1079,8 +1083,8 @@ namespace
 		modColor(D, sub - 25);
 		// consider noise
 		int noise = 0;
-		if (g_Noise && colors[GRASS][NOISE]) {
-			noise = int(float(g_Noise * colors[GRASS][NOISE]) * (float(GETBRIGHTNESS(color) + 10) / 2650.0f));
+		if (Global::settings.noise && colors[GRASS][NOISE]) {
+			noise = int(float(Global::settings.noise * colors[GRASS][NOISE]) * (float(GETBRIGHTNESS(color) + 10) / 2650.0f));
 		}
 		// Top row
 		uint8_t *pos = &PIXEL(x, y);

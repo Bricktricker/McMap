@@ -36,7 +36,7 @@ void loadColors();
 bool loadColorsFromFile(const std::string& file);
 bool dumpColorsToFile(const std::string& file);
 bool extractColors(const std::string& file);
-bool loadBiomeColors(const std::string& path);
+//bool loadBiomeColors(const std::string& path);
 
 #define AIR 0
 #define STONE 1

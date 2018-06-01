@@ -92,9 +92,5 @@ void strSplit(const std::string &s, char delim, Out result) {
 	}
 }
 
-std::vector<std::string> strSplit(const std::string &s, char delim) {
-	std::vector<std::string> elems;
-	strSplit(s, delim, std::back_inserter(elems));
-	return elems;
-}
+std::vector<std::string> strSplit(const std::string &s, char delim);
 #endif
