@@ -53,7 +53,7 @@ public:
 	bool getInt(const string name, int32_t &value);
 	bool getLong(const string name, int64_t &value);
 	bool getByteArray(const string name, uint8_t* &data, int &len);
-	TagType getType() {
+	TagType getType() const {
 		return _type;
 	}
 	virtual ~NBT_Tag();
@@ -62,12 +62,14 @@ public:
 class NBT : public NBT_Tag
 {
 private:
-	uint8_t *_blob;
-	char* _filename;
-	size_t _bloblen;
+	const std::vector<uint8_t>& data;
+	//uint8_t *_blob;
+	//std::string _filename;
+	//size_t _bloblen;
 public:
-	explicit NBT(const char *file, bool &success);
-	explicit NBT(uint8_t * const file, const size_t len, const bool shared, bool &success);
+	explicit NBT(const std::vector<uint8_t>& _data);
+	explicit NBT(const char * buffer, bool &success);
+	explicit NBT(uint8_t * const buffer, const size_t len, const bool shared, bool &success);
 	explicit NBT();
 	virtual ~NBT();
 	//bool save();

@@ -79,6 +79,13 @@ NBT::NBT()
 
 ///-------------------------------------------
 
+NBT::NBT(const std::vector<uint8_t>& _data)
+	: data(_data), _type(tagCompound)
+{
+	size_t pos = 3;
+
+}
+
 NBT::NBT(const char *file, bool &success)
 {
 	_blob = NULL;
