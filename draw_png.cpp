@@ -629,6 +629,10 @@ uint64_t calcImageSize(const int mapChunksX, const int mapChunksZ, const size_t 
 	return uint64_t(pixelsX) * BYTESPERPIXEL * uint64_t(pixelsY);
 }
 
+/*
+fsub: brightnessAdjustment
+biom parameter not used
+*/
 void setPixel(const size_t x, const size_t y, const uint16_t color, const float fsub, const uint8_t biome)
 {
 
@@ -643,8 +647,10 @@ void setPixel(const size_t x, const size_t y, const uint16_t color, const float 
 	uint8_t L[CHANSPERPIXEL], D[CHANSPERPIXEL], c[CHANSPERPIXEL];
 	// Now make a local copy of the color that we can modify just for this one block
 	memcpy(c, colors[color], BYTESPERPIXEL);
-	modColor(c, sub);
+	modColor(c, sub); //set brightness
+
 	//if (g_UseBiomes && g_WorldFormat == 2) assignBiome(c, biome, color); //dropped biom support
+
 	uint8_t colortype = colors[color][BLOCKTYPE] % BLOCKBIOME;
 
 	if (Global::settings.blendAll) {
@@ -877,7 +883,7 @@ namespace
 			memcpy(destination, source, BYTESPERPIXEL);
 			return;
 		}
-#		define BLEND(ca,aa,cb) uint8_t(((size_t(ca) * size_t(aa)) + (size_t(255 - aa) * size_t(cb))) / 255)
+#define BLEND(ca,aa,cb) uint8_t(((size_t(ca) * size_t(aa)) + (size_t(255 - aa) * size_t(cb))) / 255)
 		destination[0] = BLEND(source[0], source[PALPHA], destination[0]);
 		destination[1] = BLEND(source[1], source[PALPHA], destination[1]);
 		destination[2] = BLEND(source[2], source[PALPHA], destination[2]);
@@ -907,6 +913,7 @@ namespace
 		color[2] = clamp(color[2] + add[2]);
 	}
 
+	//setzt collor an pos + 3 weitere
 	void setSnow(const size_t x, const size_t y, const uint8_t * const color)
 	{
 		// Top row (second row)

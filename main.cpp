@@ -87,6 +87,7 @@ int main(int argc, char **argv)
 	bool memlimitSet = false;
 
 #pragma region CommandLineParsing
+	/*
 	// First, for the sake of backward compatibility, try to parse command line arguments the old way first
 	if (argc >= 7
 	      && isNumeric(argv[1]) && isNumeric(argv[2]) && isNumeric(argv[3]) && isNumeric(argv[4])) {     // Specific area of world
@@ -104,7 +105,7 @@ int main(int argc, char **argv)
 		filename = argv[1];
 		Global::settings.nightmode = (atoi(argv[2]) == 1);
 		Global::settings.underground = (atoi(argv[2]) == 2);
-	} else { // -- New command line parsing --
+	} else */ { // -- New command line parsing --
 #		define MOREARGS(x) (argpos + (x) < argc)
 #		define NEXTARG argv[++argpos]
 #		define POLLARG(x) argv[argpos + (x)]
@@ -590,7 +591,7 @@ int main(int argc, char **argv)
 
 		// Finally, render terrain to file
 		printf("Drawing map...\n");
-		for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) {
+		for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) { //iterate over all blocks, ignore outer Chunks
 			printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
 			for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
 				// Biome colors

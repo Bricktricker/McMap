@@ -13,6 +13,7 @@
 
 #include <fstream>
 
+//clamps value between 0 and 255
 uint8_t clamp(int32_t val)
 {
 	if (val < 0) {

@@ -42,17 +42,17 @@ uint8_t g_MystCraftAge;
 
 int Global::TotalFromChunkX, Global::TotalFromChunkZ, Global::TotalToChunkX, Global::TotalToChunkZ;
 int Global::FromChunkX = UNDEFINED, Global::FromChunkZ = UNDEFINED, Global::ToChunkX = UNDEFINED, Global::ToChunkZ = UNDEFINED;
-size_t Global::MapsizeZ, Global::MapsizeX, Global::Terrainsize;
-int Global::MapminY, Global::MapsizeY;
-int Global::OffsetY;
+size_t Global::MapsizeZ = 0, Global::MapsizeX = 0, Global::Terrainsize = 0;
+int Global::MapminY = 0, Global::MapsizeY = 256;
+int Global::OffsetY = 2;
 WorldFormat Global::worldFormat;
 Settings Global::settings = { East, false, false, false, false, 0, false, false, false, false, false };
 
-//bool Global::useBiomes;
-uint64_t Global::biomeMapSize;
+//bool Global::useBiomes = false;
+uint64_t Global::biomeMapSize = 0;
 std::vector<uint8_t> Global::grasscolor, Global::leafcolor, Global::tallGrasscolor;
 std::vector<uint16_t> Global::biomeMap;
-int Global::grasscolorDepth, Global::foliageDepth;
+int Global::grasscolorDepth = 0, Global::foliageDepth = 0;
 
 std::vector<Marker> Global::markers;
 std::vector<uint8_t> Global::terrain, Global::light;

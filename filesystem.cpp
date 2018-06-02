@@ -23,7 +23,7 @@ std::wstring stdStringToWstring(const std::string& str) {
 	return std::wstring(&wideStringBuffer[0], wideStringBuffer.size());
 }
 
-std::string wStringToStdString(const std::wstring str) {
+std::string wStringToStdString(const std::wstring& str) {
 	return std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(str);
 }
 

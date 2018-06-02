@@ -25,7 +25,8 @@ enum TagType {
 	tagString = 8,
 	tagList = 9,
 	tagCompound = 10,
-	tagIntArray = 11
+	tagIntArray = 11,
+	tagLongArray = 12
 };
 
 class NBT_Tag
@@ -62,7 +63,7 @@ class NBT : public NBT_Tag
 {
 private:
 	uint8_t *_blob;
-	char *_filename;
+	char* _filename;
 	size_t _bloblen;
 public:
 	explicit NBT(const char *file, bool &success);

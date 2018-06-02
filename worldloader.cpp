@@ -11,6 +11,7 @@
 #include <climits>
 #include <array>
 #include <cassert>
+#include <fstream>
 
 /*
 Callstack:
@@ -82,8 +83,10 @@ T ntoh(void* u, size_t size)
 		} b = { 0x01020304 };
 
 		if (b.c[0] == 1) {
+			T t{};
+			memcpy(&t, u, size);
 			__debugbreak(); //check, may not working
-			return *static_cast<T*>(u);
+			return t;
 		}
 	}
 
@@ -100,16 +103,8 @@ T ntoh(void* u, size_t size)
 
 	return dest.u;
 }
-	
-	
-// network byte order to host byte order (32 bit, reads from 8 bit stream/array)
-[[deprecated]]
-inline uint32_t _ntohl(uint8_t *val)
-{
-	return (uint32_t(val[0]) << 24) + (uint32_t(val[1]) << 16) + (uint32_t(val[2]) << 8) + (uint32_t(val[3]));
-}
 
-static bool loadChunk(const char *streamOrFile, const size_t len = 0);
+static bool loadChunk(uint8_t* buffer, const size_t len);
 static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t chunkZ);
 static void allocateTerrain();
 static void loadBiomeChunk(const std::string& path, const int chunkX, const int chunkZ);
@@ -250,8 +245,8 @@ static bool scanWorldDirectoryRegion(const std::string& fromPath)
 	// OK go
 	world.regions.clear();
 	//reset, why??
-	//					g_FromChunkX = g_FromChunkZ = 10000000;
-	//					g_ToChunkX   = g_ToChunkZ  = -10000000;
+	Global::FromChunkX = Global::FromChunkZ = 10000000;
+	Global::ToChunkX   = Global::ToChunkZ = -10000000;
 
 	// Read subdirs now
 	string path(fromPath);
@@ -293,25 +288,27 @@ static bool scanWorldDirectoryRegion(const std::string& fromPath)
 
 	for (regionList::iterator it = world.regions.begin(); it != world.regions.end(); it++) {
 		Region& region = (*it);
-		FILE *fh = fopen(region.filename.c_str(), "rb");
-		//printf("Plik %s\n",chunk.filename);
-		if (fh == NULL) {
+		std::ifstream fh(region.filename, std::ios::in | std::ios::binary);
+		//FILE *fh = fopen(region.filename.c_str(), "rb");
+		if (!fh.good()) {
 			std::cerr << "Cannot scan region " << region.filename << '\n';
 			region.filename.clear();
 			continue;
 		}
-		std::array<uint8_t, REGIONSIZE * REGIONSIZE * 4> buffer;
-		if (fread(buffer.data(), 4, REGIONSIZE * REGIONSIZE, fh) != REGIONSIZE * REGIONSIZE) {
+		//std::array<uint8_t, REGIONSIZE * REGIONSIZE * 4> buffer;
+		std::vector<uint8_t> buffer(REGIONSIZE * REGIONSIZE * 4, 0);
+		fh.read((char*)buffer.data(), 4 * REGIONSIZE * REGIONSIZE);
+		if (fh.fail()) {
 			std::cerr << "Could not read header from " << region.filename << '\n';
 			region.filename.clear();
 			continue;
 		}
-		fclose(fh);
 		// Check for existing chunks in region and update bounds
 		for (int i = 0; i < REGIONSIZE * REGIONSIZE; ++i) {
 			const uint32_t offset = (ntoh<uint32_t>(&buffer[i * 4], 3) >> 8) * 4096;
 			if (offset == 0) continue;
-			//printf("Scan region %s, offset %d (%d)\n",chunk.filename,offset,i);
+			std::cout << "Scan region: " << region.filename << ' ' << std::to_string(offset) + ' ' + std::to_string(i);
+			//printf("Scan region %s, offset %d (%d)\n", region.filename,offset,i);
 
 			const int valX = region.x + i % REGIONSIZE;
 			const int valZ = region.z + i / REGIONSIZE;
@@ -333,7 +330,8 @@ static bool scanWorldDirectoryRegion(const std::string& fromPath)
 	Global::ToChunkX++;
 	Global::ToChunkZ++;
 	//
-	printf("Min: (%d|%d) Max: (%d|%d)\n", Global::FromChunkX, Global::FromChunkZ, Global::ToChunkX, Global::ToChunkZ);
+	std::cout << "Min: (" << Global::FromChunkX << '|' << Global::FromChunkZ << ") Max: (" << Global::ToChunkX << '|' << Global::ToChunkZ << ")\n";
+	//printf("Min: (%d|%d) Max: (%d|%d)\n", Global::FromChunkX, Global::FromChunkZ, Global::ToChunkX, Global::ToChunkZ);
 	return true;
 }
 
@@ -366,7 +364,7 @@ bool loadEntireTerrain()
 bool loadTerrain(const std::string& fromPath, int &loadedChunks)
 {
 	loadedChunks = 0;
-	if (Global::worldFormat != ALPHA) return loadTerrainRegion(fromPath.c_str(), loadedChunks);
+	if (Global::worldFormat != ALPHA) return loadTerrainRegion(fromPath, loadedChunks);
 
 	//load Alpha format, support dropped
 	__debugbreak();
@@ -397,25 +395,24 @@ bool loadTerrain(const std::string& fromPath, int &loadedChunks)
 	*/
 }
 
-static bool loadChunk(const char *streamOrFile, const size_t streamLen)
+static bool loadChunk(uint8_t* buffer, const size_t streamLen)
 {
 	bool ok = false;
-	NBT *chunk;
+	NBT chunk;
 	if (streamLen == 0) { // File
-		chunk = new NBT(streamOrFile, ok);
+		__debugbreak(); //give file to loadChunk, should not happen
 	} else {
-		chunk = new NBT((uint8_t*)streamOrFile, streamLen, true, ok);
+		chunk = NBT((uint8_t*)buffer, streamLen, true, ok);
 	}
 	if (!ok) {
 		//printf("Error loading chunk.\n");
-		delete chunk;
 		return false; // chunk does not exist
 	}
 	NBT_Tag *level = NULL;
-	ok = chunk->getCompound("Level", level);
+	ok = chunk.getCompound("Level", level);
 	if (!ok) {
 		printf("No level\n");
-		delete chunk;
+		//delete chunk;
 		return false;
 	}
 	int32_t chunkX, chunkZ;
@@ -423,18 +420,18 @@ static bool loadChunk(const char *streamOrFile, const size_t streamLen)
 	ok = ok && level->getInt("zPos", chunkZ);
 	if (!ok) {
 		printf("No pos\n");
-		delete chunk;
+		//delete chunk;
 		return false;
 	}
 	// Check if chunk is in desired bounds (not a chunk where the filename tells a different position)
 	if (chunkX < Global::FromChunkX || chunkX >= Global::ToChunkX || chunkZ < Global::FromChunkZ || chunkZ >= Global::ToChunkZ) {
 		if (streamLen == 0) printf("Chunk is out of bounds. %d %d\n", chunkX, chunkZ);
-		delete chunk;
+		//delete chunk;
 		return false; // Nope, its not...
 	}
 	if (Global::worldFormat == ANVIL) {
 		bool ret = loadAnvilChunk(level, chunkX, chunkZ);
-		delete chunk;
+		//delete chunk;
 		return ret;
 	}
 	//loading old world format, support dropped
@@ -1020,11 +1017,14 @@ static bool loadRegion(const std::string& file, const bool mustExist, int &loade
 	// Sort chunks using a map, so we access the file as sequential as possible
 	chunkMap localChunks;
 	for (uint32_t i = 0; i < REGION_HEADER_SIZE; i += 4) {
-		uint32_t offset = (_ntohl(buffer.data() + i) >> 8) * 4096;
+		const uint32_t offset = (ntoh<uint32_t>(&buffer[i], 3) >> 8) * 4096;
 		if (offset == 0) continue;
 		localChunks[offset] = i;
 	}
-	if (localChunks.size() == 0) return false;
+	if (localChunks.size() == 0) {
+		fclose(rp);
+		return false;
+	}
 	z_stream zlibStream;
 	for (chunkMap::iterator ci = localChunks.begin(); ci != localChunks.end(); ci++) {
 		uint32_t offset = ci->first;
@@ -1040,7 +1040,7 @@ static bool loadRegion(const std::string& file, const bool mustExist, int &loade
 			printf("Error reading chunk size from region file %s\n", file);
 			continue;
 		}
-		uint32_t len = _ntohl(buffer.data());
+		uint32_t len = ntoh<uint32_t>(buffer.data(), 4);
 		uint8_t version = buffer[4];
 		if (len == 0) continue;
 		len--;
@@ -1069,11 +1069,15 @@ static bool loadRegion(const std::string& file, const bool mustExist, int &loade
 			}
 
 			len = zlibStream.total_out;
+			if (len == 0) {
+				std::cerr << "cold not decompress region! Error\n";
+				__debugbreak();
+			}
 		} else {
 			printf("Unsupported McRegion version: %d\n", (int)version);
 			continue;
 		}
-		if (loadChunk((char*)decompressedBuffer.data(), len)) {
+		if (loadChunk(decompressedBuffer.data(), len)) {
 			loadedChunks++;
 		}
 	}
