@@ -619,7 +619,7 @@ bool NBT_Tag::getShort(const string& name, int16_t &value)
 		auto posVal = dataHolder._compound->find(name);
 		if (posVal != dataHolder._compound->end()) {
 			if (posVal->second->getType() == tagShort) {
-				value = ntoh<int16_t>(posVal->second->dataHolder._primDataType._short);
+				value = posVal->second->dataHolder._primDataType._short;
 				return true;
 			}
 		}
@@ -635,7 +635,7 @@ bool NBT_Tag::getInt(const string& name, int32_t &value)
 		auto posVal = dataHolder._compound->find(name);
 		if (posVal != dataHolder._compound->end()) {
 			if (posVal->second->getType() == tagInt) {
-				value = ntoh<int32_t>(posVal->second->dataHolder._primDataType._int);
+				value = posVal->second->dataHolder._primDataType._int;
 				return true;
 			}
 		}
@@ -650,7 +650,7 @@ bool NBT_Tag::getLong(const string& name, int64_t &value)
 		auto posVal = dataHolder._compound->find(name);
 		if (posVal != dataHolder._compound->end()) {
 			if (posVal->second->getType() == tagLong) {
-				value = ntoh<int64_t>(posVal->second->dataHolder._primDataType._long);
+				value = posVal->second->dataHolder._primDataType._long;
 				return true;
 			}
 		}

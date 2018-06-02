@@ -406,12 +406,14 @@ static bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, con
 	if (!chunk.good()) {
 		//printf("Error loading chunk.\n");
 		std::cerr << "Error loading chunk.\n";
+		__debugbreak();
 		return false; // chunk does not exist
 	}
 	NBT_Tag *level = NULL;
 	ok = chunk.getCompound("Level", level);
 	if (!ok) {
 		printf("No level\n");
+		__debugbreak();
 		//delete chunk;
 		return false;
 	}
@@ -420,12 +422,14 @@ static bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, con
 	ok = ok && level->getInt("zPos", chunkZ);
 	if (!ok) {
 		printf("No pos\n");
+		__debugbreak();
 		//delete chunk;
 		return false;
 	}
 	// Check if chunk is in desired bounds (not a chunk where the filename tells a different position)
 	if (chunkX < Global::FromChunkX || chunkX >= Global::ToChunkX || chunkZ < Global::FromChunkZ || chunkZ >= Global::ToChunkZ) {
 		if (!chunk.good()) printf("Chunk is out of bounds. %d %d\n", chunkX, chunkZ);
+		__debugbreak();
 		//delete chunk;
 		return false; // Nope, its not...
 	}
@@ -606,18 +610,20 @@ static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const in
 		if (yo < Global::sectionMin || yo > Global::sectionMax) continue;
 		yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - yoffsetsomething;
 		if (yoffset < 0) yoffset = 0;
-		PrimArray<uint8_t> b;
 		ok = section->getByteArray("Blocks", blockdata);
+		len = blockdata->_len;
 		if (!ok || len < CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) {
 			printf("No blocks\n");
 			return false;
 		}
 		ok = section->getByteArray("Data", justData);
+		len = justData->_len;
 		if (!ok || len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
 			printf("No block data\n");
 			return false;
 		}
 		ok = section->getByteArray("Add", addData);
+		len = addData->_len;
 		if (Global::settings.nightmode || Global::settings.skylight) { // If nightmode, we need the light information too
 			ok = section->getByteArray("BlockLight", lightdata);
 			if (!ok || len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
@@ -627,6 +633,7 @@ static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const in
 		}
 		if (Global::settings.skylight) { // Skylight desired - wish granted
 			ok = section->getByteArray("SkyLight", skydata);
+			len = skydata->_len;
 			if (!ok || len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
 				return false;
 			}
@@ -1029,6 +1036,7 @@ static bool loadRegion(const std::string& file, const bool mustExist, int &loade
 	z_stream zlibStream;
 	for (chunkMap::iterator ci = localChunks.begin(); ci != localChunks.end(); ci++) {
 		uint32_t offset = ci->first;
+		if (offset == 81920) __debugbreak(); //chunk[14, 28] in World at(14, -4) in file r.0.-1.mca
 		// Not even needed. duh.
 		//uint32_t index = ci->second;
 		//int x = (**it).x + (index / 4) % REGIONSIZE;
