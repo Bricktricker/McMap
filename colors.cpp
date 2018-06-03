@@ -741,7 +741,7 @@ bool dumpColorsToFile(const std::string& file)
  */
 bool extractColors(const std::string& file)
 {
-	PngReader png(file.c_str());
+	PngReader png(file);
 	if (!png.isValidImage()) return false;
 	if (png.getWidth() != png.getHeight() // Quadratic
 			|| (png.getWidth() / 16) * 16 != png.getWidth() // Has to be multiple of 16

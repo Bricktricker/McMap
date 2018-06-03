@@ -43,7 +43,8 @@ std::string base36(int val)
 
 int base10(const std::string& val)
 {
-	return atoi(val.c_str());
+	return std::stoi(val);
+	//return atoi(val.c_str());
 	/*
 	//printf("Turning %s into ", val);
 	int res = 0;

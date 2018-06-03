@@ -8,44 +8,90 @@
 #include "pngreader.h"
 #include <png.h>
 #include <cstdio>
+#include <fstream>
+
+void PngReader::userReadData(png_structp pngPtr, png_bytep data, png_size_t length)
+{
+	//Here we get our IO pointer back from the read struct.
+	//This is the parameter we passed to the png_set_read_fn() function.
+	//Our std::istream pointer.
+	png_voidp a = png_get_io_ptr(pngPtr);
+	//Cast the pointer to std::ifstream* and read 'length' bytes into 'data'
+
+	((std::ifstream*)a)->read((char*)data, length);
+}
 
 PngReader::PngReader(const std::string& filename)
+	: _width(0), _height(0), _chans(Unknown), _bitDepth(0), _bytesPerPixel(0), _status(0)
 {
-	_width = _height = _bitDepth = 0;
-	_chans = Unknown;
-	_imageData = NULL;
+	open(filename);
+}
+
+PngReader::PngReader()
+	: _width(0), _height(0), _chans(Unknown), _bitDepth(0), _bytesPerPixel(0), _status(0)
+{
+}
+
+void PngReader::open(const std::string & filename)
+{
 	uint8_t **rows = NULL;
-	_bytesPerPixel = 0;
 	// Open PNG file
-	FILE *fh = fopen(filename.c_str(), "rb");
-	if (fh == NULL) {
+	std::ifstream source(filename, std::ios::in | std::ios::binary);
+	if (!source.good()) {
+		_status |= 1;
 		return;
 	}
+
+	constexpr size_t PNGSIGSIZE = 8;
 	png_byte header[8]; // Check header
-	if (fread(header, 1, 8, fh) != 8 || png_sig_cmp(header, 0, 8)) {
-		// Not a PNG file
-		fclose(fh);
+	source.read((char*)header, PNGSIGSIZE);
+	if (!source.good()) {
+		_status |= (1 << 0);
 		return;
 	}
+
+	if (png_sig_cmp(header, 0, PNGSIGSIZE) != 0) {
+		_status |= (1 << 1);
+		return;
+	}//Not a PNG file
+
 	// Set up libpng to read file
 	png_structp pngPtr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-	png_infop pngInfo = NULL;
-	if (pngPtr == NULL || setjmp(png_jmpbuf(pngPtr))) {
-		png_destroy_read_struct(&pngPtr, &pngInfo, NULL);
-		fclose(fh);
-		delete[] rows;
+	if (pngPtr == NULL) {
+		_status |= (1 << 2);
 		return;
 	}
-	pngInfo = png_create_info_struct(pngPtr);
-	png_init_io(pngPtr, fh);
-	png_set_sig_bytes(pngPtr, 8);
+	png_infop pngInfo = png_create_info_struct(pngPtr);
+	if (pngInfo == nullptr) {
+		png_destroy_read_struct(&pngPtr, NULL, NULL);
+		_status |= (1 << 2);
+		return;
+	}
+
+	if (setjmp(png_jmpbuf(pngPtr))) {
+		//An error occured, so clean up what we have allocated so far...
+		png_destroy_read_struct(&pngPtr, &pngInfo, NULL);
+		if (rows != NULL) delete[] rows;
+		_status |= (1 << 2);
+
+		//Make sure you return here. libPNG will jump to here if something
+		//goes wrong, and if you continue with your normal code, you might
+		//End up with an infinite loop.
+		return;
+	}
+
+	png_set_read_fn(pngPtr, (png_voidp)&source, userReadData);
+
+	png_set_sig_bytes(pngPtr, PNGSIGSIZE);
+	png_read_info(pngPtr, pngInfo);
+
 	png_read_info(pngPtr, pngInfo);
 	png_uint_32 width, height;
 	int type, interlace, comp, filter; // Check image format (square, RGBA)
 	png_uint_32 ret = png_get_IHDR(pngPtr, pngInfo, &width, &height, &_bitDepth, &type, &interlace, &comp, &filter);
 	if (ret == 0) {
 		png_destroy_read_struct(&pngPtr, &pngInfo, NULL);
-		fclose(fh);
+		_status |= (1 << 2);
 		return;
 	}
 	// Assign properties
@@ -78,17 +124,14 @@ PngReader::PngReader(const std::string& filename)
 	}
 	_bytesPerPixel = (_bytesPerPixel * _bitDepth) / 8;
 	// Alloc mem
-	_imageData = new uint8_t[width * height * _bytesPerPixel];
+	_imageData.resize(width * height * _bytesPerPixel);
 	rows = new uint8_t*[height];
 	for (png_uint_32 i = 0; i < height; ++i) {
-		rows[i] = _imageData + i * width * _bytesPerPixel;
+		rows[i] = &_imageData[i * width * _bytesPerPixel]; // _imageData +i * width * _bytesPerPixel;
 	}
 	png_read_image(pngPtr, rows);
 	png_destroy_read_struct(&pngPtr, &pngInfo, NULL);
 	delete[] rows;
-}
 
-PngReader::~PngReader()
-{
-	delete[] _imageData;
+	if (!source.good()) _status |= 1;
 }
