@@ -307,7 +307,7 @@ static bool scanWorldDirectoryRegion(const std::string& fromPath)
 		for (int i = 0; i < REGIONSIZE * REGIONSIZE; ++i) {
 			const uint32_t offset = (ntoh<uint32_t>(&buffer[i * 4], 3) >> 8) * 4096;
 			if (offset == 0) continue;
-			std::cout << "Scan region: " << region.filename << ' ' << std::to_string(offset) + ' ' + std::to_string(i);
+			//std::cout << "Scan region: " << region.filename << ' ' << std::to_string(offset) + ' ' + std::to_string(i);
 			//printf("Scan region %s, offset %d (%d)\n", region.filename,offset,i);
 
 			const int valX = region.x + i % REGIONSIZE;
@@ -398,12 +398,12 @@ bool loadTerrain(const std::string& fromPath, int &loadedChunks)
 static bool loadChunk(uint8_t* buffer, const size_t streamLen)
 {
 	bool ok = false;
-	NBT chunk;
 	if (streamLen == 0) { // File
 		__debugbreak(); //give file to loadChunk, should not happen
 	} else {
-		chunk = NBT((uint8_t*)buffer, streamLen, true, ok);
+		//chunk = NBT((uint8_t*)buffer, streamLen, true, ok);
 	}
+	NBT chunk((uint8_t*)buffer, streamLen, true, ok);
 	if (!ok) {
 		//printf("Error loading chunk.\n");
 		return false; // chunk does not exist
@@ -617,6 +617,7 @@ static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const in
 			return false;
 		}
 		ok = section->getByteArray("Add", addData, len);
+		//if (!ok) __debugbreak();
 		if (Global::settings.nightmode || Global::settings.skylight) { // If nightmode, we need the light information too
 			ok = section->getByteArray("BlockLight", lightdata, len);
 			if (!ok || len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
