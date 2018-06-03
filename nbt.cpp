@@ -272,11 +272,17 @@ NBT_Tag::NBT_Tag(uint8_t* &position, const uint8_t *end, TagType type)
 NBT_Tag::NBT_Tag(const std::vector<uint8_t>& data, size_t& pos, TagType type)
 	: _type(type)
 {
-	parseData(data, pos, false);
+	if (!parseData(data, pos, false)) {
+		std::cerr << "Error reading NBT\n";
+		__debugbreak();
+	}
 }
 
 NBT_Tag::NBT_Tag(const std::vector<uint8_t>& data, size_t& pos) {
-	parseData(data, pos);
+	if (!parseData(data, pos)) {
+		std::cerr << "Error reading NBT List\n";
+		__debugbreak();
+	}
 }
 
 /*
@@ -408,6 +414,7 @@ void NBT_Tag::parseData(uint8_t* &position, const uint8_t *end, string *name)
 
 bool NBT_Tag::parseData(const std::vector<uint8_t>& data, size_t& pos, bool parseHeader)
 {
+	TagType switchType;
 	if (parseHeader) {
 		_type = (TagType)data[pos];
 		pos++;
@@ -416,6 +423,10 @@ bool NBT_Tag::parseData(const std::vector<uint8_t>& data, size_t& pos, bool pars
 			_name = std::string((char*)&data[pos], strLen);
 			pos += strLen;
 		}
+		switchType = _type;
+	}else{
+		switchType = (TagType)data[pos];
+		//pos++;
 	}
 
 	switch (_type)
@@ -662,12 +673,11 @@ bool NBT_Tag::getLong(const string& name, int64_t &value)
 
 bool NBT_Tag::getByteArray(const string& name, PrimArray<uint8_t>* &data)
 {
-
 	if (_type == tagCompound) {
 		auto posVal = dataHolder._compound->find(name);
 		if (posVal != dataHolder._compound->end()) {
 			if (posVal->second->getType() == tagByteArray) {
-				data = &dataHolder._byteArray;
+				data = &dataHolder._compound->at(name)->dataHolder._byteArray;
 				return true;
 			}
 		}
@@ -683,7 +693,7 @@ bool NBT_Tag::getIntArray(const string& name, PrimArray<int32_t>*& data)
 		auto posVal = dataHolder._compound->find(name);
 		if (posVal != dataHolder._compound->end()) {
 			if (posVal->second->getType() == tagIntArray) {
-				data = &dataHolder._intArray;
+				data = &dataHolder._compound->at(name)->dataHolder._intArray;
 				return true;
 			}
 		}
@@ -699,7 +709,7 @@ bool NBT_Tag::getLongArray(const string& name, PrimArray<int64_t>*& data)
 		auto posVal = dataHolder._compound->find(name);
 		if (posVal != dataHolder._compound->end()) {
 			if (posVal->second->getType() == tagLongArray) {
-				data = &dataHolder._longArray;
+				data = &dataHolder._compound->at(name)->dataHolder._longArray;
 				return true;
 			}
 		}
@@ -715,7 +725,8 @@ bool NBT_Tag::getString(const string& name, std::string& data)
 		auto posVal = dataHolder._compound->find(name);
 		if (posVal != dataHolder._compound->end()) {
 			if (posVal->second->getType() == tagString) {
-				data = std::string(dataHolder._string._data, dataHolder._string._len);
+				const auto tmp = dataHolder._compound->at(name)->dataHolder._string;
+				data = std::string(tmp._data, tmp._len);
 				return true;
 			}
 		}
