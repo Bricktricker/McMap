@@ -282,7 +282,7 @@ static const int special_sauce[256][3] = {
 0x5: Light Green
 0x6: Pink
 0x7: Dark Grey  */
-bool getTileRGBA(uint8_t *textures, int tilesize, int sauce_index, int &r, int &g, int &b, int &a, int &noise)
+bool getTileRGBA(const std::vector<uint8_t>& textures, int tilesize, int sauce_index, int &r, int &g, int &b, int &a, int &noise)
 {
 	r = 0;
 	g = 0;

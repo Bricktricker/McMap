@@ -35,8 +35,6 @@ private:
 	int _bytesPerPixel;
 	uint8_t _status; //Bits left to right: bit 0: File error, bit 1: not a PNG, bit 2: libPNG error
 
-	static void userReadData(png_structp pngPtr, png_bytep data, png_size_t length);
-
 public:
 	PngReader(const std::string& filename);
 	PngReader();

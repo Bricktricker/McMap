@@ -747,7 +747,7 @@ bool extractColors(const std::string& file)
 			|| (png.getWidth() / 16) * 16 != png.getWidth() // Has to be multiple of 16
 			|| png.getBitsPerChannel() != 8 // 8 bits per channel, 32bpp in total
 			|| png.getColorType() != PngReader::RGBA) return false;
-	uint8_t *imgData = png.getImageData();
+	const auto imgData = png.getImageData();
 	// Load em up
 	for (int i = 0; i < 256; i++) {
 		if (i == TORCH) {

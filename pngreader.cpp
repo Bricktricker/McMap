@@ -10,7 +10,7 @@
 #include <cstdio>
 #include <fstream>
 
-void PngReader::userReadData(png_structp pngPtr, png_bytep data, png_size_t length)
+void userReadData(png_structp pngPtr, png_bytep data, png_size_t length)
 {
 	//Here we get our IO pointer back from the read struct.
 	//This is the parameter we passed to the png_set_read_fn() function.
