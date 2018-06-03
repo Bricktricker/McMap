@@ -682,7 +682,7 @@ bool NBT_Tag::getByteArray(const string& name, PrimArray<uint8_t>* &data)
 			}
 		}
 	}
-	__debugbreak();
+	//__debugbreak();
 	data = nullptr;
 	return false;
 }

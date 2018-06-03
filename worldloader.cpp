@@ -614,19 +614,19 @@ static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const in
 		yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - yoffsetsomething;
 		if (yoffset < 0) yoffset = 0;
 		ok = section->getByteArray("Blocks", blockdata);
-		len = blockdata->_len;
+		if(ok) len = blockdata->_len;
 		if (!ok || len < CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) {
 			printf("No blocks\n");
 			return false;
 		}
 		ok = section->getByteArray("Data", justData);
-		len = justData->_len;
+		if(ok) len = justData->_len;
 		if (!ok || len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
 			printf("No block data\n");
 			return false;
 		}
 		ok = section->getByteArray("Add", addData);
-		len = addData->_len;
+		if(ok) len = addData->_len;
 		if (Global::settings.nightmode || Global::settings.skylight) { // If nightmode, we need the light information too
 			ok = section->getByteArray("BlockLight", lightdata);
 			if (!ok || len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
