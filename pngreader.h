@@ -45,7 +45,7 @@ public:
 	PngColorType getColorType() { return _chans; }
 	int getBitsPerChannel() { return _bitDepth; }
 	bool isValidImage() { return _status == 0; }
-	const std::vector<uint8_t> getImageData() { return _imageData; }
+	const std::vector<uint8_t>& getImageData() { return _imageData; }
 	int getBytesPerPixel() { return _bytesPerPixel; }
 };
 
