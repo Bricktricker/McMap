@@ -669,7 +669,8 @@ static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const in
 					if (Global::sectionMax == yo && y + yoffset >= Global::MapsizeY) break;
 					// Block data
 					const uint8_t &block = blockdata->_data[x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X];
-					assignBlock(block, targetBlock, x, y, z, justData->_data, addData->_data);
+					const uint8_t* tmpAddData = addData ? addData->_data : nullptr;
+					assignBlock(block, targetBlock, x, y, z, justData->_data, tmpAddData);
 					// Light
 					if (Global::settings.underground) {
 						if (block == TORCH) {
