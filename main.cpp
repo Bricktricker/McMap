@@ -407,7 +407,7 @@ int main(int argc, char **argv)
 	}*/
 
 	// Mem check
-	int bitmapX, bitmapY;
+	int bitmapX, bitmapY; //number of Pixels in the final image
 	uint64_t bitmapBytes = calcImageSize(Global::ToChunkX - Global::FromChunkX, Global::ToChunkZ - Global::FromChunkZ, Global::MapsizeY, bitmapX, bitmapY, false);
 	// Cropping
 	int cropLeft = 0, cropRight = 0, cropTop = 0, cropBottom = 0;

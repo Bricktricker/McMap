@@ -21,8 +21,8 @@ void uncoverNether();
 
 // This will hold all chunks (<1.3) or region files (>=1.3) discovered while scanning world dir
 struct Region {
-	int x;
-	int z;
+	int x; //x-val in filename
+	int z; //z-val in filename
 	std::string filename;
 	Region(const std::string& source, const int sx, const int sz)
 		: x(sx), z(sz), filename(source) {}

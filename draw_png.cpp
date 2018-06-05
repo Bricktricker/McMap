@@ -301,7 +301,7 @@ bool saveImage()
  */
 int loadImagePart(const int startx, const int starty, const int width, const int height)
 {
-	// These are set to NULL in saveImahePartPng to make sure the two functions are called in turn
+	// These are set to NULL in saveImagePartPng to make sure the two functions are called in turn
 	if (pngPtrCurrent != NULL || gPngPartialFileHandle != NULL) {
 		printf("Something wrong with disk caching.\n");
 		return -1;

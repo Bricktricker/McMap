@@ -414,7 +414,6 @@ static bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, con
 	if (!ok) {
 		printf("No level\n");
 		__debugbreak();
-		//delete chunk;
 		return false;
 	}
 	int32_t chunkX, chunkZ;
