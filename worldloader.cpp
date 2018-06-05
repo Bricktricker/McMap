@@ -399,14 +399,11 @@ bool loadTerrain(const std::string& fromPath, int &loadedChunks)
 static bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size_t streamLen
 {
 	bool ok = false;
-<<<<<<< HEAD
-	if (streamLen == 0) { // File
+	if (buffer.size() == 0) { // File
 		__debugbreak(); //give file to loadChunk, should not happen
-	} else {
-		//chunk = NBT((uint8_t*)buffer, streamLen, true, ok);
 	}
-	NBT chunk((uint8_t*)buffer, streamLen, true, ok);
-	if (!ok) {
+	NBT chunk(buffer);
+	if (!chunk.good()) {
 		//printf("Error loading chunk.\n");
 		std::cerr << "Error loading chunk.\n";
 		__debugbreak();
@@ -628,9 +625,8 @@ static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const in
 			printf("No block data\n");
 			return false;
 		}
-<<<<<<< HEAD
-		ok = section->getByteArray("Add", addData, len);
-		//if (!ok) __debugbreak();
+		ok = section->getByteArray("Add", addData);
+		if(ok) len = addData->_len;
 		if (Global::settings.nightmode || Global::settings.skylight) { // If nightmode, we need the light information too
 			ok = section->getByteArray("BlockLight", lightdata);
 			if (!ok || len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
