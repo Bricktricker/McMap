@@ -759,7 +759,7 @@ void setPixel(const size_t x, const size_t y, const uint16_t color, const float 
 				modColor(pos, rand() % (noise * 2) - noise);
 			}
 		}
-		// Second row
+		// Second row (going down)
 		pos = &PIXEL(x, y+1);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
 			memcpy(pos, (i < 2 ? D : L), BYTESPERPIXEL);
@@ -769,7 +769,7 @@ void setPixel(const size_t x, const size_t y, const uint16_t color, const float 
 				modColor(pos, rand() % (noise * 2) - noise * (i == 0 || i == 3 ? 1 : 2));
 			}
 		}
-		// Third row
+		// Third row (going down)
 		pos = &PIXEL(x, y+2);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
 			memcpy(pos, (i < 2 ? D : L), BYTESPERPIXEL);
@@ -777,7 +777,7 @@ void setPixel(const size_t x, const size_t y, const uint16_t color, const float 
 				modColor(pos, rand() % (noise * 2) - noise * (i == 0 || i == 3 ? 2 : 1));
 			}
 		}
-		// Last row
+		// Last row (going down)
 		pos = &PIXEL(x, y+3);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
 			memcpy(pos, (i < 2 ? D : L), BYTESPERPIXEL);

@@ -331,7 +331,7 @@ static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const in
 			printf("No blocks\n");
 			return false;
 		}
-		ok = section->getByteArray("Data", justData);
+		ok = section->getByteArray("Data", justData); //Metadata
 		if(ok) len = justData->_len;
 		if (!ok || len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
 			printf("No block data\n");
@@ -380,7 +380,7 @@ static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const in
 					if (Global::sectionMin == yo && y < yoffsetsomething) continue;
 					if (Global::sectionMax == yo && y + yoffset >= Global::MapsizeY) break;
 					// Block data
-					const uint8_t &block = blockdata->_data[x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X];
+					const uint8_t &block = blockdata->_data[x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X]; //Block-ID (0,..,255)
 					const uint8_t* tmpAddData = addData ? addData->_data : nullptr;
 					assignBlock(block, targetBlock, x, y, z, justData->_data, tmpAddData);
 					// Light
@@ -854,7 +854,7 @@ static inline void assignBlock(const uint16_t &block, uint8_t* &targetBlock, int
 	if (!Global::settings.lowMemory) //additional data
 	{
 		*(targetBlock + Global::Terrainsize) = (add) + (col << 4);
-		*targetBlock++ = block;
+		*targetBlock++ = block; //first write, then increment
 	}
 	else //convert to 256-colors format
 	{
