@@ -280,8 +280,6 @@ static bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, con
 		return false;
 	}
 
-	if (chunkX == 3 && chunkZ == -1) __debugbreak();
-
 	// Check if chunk is in desired bounds (not a chunk where the filename tells a different position)
 	if (chunkX < Global::FromChunkX || chunkX >= Global::ToChunkX || chunkZ < Global::FromChunkZ || chunkZ >= Global::ToChunkZ) {
 		if (!chunk.good()) printf("Chunk is out of bounds. %d %d\n", chunkX, chunkZ);
@@ -295,7 +293,7 @@ static bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, con
 
 static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t chunkZ)
 {
-	PrimArray<uint8_t> *blockdata, *lightdata, *skydata, *justData, *addData = 0, *biomesdata;
+	PrimArray<uint8_t> *blockdata, *lightdata, *skydata, *justData, *addData = 0;
 	int32_t len, yoffset, yoffsetsomething = (Global::MapminY + SECTION_Y * 10000) % SECTION_Y;
 	int8_t yo;
 	std::list<NBT_Tag*> *sections = NULL;
@@ -315,8 +313,8 @@ static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const in
 		return false;
 	}
 	//
-	const int offsetz = (chunkZ - Global::FromChunkZ) * CHUNKSIZE_Z;
-	const int offsetx = (chunkX - Global::FromChunkX) * CHUNKSIZE_X;
+	const int offsetz = (chunkZ - Global::FromChunkZ) * CHUNKSIZE_Z; //Blocks into world, from lowets point
+	const int offsetx = (chunkX - Global::FromChunkX) * CHUNKSIZE_X; //Blocks into world, from lowets point
 	for (std::list<NBT_Tag *>::iterator it = sections->begin(); it != sections->end(); it++) {
 		NBT_Tag *section = *it;
 		ok = section->getByte("Y", yo);
@@ -325,7 +323,7 @@ static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const in
 			return false;
 		}
 		if (yo < Global::sectionMin || yo > Global::sectionMax) continue;
-		yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - yoffsetsomething;
+		yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - yoffsetsomething; //Blocks into redner zone in Y-Axis
 		if (yoffset < 0) yoffset = 0;
 		ok = section->getByteArray("Blocks", blockdata);
 		if(ok) len = blockdata->_len;
@@ -360,7 +358,7 @@ static bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const in
 			for (int z = 0; z < CHUNKSIZE_Z; ++z) {
 				uint8_t *targetBlock, *lightByte;
 				if (Global::settings.orientation == East) {
-					targetBlock = &BLOCKEAST(x + offsetx, yoffset, z + offsetz);
+					targetBlock = &BLOCKEAST(x + offsetx, yoffset, z + offsetz); //BLOCKEAST
 					if (Global::settings.skylight || Global::settings.nightmode) lightByte = &SETLIGHTEAST(x + offsetx, yoffset, z + offsetz);
 					//if (g_UseBiomes) BIOMEEAST(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
 				} else if (Global::settings.orientation == North) {
@@ -445,7 +443,9 @@ uint64_t calcTerrainSize(const int chunksX, const int chunksZ)
 	}*/
 	return size;
 }
-
+/*
+	Berechnet Überschnitt auf allen 4 Seiten
+*/
 void calcBitmapOverdraw(int &left, int &right, int &top, int &bottom)
 {
 	top = left = bottom = right = 0x0fffffff;
@@ -456,8 +456,8 @@ void calcBitmapOverdraw(int &left, int &right, int &top, int &bottom)
 	for (;;) {
 
 		if (itP == world.points.end()) break;
-		x = (*itP).x;
-		z = (*itP).z;
+		x = (*itP).x; //x-Coordinate des Chunks
+		z = (*itP).z; //z-Coordinate des Chunks
 
 		if (Global::settings.orientation == North) {
 			// Right
@@ -507,12 +507,12 @@ void calcBitmapOverdraw(int &left, int &right, int &top, int &bottom)
 			}
 		} else if (Global::settings.orientation == East) {
 			// Right
-			val = ((Global::ToChunkZ - 1) - z) * CHUNKSIZE_Z * 2 + ((Global::ToChunkX - 1) - x) * CHUNKSIZE_X * 2;
+			val = ((Global::ToChunkZ - 1) - z) * CHUNKSIZE_Z * 2 + ((Global::ToChunkX - 1) - x) * CHUNKSIZE_X * 2; //Doppelte Distanz zwischen aktuellem chunk und Bis-rendergrenze (X,Z Seiten addiert)
 			if (val < right) {
 				right = val;
 			}
 			// Left
-			val = ((x - Global::FromChunkX) * CHUNKSIZE_X) * 2 +  + ((z - Global::FromChunkZ) * CHUNKSIZE_Z) * 2;
+			val = ((x - Global::FromChunkX) * CHUNKSIZE_X) * 2 +  + ((z - Global::FromChunkZ) * CHUNKSIZE_Z) * 2;//Doppelte Distanz zwischen aktuellem chunk und Von-rendergrenze (X,Z Seiten addiert)
 			if (val < left) {
 				left = val;
 			}

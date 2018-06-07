@@ -478,7 +478,7 @@ int main(int argc, char **argv)
 
 	// Precompute brightness adjustment factor
 	std::vector<float> brightnessLookup(Global::MapsizeY);
-	for (int y = 0; y < brightnessLookup.size(); ++y) {
+	for (size_t y = 0; y < brightnessLookup.size(); ++y) {
 		brightnessLookup[y] = ((100.0f / (1.0f + exp(- (1.3f * (float(y) * MIN(Global::MapsizeY, 200) / Global::MapsizeY) / 16.0f) + 6.0f))) - 91);   // thx Donkey Kong
 	}
 
@@ -570,7 +570,7 @@ int main(int argc, char **argv)
 			for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
 				// Biome colors
 				uint16_t biome = 0; //wrim - should be 8bit, fix it
-				biome = BIOMEAT(x, z);
+				//biome = BIOMEAT(x, z);
 				//
 				const int bmpPosX = int((Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX - cropLeft));
 				int bmpPosY = int(Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY - cropTop)) + 2 - (HEIGHTAT(x, z) & 0xFF) * Global::OffsetY;
