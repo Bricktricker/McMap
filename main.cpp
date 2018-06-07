@@ -384,7 +384,7 @@ int main(int argc, char **argv)
 	Global::TotalFromChunkX = Global::FromChunkX;
 	Global::TotalFromChunkZ = Global::FromChunkZ;
 	Global::TotalToChunkX = Global::ToChunkX;
-	Global::TotalToChunkX = Global::ToChunkX;
+	Global::TotalToChunkZ = Global::ToChunkZ;
 	// Don't allow ridiculously small values for big maps
 	if (memlimit && memlimit < 200000000 && memlimit < size_t(Global::MapsizeX * Global::MapsizeZ * 150000)) {
 		printf("Need at least %d MiB of RAM to render a map of that size.\n", int(float(Global::MapsizeX) * Global::MapsizeZ * .15f + 1));

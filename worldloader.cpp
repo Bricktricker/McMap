@@ -431,7 +431,7 @@ static bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, con
 	// Check if chunk is in desired bounds (not a chunk where the filename tells a different position)
 	if (chunkX < Global::FromChunkX || chunkX >= Global::ToChunkX || chunkZ < Global::FromChunkZ || chunkZ >= Global::ToChunkZ) {
 		if (!chunk.good()) printf("Chunk is out of bounds. %d %d\n", chunkX, chunkZ);
-		__debugbreak();
+		//__debugbreak();
 		//delete chunk;
 		return false; // Nope, its not...
 	}
@@ -862,6 +862,11 @@ static void allocateTerrain()
 	Global::light.clear();
 	Global::heightMap.clear();
 	Global::biomeMap.clear();
+
+	Global::terrain.shrink_to_fit();
+	Global::light.shrink_to_fit();
+	Global::heightMap.shrink_to_fit();
+	Global::biomeMap.shrink_to_fit();
 	/* biomes no longer supported
 	if (Global::useBiomes) //&& worldFormat == 2
 	{
