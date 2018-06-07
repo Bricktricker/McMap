@@ -87,25 +87,7 @@ int main(int argc, char **argv)
 	bool memlimitSet = false;
 
 #pragma region CommandLineParsing
-	/*
-	// First, for the sake of backward compatibility, try to parse command line arguments the old way first
-	if (argc >= 7
-	      && isNumeric(argv[1]) && isNumeric(argv[2]) && isNumeric(argv[3]) && isNumeric(argv[4])) {     // Specific area of world
-		Global::FromChunkX = atoi(argv[1]);
-		Global::FromChunkZ = atoi(argv[2]);
-		Global::ToChunkX = atoi(argv[3]) + 1;
-		Global::ToChunkZ = atoi(argv[4]) + 1;
-		Global::MapsizeY = atoi(argv[5]);
-		filename = argv[6];
-		if (argc > 7) {
-			Global::settings.nightmode = (atoi(argv[7]) == 1);
-			Global::settings.underground = (atoi(argv[7]) == 2);
-		}
-	} else if (argc == 3 && isNumeric(argv[2])) {  // Whole world - old way
-		filename = argv[1];
-		Global::settings.nightmode = (atoi(argv[2]) == 1);
-		Global::settings.underground = (atoi(argv[2]) == 2);
-	} else */ { // -- New command line parsing --
+	{ // -- New command line parsing --
 #		define MOREARGS(x) (argpos + (x) < argc)
 #		define NEXTARG argv[++argpos]
 #		define POLLARG(x) argv[argpos + (x)]
@@ -355,14 +337,6 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	if (Global::worldFormat < ANVIL) { //g_WorldFormat < 2
-		if (Global::MapsizeY > CHUNKSIZE_Y) {
-			Global::MapsizeY = CHUNKSIZE_Y;
-		}
-		if (Global::MapminY > CHUNKSIZE_Y) {
-			Global::MapminY = CHUNKSIZE_Y;
-		}
-	}
 	if (wholeworld && !scanWorldDirectory(filename)) {
 		printf("Error accessing terrain at '%s'\n", filename);
 		return 1;
@@ -568,7 +542,7 @@ int main(int argc, char **argv)
 			}
 		}
 
-		if (Global::worldFormat == ANVIL && (Global::settings.hell || Global::settings.serverHell)) {
+		if (Global::settings.hell || Global::settings.serverHell) {
 			uncoverNether();
 		}
 
@@ -596,32 +570,7 @@ int main(int argc, char **argv)
 			for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
 				// Biome colors
 				uint16_t biome = 0; //wrim - should be 8bit, fix it
-				if (!Global::biomeMap.empty()) if (Global::worldFormat != ANVIL) {
-					uint16_t &offset = BIOMEAT(x,z);
-					// This is getting a bit stupid here, there should be a better solution than a dozen copy ops
-					memcpy(colors[GRASS], &Global::grasscolor[offset * Global::grasscolorDepth], 3);
-					memcpy(colors[LEAVES], &Global::leafcolor[offset * Global::foliageDepth], 3);
-					memcpy(colors[TALL_GRASS], &Global::tallGrasscolor[offset * Global::grasscolorDepth], 3);
-					memcpy(colors[PUMPKIN_STEM], &Global::tallGrasscolor[offset * Global::grasscolorDepth], 3);
-					memcpy(colors[MELON_STEM], &Global::tallGrasscolor[offset * Global::grasscolorDepth], 3);
-					memcpy(colors[VINES], &Global::grasscolor[offset * Global::grasscolorDepth], 3);
-					memcpy(colors[LILYPAD], &Global::grasscolor[offset * Global::grasscolorDepth], 3);
-					// Leaves: This is just an approximation to get different leaf colors at all
-					colors[PINELEAVES][PRED] = clamp(int32_t(colors[LEAVES][PRED]) - 17);
-					colors[PINELEAVES][PGREEN] = clamp(int32_t(colors[LEAVES][PGREEN]) - 12);
-					colors[PINELEAVES][PBLUE] = colors[LEAVES][PBLUE];
-					int32_t avg = GETBRIGHTNESS(colors[LEAVES]);
-					colors[BIRCHLEAVES][PRED] = clamp(int32_t(colors[LEAVES][PRED]) + (avg - int32_t(colors[LEAVES][PRED])) / 2 + 15);
-					colors[BIRCHLEAVES][PGREEN] = clamp(int32_t(colors[LEAVES][PGREEN]) + (avg - int32_t(colors[LEAVES][PGREEN])) / 2 + 16);
-					colors[BIRCHLEAVES][PBLUE] = clamp(int32_t(colors[LEAVES][PBLUE]) + (avg - int32_t(colors[LEAVES][PBLUE])) / 2 + 15);
-					colors[JUNGLELEAVES][PRED] = clamp(int32_t(colors[LEAVES][PRED]));
-					colors[JUNGLELEAVES][PGREEN] = clamp(int32_t(colors[LEAVES][PGREEN]) + 18);
-					colors[JUNGLELEAVES][PBLUE] = colors[LEAVES][PBLUE];
-				}
-				else
-				{
-				    biome = BIOMEAT(x, z);
-				}
+				biome = BIOMEAT(x, z);
 				//
 				const int bmpPosX = int((Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX - cropLeft));
 				int bmpPosY = int(Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY - cropTop)) + 2 - (HEIGHTAT(x, z) & 0xFF) * Global::OffsetY;

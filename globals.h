@@ -1,7 +1,7 @@
 #ifndef _GLOBALS_H_
 #define _GLOBALS_H_
 
-#define VERSION "beta 3.0.3"
+#define VERSION "beta 3.0.4"
 
 #include <stdint.h>
 #include <cstdlib>
