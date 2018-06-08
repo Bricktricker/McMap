@@ -3,13 +3,9 @@
 #include "nbt.h"
 #include "colors.h"
 #include "globals.h"
-#include <cstring>
 #include <string>
-#include <cstdio>
 #include <zlib.h>
 #include <iostream>
-#include <climits>
-#include <array>
 #include <cassert>
 #include <fstream>
 

@@ -5,6 +5,9 @@
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
+#include <array>
+#include <iostream>
 
 #define SETCOLOR(col,r,g,b,a) do { \
 		colors[col][PBLUE]		= b; \
@@ -70,7 +73,7 @@ uint16_t colorsToID[256] =
 	248, 249, 24577, 20481, 16385, 12289, 8193, 4097
 };
 
-void SET_COLORNOISE(uint16_t col, uint16_t r, uint16_t g, uint16_t b, uint16_t a, uint16_t n)
+void SET_COLORNOISE(uint16_t col, uint8_t r, uint8_t g, uint8_t b, uint8_t a, uint8_t n)
 {
 	col %= 4096;
 	for (int i = 0; i < 16; i++)
@@ -79,15 +82,15 @@ void SET_COLORNOISE(uint16_t col, uint16_t r, uint16_t g, uint16_t b, uint16_t a
 		SETCOLORNOISE(x, r, g, b, a, n);
 	}
 }
-void SET_COLOR(uint16_t col, uint16_t r, uint16_t g, uint16_t b, uint16_t a) //col is Block-ID
+void SET_COLOR(uint16_t col, uint8_t r, uint8_t g, uint8_t b, uint8_t a) //col is Block-ID
 {
 	SET_COLORNOISE(col,r,g,b,a,0);
 }
-void SET_COLOR1(uint16_t col, uint16_t r, uint16_t g, uint16_t b, uint16_t a)
+void SET_COLOR1(uint16_t col, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
 	SETCOLORNOISE(col,r,g,b,a,0);
 }
-void SET_COLOR_W(uint16_t col, uint16_t r, uint16_t g, uint16_t b, uint16_t a)
+void SET_COLOR_W(uint16_t col, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
 	col -= 239;
 	//uint16_t col2 = CARPET + (col<<12);
@@ -95,7 +98,7 @@ void SET_COLOR_W(uint16_t col, uint16_t r, uint16_t g, uint16_t b, uint16_t a)
 	SETCOLORNOISE(col,r,g,b,a,0);
 	//SETCOLORNOISE(col2,r,g,b,a,0);
 }
-void SET_COLOR_C(uint16_t col, uint16_t r, uint16_t g, uint16_t b, uint16_t a)
+void SET_COLOR_C(uint16_t col, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
 	col -= 185;
 	col = 159 + (col<<12);
@@ -582,8 +585,8 @@ void loadColors()
 */
 bool loadColorsFromFile(const std::string& file)
 {
-	FILE *f = fopen(file.c_str(), "r");
-	if (f == NULL) {
+	std::ifstream f(file, std::ios::in);
+	if (f.fail()) {
 		return false;
 	}
 	if (Global::settings.lowMemory)
@@ -592,54 +595,55 @@ bool loadColorsFromFile(const std::string& file)
 		memset(colorsToID, 0, sizeof colorsToID);
 	}
 	int lowmemCounter = 1;
-	while (!feof(f)) {
-		char buffer[500];
-		if (fgets(buffer, 500, f) == NULL) {
+	while (!f.eof()) {
+		std::array<char, 500> buffer;
+		f.read(buffer.data(), 500);
+		if (f.bad()) {
 			break;
 		}
 		//printf("%s %d %d.\n",buffer,*buffer,*(buffer+1));
-		char *ptr = buffer;
-		while (*ptr == ' ' || *ptr == '\t') {
-			++ptr;
+		size_t pos = 0;
+		while (buffer[pos] == ' ' || buffer[pos] == '\t') {
+			++pos;
 		}
-		if (*ptr == '\0' || *ptr == '#' || *ptr == '\12') {
+		if (buffer[pos] == '\0' || buffer[pos] == '#' || buffer[pos] == '\12') {
 			continue;   // This is a comment or empty line, skip
 		}
-		int blockid = atoi(ptr);
+		int blockid = atoi(&buffer[pos]);
 		int blockid3 = 0;
 		if (blockid < 1 || blockid > 4095) {
-			printf("Skipping invalid blockid %d in colors file\n", blockid);
+			std::cerr << "Skipping invalid blockid " << blockid <<  " in colors file\n";
 			continue;
 		}
 		
 		int suffix = 0;
-		while (*ptr != ' ' && *ptr != '\t' && *ptr != '\0') {
-			if (*ptr == ':')
+		while (buffer[pos] != ' ' && buffer[pos] != '\t' && buffer[pos] != '\0') {
+			if (buffer[pos] == ':')
 			{
-				blockid3 = atoi(++ptr);
+				blockid3 = atoi(&buffer[++pos]);
 				if (blockid3 < 0 || blockid3 > 15) {
-					printf("Skipping invalid blockid %d:%d in colors file\n", blockid, blockid3);
+					std::cerr << "Skipping invalid blockid " << blockid << ':' << blockid3 << " in colors file\n";
 					suffix = -1;
 				}
 				suffix = 1;
 			}
-			++ptr;
+			++pos;
 		}
 		if (suffix < 0) continue;
 
 		uint8_t vals[5] = {0,0};
 		bool valid = true;
 		for (int i = 0; i < 5; ++i) {
-			while (*ptr == ' ' || *ptr == '\t') {
-				++ptr;
+			while (buffer[pos] == ' ' || buffer[pos] == '\t') {
+				++pos;
 			}
-			if (*ptr == '\0' || *ptr == '#' || *ptr == '\12') {
+			if (buffer[pos] == '\0' || buffer[pos] == '#' || buffer[pos] == '\12') {
 				valid = false;
 				break;
 			}
-			vals[i] = clamp(atoi(ptr));
-			while (*ptr != ' ' && *ptr != '\t' && *ptr != '\0') {
-				++ptr;
+			vals[i] = clamp(atoi(&buffer[pos]));
+			while (buffer[pos] != ' ' && buffer[pos] != '\t' && buffer[pos] != '\0') {
+				++pos;
 			}
 		}
 		if (!valid) { //TODO
@@ -653,9 +657,9 @@ bool loadColorsFromFile(const std::string& file)
 				{
 
 				}
-				printf("%d:%d copied to %d:%d\n", blockid, blockid3, vals[0], vals[1] & 0x0F);
+				std::cout << blockid << ':' << blockid3 << " copied to " << vals[0] << ':' << (vals[1]&0x0F) << '\n';
 			}
-			else printf("Too few arguments for block %d, ignoring line.\n", blockid);
+			else std::cerr << "Too few arguments for block " << blockid << ", ignoring line.\n";
 			continue;
 		}
 		int blockidSET = (blockid3 << 12) + blockid;
@@ -663,7 +667,7 @@ bool loadColorsFromFile(const std::string& file)
 		{
 			if (lowmemCounter > 255)
 			{
-				printf("Colors limit in lowmemory mode is limited to 255, %d:%d not set.\n", blockid, blockid3);
+				std::cerr << "Colors limit in lowmemory mode is limited to 255, " << blockid <<':' << blockid3 << " not set.\n";
 				continue;
 			}
 			memcpy(colors[blockidSET], vals, 5);
@@ -685,7 +689,6 @@ bool loadColorsFromFile(const std::string& file)
 		    colors[blockidSET][BRIGHTNESS] = GETBRIGHTNESS(colors[blockidSET]);
 		}
 	}
-	fclose(f);
 	return true;
 }
 /*
@@ -693,11 +696,11 @@ bool loadColorsFromFile(const std::string& file)
 */
 bool dumpColorsToFile(const std::string& file)
 {
-	FILE *f = fopen(file.c_str(), "w");
-	if (f == NULL) {
+	std::ofstream f(file, std::ios::out);
+	if (f.bad()) {
 		return false;
 	}
-	fprintf(f, "# For Block IDs see http://minecraftwiki.net/wiki/Data_values\n"
+	f << ("# For Block IDs see http://minecraftwiki.net/wiki/Data_values\n"
 				"# Note that noise or alpha (or both) do not work for a few blocks like snow, torches, fences, steps, ...\n"
 				"# Actually, if you see any block has an alpha value of 254 you should leave it that way to prevent black artifacts.\n"
 				"# If you want to set alpha of grass to <255, use -blendall or you won't get what you expect.\n"
@@ -706,32 +709,34 @@ bool dumpColorsToFile(const std::string& file)
 	for (size_t i = 1; i < 4096; ++i) {
 		uint8_t *c = colors[i];
 		if (c[PALPHA] == 0) continue; // if color doesn't exist, don't dump it
-		if (++head % 15 == 1) { 
-			fprintf(f, "#ID	R	G	B	A	Noise\n");
+		if (++head % 15 == 1) {
+			f << "#ID	R	G	B	A	Noise\n";
 		}
-		fprintf(f, "%3d\t%3d\t%3d\t%3d\t%3d\t%3d\n", int(i), int(c[PRED]), int(c[PGREEN]), int(c[PBLUE]), int(c[PALPHA]), int(c[NOISE]));
+		f << int(i) << '\t' << int(c[PRED]) << '\t' << int(c[PGREEN]) << '\t' << int(c[PBLUE]) << '\t' << int(c[PALPHA]) << '\t' << int(c[NOISE]) << '\n';
 		for (int j = 1; j < 16; j++)
 		{
 			uint8_t *c2 = colors[i+(j<<12)];
 			if (c2[PALPHA] != 0 && (c[PRED] != c2[PRED] || c[PGREEN] != c2[PGREEN] || c[PBLUE] != c2[PBLUE] || c[PALPHA] != c2[PALPHA] || c[NOISE] != c2[NOISE]))
-			fprintf(f, "%3d:%d\t%3d\t%3d\t%3d\t%3d\t%3d\n", int(i), int(j), int(c2[PRED]), int(c2[PGREEN]), int(c2[PBLUE]), int(c2[PALPHA]), int(c2[NOISE]));
+				f << int(i) << ':' << int(j) << '\t' << int(c2[PRED]) << '\t' << int(c2[PGREEN]) << '\t' << int(c2[PBLUE]) << '\t' << int(c2[PALPHA]) << '\t' << int(c2[NOISE]) << '\n';
+			//fprintf(f, "%3d:%d\t%3d\t%3d\t%3d\t%3d\t%3d\n", int(i), int(j), int(c2[PRED]), int(c2[PGREEN]), int(c2[PBLUE]), int(c2[PALPHA]), int(c2[NOISE]));
 		}
 	}
-	fprintf(f, "\n"
+	f << ("\n"
 				"# Block types:\n"
 				"\n");
 	for (size_t i = 1; i < 4096; ++i) {
 		uint8_t *c = colors[i];
 		if (c[BLOCKTYPE] == 0) continue; // if type is default
-		fprintf(f, "B\t%3d\t%3d\n", int(i), int(c[BLOCKTYPE]));
+		f << "B\t" << int(i) << '\t' << int(c[BLOCKTYPE]) << '\n';
+		//fprintf(f, "B\t%3d\t%3d\n", int(i), int(c[BLOCKTYPE]));
 		for (int j = 0; j < 16; j++)
 		{
 			uint8_t *c2 = colors[i+(j<<12)];
 			if (c2[BLOCKTYPE] != 0 && (c[BLOCKTYPE] != c2[BLOCKTYPE]))
-			fprintf(f, "B\t%3d:%d\t%3d\n", int(i), int(j), int(c2[BLOCKTYPE]));
+				f << "B\t" << int(i) << ':' << int(j) << '\t' << int(c2[BLOCKTYPE]) << '\n';
+			//fprintf(f, "B\t%3d:%d\t%3d\n", int(i), int(j), int(c2[BLOCKTYPE]));
 		}
 	}
-	fclose(f);
 	return true;
 }
 
