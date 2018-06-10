@@ -742,7 +742,6 @@ bool dumpColorsToFile(const std::string& file)
 
 /**
  * Extract block colors from given terrain.png file
- * TODO: Funktion umschreiben, das sie fstream nutzt
  */
 bool extractColors(const std::string& file)
 {
