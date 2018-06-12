@@ -12,6 +12,7 @@
 #endif
 
 #include <fstream>
+#include <regex>
 
 //clamps value between 0 and 255
 uint8_t clamp(int32_t val)
@@ -127,7 +128,7 @@ bool dirExists(const std::string& strFilename)
 
 bool isNumeric(const std::string& str)
 {
-	return isdigit(str.c_str()[0]);
+	return std::regex_match(str, std::regex("[(-|+)|][0-9]+"));
 }
 
 bool isAlphaWorld(const std::string& path)

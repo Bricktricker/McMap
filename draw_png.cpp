@@ -12,6 +12,12 @@
 #include <png.h>
 #include <list>
 #include <ctime>
+
+#include <string>
+#include <fstream>
+#include <iostream>
+#include <vector>
+
 #ifndef _WIN32
 #include <sys/stat.h>
 #endif
@@ -29,33 +35,31 @@ namespace
 {
 	struct ImagePart {
 		int x, y, width, height;
-		char *filename;
+		std::string filename;
 		FILE *pngFileHandle;
 		png_structp pngPtr;
 		png_infop pngInfo;
-		ImagePart(const char *_file, int _x, int _y, int _w, int _h) {
-			filename = strdup(_file);
-			x = _x;
-			y = _y;
-			width = _w;
-			height = _h;
+		ImagePart(const std::string& _file, const int _x, const int _y, const int _w, const int _h)
+			: x(_x), y(_y), width(_w), height(_h), filename(_file)
+		{
 			pngPtr = NULL;
 			pngFileHandle = NULL;
 			pngInfo = NULL;
 		}
-		~ImagePart() {
-			free(filename);
-		}
 	};
 	struct ImageTile {
-		FILE *fileHandle;
+		std::fstream fileHandle;
 		png_structp pngPtr;
 		png_infop pngInfo;
+
+		ImageTile()
+			: pngPtr(nullptr), pngInfo(nullptr) {}
+
 	};
 	typedef std::list<ImagePart *> imageList;
 	imageList partialImages;
 
-	uint8_t *gImageBuffer = NULL;
+	std::vector<uint8_t> gImageBuffer;
 	int gPngLocalLineWidthChans = 0, gPngLocalWidth = 0, gPngLocalHeight = 0;
 	int gPngLineWidthChans = 0, gPngWidth = 0, gPngHeight = 0;
 	int gOffsetX = 0, gOffsetY = 0;
@@ -99,10 +103,9 @@ void createImageBuffer(const size_t width, const size_t height, const bool split
 	gPngLocalHeight = gPngHeight = (int)height;
 	gPngLocalLineWidthChans = gPngLineWidthChans = gPngWidth * CHANSPERPIXEL;
 	gPngSize = gPngLocalSize = (uint64_t)gPngLineWidthChans * (uint64_t)gPngHeight;
-	printf("Image dimensions are %dx%d, 32bpp, %.2fMiB\n", gPngWidth, gPngHeight, float(gPngSize / float(1024 * 1024)));
+	std::cout << "Image dimensions are " << gPngWidth << 'x' << gPngHeight << ", 32bpp, " << float(gPngSize / float(1024 * 1024)) << "MiB\n";
 	if (!splitUp) {
-		gImageBuffer = new uint8_t[gPngSize];
-		memset(gImageBuffer, 0, (size_t)gPngSize);
+		gImageBuffer.resize(gPngSize, 0);
 	}
 }
 
@@ -112,10 +115,9 @@ bool createImage(FILE *fh, const size_t width, const size_t height, const bool s
 	gPngLocalHeight = gPngHeight = (int)height;
 	gPngLocalLineWidthChans = gPngLineWidthChans = gPngWidth * 4;
 	gPngSize = gPngLocalSize = (uint64_t)gPngLineWidthChans * (uint64_t)gPngHeight;
-	printf("Image dimensions are %dx%d, 32bpp, %.2fMiB\n", gPngWidth, gPngHeight, float(gPngSize / float(1024 * 1024)));
+	std::cout << "Image dimensions are " << gPngWidth << 'x' << gPngHeight << ", 32bpp, " << float(gPngSize / float(1024 * 1024)) << "MiB\n";
 	if (!splitUp) {
-		gImageBuffer = new uint8_t[gPngSize];
-		memset(gImageBuffer, 0, (size_t)gPngSize);
+		gImageBuffer.resize(gPngSize, 0);
 	}
 	fseek64(fh, 0, SEEK_SET);
 	// Write header
@@ -165,13 +167,14 @@ bool saveImage()
 			return false;
 		}
 
-		uint8_t *srcLine = gImageBuffer;
-		printf("Writing to file...\n");
+		size_t srcLine = 0;
+		//uint8_t *srcLine = gImageBuffer;
+		std::cout << "Writing to file...\n";
 		for (int y = 0; y < gPngHeight; ++y) {
 			if (y % 25 == 0) {
 				printProgress(size_t(y), size_t(gPngHeight));
 			}
-			png_write_row(pngPtrMain, (png_bytep)srcLine);
+			png_write_row(pngPtrMain, (png_bytep)&gImageBuffer[srcLine]);
 			srcLine += gPngLineWidthChans;
 		}
 		printProgress(10, 10);
@@ -180,34 +183,32 @@ bool saveImage()
 		//
 	} else {
 		// Tiled output, suitable for google maps
-		printf("Writing to files...\n");
-		//size_t tmpLen = strlen(g_TilePath) + 40;
-		//char *tmpString = new char[tmpLen];
+		std::cout << "Writing to files...\n";
 		std::string tmpString;
 		// Prepare a temporary buffer to copy the current line to, since we need the width to be a multiple of 4096
 		// and adjusting the whole image to that would be a waste of memory
 		const size_t tempWidth = ((gPngWidth - 5) / 4096 + 1) * 4096;
 		const size_t tempWidthChans = tempWidth * CHANSPERPIXEL;
 #ifdef _DEBUG
-		printf("Temp width: %d, original width: %d\n", (int)tempWidthChans, (int)gPngLineWidthChans);
+		std::cout << "Temp width: " << (int)tempWidthChans << ", original width: " << (int)gPngLineWidthChans << '\n';
 #endif
 		uint8_t *tempLine = new uint8_t[tempWidthChans];
 		memset(tempLine, 0, tempWidth * BYTESPERPIXEL);
 		// Source pointer
-		uint8_t *srcLine = gImageBuffer;
+		size_t srcLine = 0;
+		//uint8_t *srcLine = gImageBuffer;
 		// Prepare an array of png structs that will output simultaneously to the various tiles
 		size_t sizeOffset[7], last = 0;
 		for (size_t i = 0; i < 7; ++i) {
 			sizeOffset[i] = last;
 			last += ((tempWidth - 1) / pow(2, 12 - i)) + 1;
 		}
-		ImageTile *tile = new ImageTile[sizeOffset[6]];
-		memset(tile, 0, sizeOffset[6] * sizeof(ImageTile));
+		std::vector<ImageTile> tile(sizeOffset[6], ImageTile{});
 		for (int y = 0; y < gPngHeight; ++y) {
 			if (y % 25 == 0) {
 				printProgress(size_t(y), size_t(gPngHeight));
 			}
-			memcpy(tempLine, srcLine, gPngLineWidthChans);
+			memcpy(tempLine, &gImageBuffer[srcLine], gPngLineWidthChans);
 			srcLine += gPngLineWidthChans;
 			// Handle all png files
 			if (y % 128 == 0) {
@@ -221,14 +222,13 @@ bool saveImage()
 				for (size_t tileSize = start; tileSize < 6; ++tileSize) {
 					const size_t tileWidth = pow(2, 12 - tileSize);
 					for (size_t tileIndex = sizeOffset[tileSize]; tileIndex < sizeOffset[tileSize+1]; ++tileIndex) {
-						ImageTile &t = tile[tileIndex];
-						if (t.fileHandle != NULL) { // Unload/close first
+						ImageTile& t = tile[tileIndex];
+						if (t.fileHandle.is_open()) { // Unload/close first
 							//printf("Calling end with ptr == %p, y == %d, start == %d, tileSize == %d, tileIndex == %d, to == %d, numpng == %d\n",
 									//t.pngPtr, y, (int)start, (int)tileSize, (int)tileIndex, (int)sizeOffset[tileSize+1], (int)numpng);
 							png_write_end(t.pngPtr, NULL);
 							png_destroy_write_struct(&(t.pngPtr), &(t.pngInfo));
-							fclose(t.fileHandle);
-							t.fileHandle = NULL;
+							t.fileHandle.close();
 						}
 						if (tileWidth * (tileIndex - sizeOffset[tileSize]) < size_t(gPngWidth)) {
 							// Open new tile file for a while
@@ -236,16 +236,16 @@ bool saveImage()
 							//snprintf(tmpString, tmpLen, "%s/x%dy%dz%d.png", g_TilePath,
 									//int(tileIndex - sizeOffset[tileSize]), int((y / pow(2, 12 - tileSize))), int(tileSize));
 #ifdef _DEBUG
-							printf("Starting tile %s of size %d...\n", tmpString, (int)pow(2, 12 - tileSize));
+							std::cout << "Starting tile " << tmpString << " of size " << (int)pow(2, 12 - tileSize) << "...\n";
 #endif
-							t.fileHandle = fopen(tmpString.c_str(), "wb");
-							if (t.fileHandle == NULL) {
-								printf("Error opening file!\n");
+							t.fileHandle.open(tmpString, std::ios::out | std::ios::binary);
+							if (t.fileHandle.fail()) {
+								std::cerr << "Error opening file!\n";
 								return false;
 							}
 							t.pngPtr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 							if (t.pngPtr == NULL) {
-								printf("Error creating png write struct!\n");
+								std::cerr << "Error creating png write struct!\n";
 								return false;
 							}
 							if (setjmp(png_jmpbuf(t.pngPtr))) {
@@ -253,7 +253,7 @@ bool saveImage()
 							}
 							t.pngInfo = png_create_info_struct(t.pngPtr);
 							if (t.pngInfo == NULL) {
-								printf("Error creating png info struct!\n");
+								std::cerr << "Error creating png info struct!\n";
 								png_destroy_write_struct(&(t.pngPtr), NULL);
 								return false;
 							}
@@ -301,7 +301,7 @@ bool saveImage()
  */
 int loadImagePart(const int startx, const int starty, const int width, const int height)
 {
-	// These are set to NULL in saveImahePartPng to make sure the two functions are called in turn
+	// These are set to NULL in saveImagePartPng to make sure the two functions are called in turn
 	if (pngPtrCurrent != NULL || gPngPartialFileHandle != NULL) {
 		printf("Something wrong with disk caching.\n");
 		return -1;
@@ -633,7 +633,7 @@ uint64_t calcImageSize(const int mapChunksX, const int mapChunksZ, const size_t 
 fsub: brightnessAdjustment
 biom parameter not used
 */
-void setPixel(const size_t x, const size_t y, const uint16_t color, const float fsub, const uint8_t biome)
+void setPixel(const size_t x, const size_t y, const uint16_t color, const float fsub, const uint16_t biome)
 {
 
 	// Sets pixels around x,y where A is the anchor
@@ -759,7 +759,7 @@ void setPixel(const size_t x, const size_t y, const uint16_t color, const float 
 				modColor(pos, rand() % (noise * 2) - noise);
 			}
 		}
-		// Second row
+		// Second row (going down)
 		pos = &PIXEL(x, y+1);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
 			memcpy(pos, (i < 2 ? D : L), BYTESPERPIXEL);
@@ -769,7 +769,7 @@ void setPixel(const size_t x, const size_t y, const uint16_t color, const float 
 				modColor(pos, rand() % (noise * 2) - noise * (i == 0 || i == 3 ? 1 : 2));
 			}
 		}
-		// Third row
+		// Third row (going down)
 		pos = &PIXEL(x, y+2);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
 			memcpy(pos, (i < 2 ? D : L), BYTESPERPIXEL);
@@ -777,7 +777,7 @@ void setPixel(const size_t x, const size_t y, const uint16_t color, const float 
 				modColor(pos, rand() % (noise * 2) - noise * (i == 0 || i == 3 ? 2 : 1));
 			}
 		}
-		// Last row
+		// Last row (going down)
 		pos = &PIXEL(x, y+3);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
 			memcpy(pos, (i < 2 ? D : L), BYTESPERPIXEL);

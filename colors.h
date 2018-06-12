@@ -27,11 +27,11 @@ extern uint16_t colorsToID[256];
                                         double(PGREEN[c]) *  double(PGREEN[c]) * .601 + \
                                         double(PBLUE[c]) *  double(PBLUE[c]) * .163)
 
-void SET_COLORNOISE(uint16_t col, uint16_t r, uint16_t g, uint16_t b, uint16_t a, uint16_t n);
-void SET_COLOR(uint16_t col, uint16_t r, uint16_t g, uint16_t b, uint16_t a);
-void SET_COLOR_W(uint16_t col, uint16_t r, uint16_t g, uint16_t b, uint16_t a);
-void SET_COLOR_C(uint16_t col, uint16_t r, uint16_t g, uint16_t b, uint16_t a);
-void SET_COLOR1(uint16_t col, uint16_t r, uint16_t g, uint16_t b, uint16_t a);
+void SET_COLORNOISE(uint16_t col, uint8_t r, uint8_t g, uint8_t b, uint8_t a, uint8_t n);
+void SET_COLOR(uint16_t col, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+void SET_COLOR_W(uint16_t col, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+void SET_COLOR_C(uint16_t col, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+void SET_COLOR1(uint16_t col, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 void loadColors();
 bool loadColorsFromFile(const std::string& file);
 bool dumpColorsToFile(const std::string& file);
