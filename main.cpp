@@ -499,7 +499,7 @@ int main(int argc, char **argv)
 			printf("Error: '%s' does not exist.\n", Global::tilePath);
 			return 1;
 		}
-		createImageBuffer(bitmapX, bitmapY, splitImage);
+		createImageBuffer(bitmapX, bitmapY, splitImage); //gBuffer wird nur erstellt wenn bild nicht aufgesplitet wird
 	}
 
 	// Precompute brightness adjustment factor
