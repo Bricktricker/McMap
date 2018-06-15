@@ -6,12 +6,8 @@
 #include "helper.h"
 #include "colors.h"
 #include "globals.h"
-#include <cstring>
-#include <cstdio>
-#include <cstdlib>
 #include <png.h>
 #include <list>
-#include <ctime>
 
 #include <string>
 #include <fstream>
@@ -656,6 +652,7 @@ uint64_t calcImageSize(const int mapChunksX, const int mapChunksZ, const size_t 
 }
 
 /*
+color: First 8 LSBits: BlockID, First 8MSBits: extraData (see globals.cpp:23)
 fsub: brightnessAdjustment
 biom parameter not used
 */

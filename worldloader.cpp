@@ -241,6 +241,13 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 		__debugbreak();
 		return false; // chunk does not exist
 	}
+
+	int32_t dataVersion = 0;
+	if (!chunk.getInt("DataVersion", dataVersion)) {
+		std::cerr << "No DataVersion in Chunk";
+		return false;
+	}
+
 	NBT_Tag *level = NULL;
 	ok = chunk.getCompound("Level", level);
 	if (!ok) {
@@ -264,7 +271,12 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 		return false; // Nope, its not...
 	}
 
-	return loadAnvilChunk(level, chunkX, chunkZ);
+	if (dataVersion > 1343) {
+		std::cerr << "Minecraft 1.13 not supported, please wait\n";
+		return false;
+	}else{
+		return loadAnvilChunk(level, chunkX, chunkZ);
+	}
 }
 
 bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t chunkZ)
@@ -393,16 +405,9 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 
 uint64_t calcTerrainSize(const int chunksX, const int chunksZ)
 {
-	uint64_t size;
-	if (Global::settings.lowMemory)
-		size =     uint64_t(chunksX+2) * CHUNKSIZE_X * uint64_t(chunksZ+2) * CHUNKSIZE_Z * uint64_t(Global::MapsizeY);
-	else
-		size = 2 * uint64_t(chunksX+2) * CHUNKSIZE_X * uint64_t(chunksZ+2) * CHUNKSIZE_Z * uint64_t(Global::MapsizeY);
+	uint64_t size = 2 * uint64_t(chunksX+2) * CHUNKSIZE_X * uint64_t(chunksZ+2) * CHUNKSIZE_Z * uint64_t(Global::MapsizeY);
 
 	if (Global::settings.nightmode || Global::settings.underground || Global::settings.blendUnderground || Global::settings.skylight) {
-		if (Global::settings.lowMemory)
-			size += size / 2;
-		else
 			size += size / 4;
 	}
 	/* biomes no longer supported
@@ -545,13 +550,10 @@ void allocateTerrain()
 	Global::heightMap.resize(Global::MapsizeX * Global::MapsizeZ, 0);
 	//printf("%d -- %d\n", g_MapsizeX, g_MapsizeZ); //dimensions of terrain map (in memory)
 	Global::Terrainsize = Global::MapsizeX * Global::MapsizeY * Global::MapsizeZ;
-	if (Global::settings.lowMemory) {
-		std::cout << "Terrain takes up " << std::to_string(float(Global::Terrainsize / float(1024 * 1024))) << "MiB";
-		Global::terrain.resize(Global::Terrainsize, 0);  // Preset: Air
-	} else {
-		std::cout << "Terrain takes up " << std::to_string(float(Global::Terrainsize*2 / float(1024 * 1024))) << "MiB";
-		Global::terrain.resize(Global::Terrainsize*2, 0);  // Preset: Air
-	}
+
+	std::cout << "Terrain takes up " << std::to_string(float(Global::Terrainsize*2 / float(1024 * 1024))) << "MiB";
+	Global::terrain.resize(Global::Terrainsize*2, 0);  // Preset: Air
+
 	if (Global::settings.nightmode || Global::settings.underground || Global::settings.blendUnderground || Global::settings.skylight) {
 		Global::lightsize = Global::MapsizeZ * Global::MapsizeX * ((Global::MapsizeY + (Global::MapminY % 2 == 0 ? 1 : 2)) / 2);
 		std::cout << ", lightmap " << std::to_string(float(Global::lightsize / float(1024 * 1024))) << "MiB";
@@ -742,41 +744,25 @@ inline void assignBlock(const uint8_t &block, uint8_t* &targetBlock, int &x, int
 {
 	//WorldFormat == 2
 	uint8_t add = 0;
-	uint8_t col = (justData[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF;
+	uint8_t col = (justData[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF; //Get the 4Bits of MetaData
 	if (addData != 0)
 	{
 		add = ( addData[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF;
 	}
-	if (!Global::settings.lowMemory) //additional data
-	{
-		*(targetBlock + Global::Terrainsize) = (add) + (col << 4);
-		*targetBlock++ = block; //first write, then increment
-	}
-	else //convert to 256-colors format
-	{
-		if (colorsToMap[block + (add << 8) + (col << 12)] == 0)
-			*targetBlock++ = colorsToMap[block + (add << 8)];
-		else
-			*targetBlock++ = colorsToMap[block + (add << 8) + (col << 12)];
-	}
+
+	//additional data
+	*(targetBlock + Global::Terrainsize) = (add) + (col << 4);
+	*targetBlock++ = block; //first write, then increment
 }
 
 inline void assignBlock(const uint8_t &block, uint8_t* &targetBlock, int &x, int &y, int &z, uint8_t* &justData)
 {
 	//WorldFormat != 2
-	uint8_t col = (justData[(y + (z + (x * CHUNKSIZE_Z)) * CHUNKSIZE_Y) / 2] >> ((y % 2) * 4)) & 0xF;
-	if (!Global::settings.lowMemory) //additional data
-	{
-		*(targetBlock + Global::Terrainsize) = (col << 4);
-		*targetBlock++ = block;
-	}
-	else //convert to 256-colors format
-	{
-		if (colorsToMap[block + (col << 12)] == 0)
-			*targetBlock++ = colorsToMap[block];
-		else
-			*targetBlock++ = colorsToMap[block + (col << 12)];
-	}
+	uint8_t col = (justData[(y + (z + (x * CHUNKSIZE_Z)) * CHUNKSIZE_Y) / 2] >> ((y % 2) * 4)) & 0xF;  //Get the 4Bits of MetaData
+
+	//additional data
+	*(targetBlock + Global::Terrainsize) = (col << 4);
+	*targetBlock++ = block;
 }
 
 inline void lightCave(const int x, const int y, const int z)

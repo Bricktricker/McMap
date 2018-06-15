@@ -142,7 +142,7 @@ int main(int argc, char **argv)
 			} else if (option == "-blendall") {
 				Global::settings.blendAll = true;
 			} else if (option == "-lowmemory") {
-				Global::settings.lowMemory = true;
+				std::cerr << "-lowmemory no longers supported\n";
 			} else if ((option == "-noise") || (option == "-dither")) {
 				if (!MOREARGS(1) || !isNumeric(POLLARG(1))) {
 					printf("Error: %s needs an integer argument, ie: %s 10\n", option, option);
@@ -577,18 +577,13 @@ int main(int argc, char **argv)
 				const int max = (HEIGHTAT(x, z) & 0xFF00) >> 8;
 				for (int y = uint8_t(HEIGHTAT(x, z)); y < max; ++y) {
 					bmpPosY -= Global::OffsetY;
-					uint8_t &c = BLOCKAT(x, y, z);
+					uint8_t &c = BLOCKAT(x, y, z); //Normal BlockID (0,...,255)
 					if (c == AIR) {
 						continue;
 					}
-					uint16_t c16;
-					if (Global::settings.lowMemory)
-						c16 = colorsToID[c];
-					else
-					{
-						uint8_t &c2 = BLOCKDATA(x, y, z);
-						c16 = (c) + (c2 << 8);
-					}
+
+					const uint8_t c2 = BLOCKDATA(x, y, z); 
+					uint16_t c16 = (c) + (static_cast<uint16_t>(c2) << 8); //First 8 LSBits: BlockID, First 8MSBits: extraData (see globals.cpp:23)
 					//float col = float(y) * .78f - 91;
 					float brightnessAdjustment = brightnessLookup[y];
 					if (Global::settings.blendUnderground) {
@@ -623,14 +618,9 @@ int main(int argc, char **argv)
 					}
 					// Edge detection (this means where terrain goes 'down' and the side of the block is not visible)
 					uint8_t &b = BLOCKAT(x - 1, y - 1, z - 1);
-					uint16_t b16;
-					if (Global::settings.lowMemory)
-						b16 = colorsToID[c];
-					else
-					{
-						uint8_t &b2 = BLOCKDATA(x - 1, y - 1, z - 1);
-						b16 = (b) + (b2 << 8);
-					}
+					uint8_t &b2 = BLOCKDATA(x - 1, y - 1, z - 1);
+					uint16_t b16 = (b) + (b2 << 8);
+
 					if ((y && y + 1 < Global::MapsizeY)  // In bounds?
 					      && BLOCKAT(x, y + 1, z) == AIR  // Only if block above is air
 					      && BLOCKAT(x - 1, y + 1, z - 1) == AIR  // and block above and behind is air
@@ -638,6 +628,7 @@ int main(int argc, char **argv)
 					      && (BLOCKAT(x - 1, y, z) == AIR || BLOCKAT(x, y, z - 1) == AIR)) {   // block TL/TR from this one is air = edge
 						brightnessAdjustment += 13;
 					}
+					std::cout << c16 << '\n';
 					setPixel(bmpPosX, bmpPosY, c16, brightnessAdjustment, biome);
 				}
 			}
@@ -704,6 +695,7 @@ int main(int argc, char **argv)
 	if (fileHandle != NULL) fclose(fileHandle);
 
 	printf("Job complete.\n");
+	system("pause");
 	return 0;
 }
 

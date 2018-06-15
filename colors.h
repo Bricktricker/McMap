@@ -11,8 +11,8 @@
 // Noise is supposed to look normal when -noise 10 is given
 extern uint8_t colors[65536][8];
 extern int16_t biomes[256][4];
-extern uint8_t colorsToMap[65536];
-extern uint16_t colorsToID[256];
+extern uint8_t colorsToMap[65536]; //Used for lowmemory
+extern uint16_t colorsToID[256];  //Used for lowmemory
 
 #define PRED 0
 #define PGREEN 1

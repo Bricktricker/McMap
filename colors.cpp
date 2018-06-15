@@ -9,6 +9,7 @@
 #include <array>
 #include <iostream>
 
+//Not needed?
 #define SETCOLOR(col,r,g,b,a) do { \
 		colors[col][PBLUE]		= b; \
 		colors[col][PGREEN] 		= g; \
@@ -20,6 +21,7 @@
 		                          double(b) *  double(b) * .163); \
 	} while (false)
 
+	
 #define SETCOLORNOISE(col,r,g,b,a,n) do { \
 		colors[col][PBLUE]		= b; \
 		colors[col][PGREEN] 		= g; \
@@ -33,10 +35,10 @@
 	} while (false)
 
 // See header for description
-uint8_t colors[65536][8]; //first Block-ID, second blockdata (PRED PGREEN PBLUE PALPHA NOISE BRIGHTNESS BLOCKTYPE)
+uint8_t colors[65536][8]; //first Block-ID + extraInformation, second blockdata (PRED PGREEN PBLUE PALPHA NOISE BRIGHTNESS BLOCKTYPE)
 int16_t biomes[256][4];
-uint8_t colorsToMap[65536];
-uint16_t colorsToID[256] =
+uint8_t colorsToMap[65536];  //Used for lowmemory
+uint16_t colorsToID[256] =  //Used for lowmemory
 {
 	//renderring blocks ID's, first is ALWAYS 0
 	0, 1, 2, 3, 4, 5, 6, 7, 
@@ -73,6 +75,7 @@ uint16_t colorsToID[256] =
 	248, 249, 24577, 20481, 16385, 12289, 8193, 4097
 };
 
+///Setzt bei allen MetaDaten werten die Farbe, addData wird übernommen
 void SET_COLORNOISE(uint16_t col, uint8_t r, uint8_t g, uint8_t b, uint8_t a, uint8_t n)
 {
 	col %= 4096;
@@ -82,7 +85,7 @@ void SET_COLORNOISE(uint16_t col, uint8_t r, uint8_t g, uint8_t b, uint8_t a, ui
 		SETCOLORNOISE(x, r, g, b, a, n);
 	}
 }
-void SET_COLOR(uint16_t col, uint8_t r, uint8_t g, uint8_t b, uint8_t a) //col is Block-ID
+void SET_COLOR(uint16_t col, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
 	SET_COLORNOISE(col,r,g,b,a,0);
 }
@@ -94,14 +97,14 @@ void SET_COLOR_W(uint16_t col, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
 	col -= 239;
 	//uint16_t col2 = CARPET + (col<<12);
-	col = 35 + (col<<12);
+	col = 35 + (col<<12); //35: whool
 	SETCOLORNOISE(col,r,g,b,a,0);
 	//SETCOLORNOISE(col2,r,g,b,a,0);
 }
 void SET_COLOR_C(uint16_t col, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
 	col -= 185;
-	col = 159 + (col<<12);
+	col = 159 + (col<<12); //159: Clay
 	SETCOLORNOISE(col,r,g,b,a,0);
 }
 
@@ -112,6 +115,7 @@ void COLOR_COPY(uint16_t from, uint16_t to)
 		memcpy(colors[(i<<12)+to], colors[(i<<12)+from], 6);
 	}
 }
+//Setzt bei allen MetaDaten werten den Blocktype, addData ist hierbei 0
 void SET_BLOCK(uint8_t type, uint8_t block) //type e.g BLOCKFLAT, blog e.g SNOW
 {
 	for (int i = 0; i < 16; i++)
@@ -195,6 +199,7 @@ void loadColors()
 			}
 		}
 	}
+	/*
 	if (Global::settings.lowMemory)
 	{
 		memset(colorsToMap, 0, sizeof colorsToMap);
@@ -203,7 +208,7 @@ void loadColors()
 			colorsToMap[colorsToID[i]] = i;
 		}
 		colorsToMap[0] = 0;
-	}
+	}*/
 
 	memset(colors, 0, sizeof colors);
 	
@@ -211,7 +216,7 @@ void loadColors()
 	//SET_BLOCK(BLOCKFLAT, x);
 
 	//colors[171][BLOCKTYPE] = BLOCKTORCH;
-	SET_BLOCK(BLOCKFLAT, SNOW);
+	SET_BLOCK(BLOCKFLAT, SNOW); //SNOWLAYER
 	SET_BLOCK(BLOCKFLAT, TRAPDOOR);
 	SET_BLOCK(BLOCKFLAT, CARPET);
 
@@ -581,7 +586,7 @@ void loadColors()
 }
 
 /**
-* TODO: Funktion umschreiben, das sie fstream nutzt
+
 */
 bool loadColorsFromFile(const std::string& file)
 {
@@ -589,11 +594,12 @@ bool loadColorsFromFile(const std::string& file)
 	if (f.fail()) {
 		return false;
 	}
+	/*
 	if (Global::settings.lowMemory)
 	{
 		memset(colorsToMap, 0, sizeof colorsToMap);
 		memset(colorsToID, 0, sizeof colorsToID);
-	}
+	}*/
 	int lowmemCounter = 1;
 	while (!f.eof()) {
 		std::array<char, 500> buffer;
@@ -649,33 +655,14 @@ bool loadColorsFromFile(const std::string& file)
 		if (!valid) { //TODO
 			if (vals[0] != 0)
 			{
-				if (Global::settings.lowMemory)
-				{
-
-				}
-				else
-				{
-
-				}
+				std::cerr << "TODO: colors.cpp:654\n";
 				std::cout << blockid << ':' << blockid3 << " copied to " << vals[0] << ':' << (vals[1]&0x0F) << '\n';
 			}
 			else std::cerr << "Too few arguments for block " << blockid << ", ignoring line.\n";
 			continue;
 		}
 		int blockidSET = (blockid3 << 12) + blockid;
-		if (Global::settings.lowMemory)
-		{
-			if (lowmemCounter > 255)
-			{
-				std::cerr << "Colors limit in lowmemory mode is limited to 255, " << blockid <<':' << blockid3 << " not set.\n";
-				continue;
-			}
-			memcpy(colors[blockidSET], vals, 5);
-			colors[blockidSET][BRIGHTNESS] = GETBRIGHTNESS(colors[blockidSET]);
-			colorsToID[lowmemCounter] = blockidSET;
-			colorsToMap[blockidSET] = lowmemCounter++;
-		}
-		else if (!suffix)
+		if (!suffix)
 		{
 		    for (int blockid3 = 0; blockid3 < 16; blockid3++)
 		    {
