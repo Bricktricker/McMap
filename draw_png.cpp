@@ -36,16 +36,23 @@ namespace
 	struct ImagePart {
 		int x, y, width, height;
 		std::string filename;
-		FILE *pngFileHandle;
+		std::fstream pngFileHandle;
 		png_structp pngPtr;
 		png_infop pngInfo;
 		ImagePart(const std::string& _file, const int _x, const int _y, const int _w, const int _h)
 			: x(_x), y(_y), width(_w), height(_h), filename(_file)
 		{
 			pngPtr = NULL;
-			pngFileHandle = NULL;
 			pngInfo = NULL;
 		}
+		ImagePart(const ImagePart& part)
+			: x(part.x), y(part.y), width(part.width), height(part.height), filename(part.filename), pngPtr(part.pngPtr), pngInfo(part.pngInfo)
+
+		{
+			pngFileHandle.open(filename, std::ios::binary);
+			std::cout << "Copy Constructor\n";
+		}
+
 	};
 	struct ImageTile {
 		std::fstream fileHandle;
@@ -56,7 +63,7 @@ namespace
 			: pngPtr(nullptr), pngInfo(nullptr) {}
 
 	};
-	typedef std::list<ImagePart *> imageList;
+	typedef std::list<ImagePart> imageList;
 	imageList partialImages;
 
 	std::vector<uint8_t> gImageBuffer;
@@ -67,7 +74,7 @@ namespace
 	png_structp pngPtrMain = NULL; // Main image
 	png_infop pngInfoPtrMain = NULL;
 	png_structp pngPtrCurrent = NULL; // This will be either the same as above, or a temp image when using disk caching
-	FILE *gPngPartialFileHandle = NULL;
+	std::fstream gPngPartialFileHandle;
 
 	inline void assignBiome(uint8_t* const color, const uint8_t biome, const uint16_t block);
 	inline void blend(uint8_t * const destination, const uint8_t * const source);
@@ -95,6 +102,28 @@ namespace
 	void setGrassBA(const size_t x, const size_t y, const uint8_t * const color, const uint8_t * const light, const uint8_t * const dark, const int sub);
 	void setStepBA(const size_t x, const size_t y, const uint8_t * const color, const uint8_t * const light, const uint8_t * const dark);
 	void setUpStepBA(const size_t x, const size_t y, const uint8_t * const color, const uint8_t * const light, const uint8_t * const dark);
+
+	void userWriteData(png_structp pngPtr, png_bytep data, uint32_t length)
+	{
+		//Our std::ostream pointer.
+		png_voidp a = png_get_io_ptr(pngPtr);
+		//Cast the pointer to std::ifstream* and read 'length' bytes into 'data'
+
+		//((std::ifstream*)a)->read((char*)data, length);
+		((std::fstream*)a)->write((char*)data, length);
+	}
+
+	void userReadData(png_structp pngPtr, png_bytep data, png_size_t length)
+	{
+		//Here we get our IO pointer back from the read struct.
+		//This is the parameter we passed to the png_set_read_fn() function.
+		//Our std::istream pointer.
+		png_voidp a = png_get_io_ptr(pngPtr);
+		//Cast the pointer to std::ifstream* and read 'length' bytes into 'data'
+
+		((std::fstream*)a)->read((char*)data, length);
+	}
+
 }
 
 void createImageBuffer(const size_t width, const size_t height, const bool splitUp)
@@ -105,7 +134,7 @@ void createImageBuffer(const size_t width, const size_t height, const bool split
 	gPngSize = gPngLocalSize = (uint64_t)gPngLineWidthChans * (uint64_t)gPngHeight;
 	std::cout << "Image dimensions are " << gPngWidth << 'x' << gPngHeight << ", 32bpp, " << float(gPngSize / float(1024 * 1024)) << "MiB\n";
 	if (!splitUp) {
-		gImageBuffer.resize(gPngSize, 0);
+		gImageBuffer.resize(static_cast<size_t>(gPngSize), 0);
 	}
 }
 
@@ -117,7 +146,7 @@ bool createImage(FILE *fh, const size_t width, const size_t height, const bool s
 	gPngSize = gPngLocalSize = (uint64_t)gPngLineWidthChans * (uint64_t)gPngHeight;
 	std::cout << "Image dimensions are " << gPngWidth << 'x' << gPngHeight << ", 32bpp, " << float(gPngSize / float(1024 * 1024)) << "MiB\n";
 	if (!splitUp) {
-		gImageBuffer.resize(gPngSize, 0);
+		gImageBuffer.resize(static_cast<size_t>(gPngSize), 0);
 	}
 	fseek64(fh, 0, SEEK_SET);
 	// Write header
@@ -164,6 +193,7 @@ bool saveImage()
 		// Normal single-file output
 		if (setjmp(png_jmpbuf(pngPtrMain))) { // libpng will issue a longjmp on error, so code flow will end up
 			png_destroy_write_struct(&pngPtrMain, &pngInfoPtrMain); // here if something goes wrong in the code below
+			std::cerr << "Something went wrong with pngLib\n";
 			return false;
 		}
 
@@ -190,10 +220,9 @@ bool saveImage()
 		const size_t tempWidth = ((gPngWidth - 5) / 4096 + 1) * 4096;
 		const size_t tempWidthChans = tempWidth * CHANSPERPIXEL;
 #ifdef _DEBUG
-		std::cout << "Temp width: " << (int)tempWidthChans << ", original width: " << (int)gPngLineWidthChans << '\n';
+		std::cout << "Temp width: " << tempWidthChans << ", original width: " << gPngLineWidthChans << '\n';
 #endif
-		uint8_t *tempLine = new uint8_t[tempWidthChans];
-		memset(tempLine, 0, tempWidth * BYTESPERPIXEL);
+		std::vector<uint8_t> tempLine(tempWidthChans, 0);
 		// Source pointer
 		size_t srcLine = 0;
 		//uint8_t *srcLine = gImageBuffer;
@@ -201,14 +230,14 @@ bool saveImage()
 		size_t sizeOffset[7], last = 0;
 		for (size_t i = 0; i < 7; ++i) {
 			sizeOffset[i] = last;
-			last += ((tempWidth - 1) / pow(2, 12 - i)) + 1;
+			last += ((tempWidth - 1) / static_cast<size_t>(pow(2, 12 - i))) + 1;
 		}
-		std::vector<ImageTile> tile(sizeOffset[6], ImageTile{});
+		std::vector<ImageTile> tile(sizeOffset[6]);
 		for (int y = 0; y < gPngHeight; ++y) {
 			if (y % 25 == 0) {
 				printProgress(size_t(y), size_t(gPngHeight));
 			}
-			memcpy(tempLine, &gImageBuffer[srcLine], gPngLineWidthChans);
+			memcpy(tempLine.data(), &gImageBuffer[srcLine], gPngLineWidthChans);
 			srcLine += gPngLineWidthChans;
 			// Handle all png files
 			if (y % 128 == 0) {
@@ -220,7 +249,7 @@ bool saveImage()
 				else if (y % 256 == 0) start = 4;
 				else start = 5;
 				for (size_t tileSize = start; tileSize < 6; ++tileSize) {
-					const size_t tileWidth = pow(2, 12 - tileSize);
+					const size_t tileWidth = static_cast<size_t>(pow(2, 12 - tileSize));
 					for (size_t tileIndex = sizeOffset[tileSize]; tileIndex < sizeOffset[tileSize+1]; ++tileIndex) {
 						ImageTile& t = tile[tileIndex];
 						if (t.fileHandle.is_open()) { // Unload/close first
@@ -249,6 +278,7 @@ bool saveImage()
 								return false;
 							}
 							if (setjmp(png_jmpbuf(t.pngPtr))) {
+								std::cerr << "Something went wrong with pngLib\n";
 								return false;
 							}
 							t.pngInfo = png_create_info_struct(t.pngPtr);
@@ -257,7 +287,9 @@ bool saveImage()
 								png_destroy_write_struct(&(t.pngPtr), NULL);
 								return false;
 							}
-							png_init_io(t.pngPtr, t.fileHandle);
+
+							png_set_write_fn(t.pngPtr, (png_voidp)&t.fileHandle, userWriteData, NULL);
+							//png_init_io(t.pngPtr, t.fileHandle);
 							png_set_IHDR(t.pngPtr, t.pngInfo,
 									uint32_t(pow(2, 12 - tileSize)), uint32_t(pow(2, 12 - tileSize)),
 									8, PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE,
@@ -269,26 +301,26 @@ bool saveImage()
 			} // done preparing tiles
 			// Write data to all current tiles
 			for (size_t tileSize = 0; tileSize < 6; ++tileSize) {
-				const size_t tileWidth = pow(2, 12 - tileSize);
+				const size_t tileWidth = static_cast<size_t>(pow(2, 12 - tileSize));
 				for (size_t tileIndex = sizeOffset[tileSize]; tileIndex < sizeOffset[tileSize+1]; ++tileIndex) {
-					if (tile[tileIndex].fileHandle == NULL) continue;
-					png_write_row(tile[tileIndex].pngPtr, png_bytep(tempLine + tileWidth * (tileIndex - sizeOffset[tileSize]) * CHANSPERPIXEL));
+					if (tile[tileIndex].fileHandle.fail() || !tile[tileIndex].fileHandle.is_open()) continue;
+					png_write_row(tile[tileIndex].pngPtr, png_bytep(&tempLine[tileWidth * (tileIndex - sizeOffset[tileSize]) * CHANSPERPIXEL]));
 				}
 			} // done writing line
 		} // done with whole image
 		// Now the last set of tiles is not finished, so do that manually
-		memset(tempLine, 0, tempWidth * BYTESPERPIXEL);
+
+		std::fill(tempLine.begin(), tempLine.end(), 0);
 		for (size_t tileSize = 0; tileSize < 6; ++tileSize) {
-			const size_t tileWidth = pow(2, 12 - tileSize);
+			const size_t tileWidth = static_cast<size_t>(pow(2, 12 - tileSize));
 			for (size_t tileIndex = sizeOffset[tileSize]; tileIndex < sizeOffset[tileSize+1]; ++tileIndex) {
-				if (tile[tileIndex].fileHandle == NULL) continue;
+				if (tile[tileIndex].fileHandle.fail() || !tile[tileIndex].fileHandle.is_open()) continue; //.fileHandle == NULL
 				const int imgEnd = (((gPngHeight - 1) / tileWidth) + 1) * tileWidth;
 				for (int i = gPngHeight; i < imgEnd; ++i) {
-					png_write_row(tile[tileIndex].pngPtr, png_bytep(tempLine));
+					png_write_row(tile[tileIndex].pngPtr, png_bytep(tempLine.data())); //writes just 0's
 				}
 				png_write_end(tile[tileIndex].pngPtr, NULL);
-				png_destroy_write_struct(&(tile[tileIndex].pngPtr), &(tile[tileIndex].pngInfo));
-				fclose(tile[tileIndex].fileHandle);
+				png_destroy_write_struct(&(tile[tileIndex].pngPtr), &(tile[tileIndex].pngInfo)); 
 			}
 		}
 		printProgress(10, 10);
@@ -302,8 +334,9 @@ bool saveImage()
 int loadImagePart(const int startx, const int starty, const int width, const int height)
 {
 	// These are set to NULL in saveImagePartPng to make sure the two functions are called in turn
-	if (pngPtrCurrent != NULL || gPngPartialFileHandle != NULL) {
-		printf("Something wrong with disk caching.\n");
+	if (pngPtrCurrent != NULL || gPngPartialFileHandle.is_open()) {
+		std::cerr << "Something wrong with disk caching.\n";
+		__debugbreak(); //Check
 		return -1;
 	}
 	// In case the image needs to be cropped the offsets will be negative
@@ -329,23 +362,21 @@ int loadImagePart(const int startx, const int starty, const int width, const int
 		gPngLocalHeight = gPngHeight - localY;
 	}
 	if (gPngLocalWidth < 1 || gPngLocalHeight < 1) return 1;
-	char name[200];
-	snprintf(name, 200, "cache/%d.%d.%d.%d.%d.png", localX, localY, gPngLocalWidth, gPngLocalHeight, (int)time(NULL));
-	ImagePart *img = new ImagePart(name, localX, localY, gPngLocalWidth, gPngLocalHeight);
+	std::string name = "cache/" + std::to_string(localX) + '.' + std::to_string(localY) + '.' + std::to_string(gPngLocalWidth) + '.' + std::to_string(gPngLocalHeight) + '.' + std::to_string((int)time(NULL)) + ".png";
+	ImagePart img(name, localX, localY, gPngLocalWidth, gPngLocalHeight);
 	partialImages.push_back(img);
 	// alloc mem for image and open tempfile
 	gPngLocalLineWidthChans = gPngLocalWidth * CHANSPERPIXEL;
 	uint64_t size = (uint64_t)gPngLocalLineWidthChans * (uint64_t)gPngLocalHeight;
-	printf("Creating temporary image: %dx%d, 32bpp, %.2fMiB\n", gPngLocalWidth, gPngLocalHeight, float(size / float(1024 * 1024)));
-	if (gImageBuffer == NULL) {
-		gImageBuffer = new uint8_t[size];
+	std::cout << "Creating temporary image: " << gPngLocalWidth <<  'x' << gPngLocalHeight << ", 32bpp, " << float(size / float(1024 * 1024)) << "MiB\n";
+	if (gImageBuffer.empty()) {
+		gImageBuffer.resize(static_cast<size_t>(size));
 		gPngLocalSize = size;
 	} else if (size > gPngLocalSize) {
-		delete[] gImageBuffer;
-		gImageBuffer = new uint8_t[size];
+		gImageBuffer.resize(static_cast<size_t>(size));
 		gPngLocalSize = size;
 	}
-	memset(gImageBuffer, 0, (size_t)size);
+	std::fill(gImageBuffer.begin(), gImageBuffer.end(), 0);
 	// Create temp image
 	// This is done here to detect early if the target is not writable
 #ifdef _WIN32
@@ -353,9 +384,9 @@ int loadImagePart(const int startx, const int starty, const int width, const int
 #else
 	mkdir("cache", 0755);
 #endif
-	gPngPartialFileHandle = fopen(name, "wb");
-	if (gPngPartialFileHandle == NULL) {
-		printf("Could not create temporary image at %s; check permissions in current dir.\n", name);
+	gPngPartialFileHandle = std::fstream(name, std::ios::out | std::ios::binary);
+	if (gPngPartialFileHandle.fail()) {
+		std::cerr << "Could not create temporary image at "<< name <<"; check permissions in current dir.\n";
 		return -1;
 	}
 	return 0;
@@ -363,8 +394,8 @@ int loadImagePart(const int startx, const int starty, const int width, const int
 
 bool saveImagePart()
 {
-	if (gPngPartialFileHandle == NULL || pngPtrCurrent != NULL) {
-		printf("saveImagePart() called in bad state.\n");
+	if (gPngPartialFileHandle.fail() || !gPngPartialFileHandle.is_open() || pngPtrCurrent != NULL) {
+		std::cerr << "saveImagePart() called in bad state.\n";
 		return false;
 	}
 	// Write header
@@ -387,7 +418,8 @@ bool saveImagePart()
 		return false;
 	}
 
-	png_init_io(pngPtrCurrent, gPngPartialFileHandle);
+	png_set_write_fn(pngPtrCurrent, (png_voidp)&gPngPartialFileHandle, userWriteData, NULL);
+	//png_init_io(pngPtrCurrent, gPngPartialFileHandle);
 	png_set_compression_level(pngPtrCurrent, Z_BEST_SPEED);
 
 	png_set_IHDR(pngPtrCurrent, info_ptr, (uint32_t)gPngLocalWidth, (uint32_t)gPngLocalHeight,
@@ -396,30 +428,27 @@ bool saveImagePart()
 
 	png_write_info(pngPtrCurrent, info_ptr);
 	//
-	uint8_t *line = gImageBuffer;
+	size_t line = 0;
 	for (int y = 0; y < gPngLocalHeight; ++y) {
-		png_write_row(pngPtrCurrent, (png_bytep)line);
+		png_write_row(pngPtrCurrent, (png_bytep)&gImageBuffer[line]);
 		line += gPngLocalLineWidthChans;
 	}
 	png_write_end(pngPtrCurrent, NULL);
 	png_destroy_write_struct(&pngPtrCurrent, &info_ptr);
 	pngPtrCurrent = NULL;
-	fclose(gPngPartialFileHandle);
-	gPngPartialFileHandle = NULL;
+	gPngPartialFileHandle.close();
 	return true;
 }
 
 bool discardImagePart()
 {
-	if (gPngPartialFileHandle == NULL || pngPtrCurrent != NULL) {
-		printf("discardImagePart() called in bad state.\n");
+	if (gPngPartialFileHandle.fail() || !gPngPartialFileHandle.is_open() || pngPtrCurrent != NULL) {
+		std::cerr << "discardImagePart() called in bad state.\n";
 		return false;
 	}
-	fclose(gPngPartialFileHandle);
-	gPngPartialFileHandle = NULL;
-	ImagePart *img = partialImages.back();
-	remove(img->filename);
-	delete img;
+	gPngPartialFileHandle.close();
+	ImagePart& img = partialImages.back();
+	remove(img.filename.c_str());
 	partialImages.pop_back();
 	return true;
 }
@@ -429,25 +458,22 @@ bool composeFinalImage()
 	std::string tmpString;
 	size_t tmpLen = 0;
 	if (Global::tilePath.empty()) {
-		printf("Composing final png file...\n");
+		std::cout << "Composing final png file...\n";
 		if (setjmp(png_jmpbuf(pngPtrMain))) {
 			png_destroy_write_struct(&pngPtrMain, NULL);
 			return false;
 		}
 	} else {
 		// Tiled output, suitable for google maps
-		printf("Composing final png files...\n");
-		//tmpLen = strlen(g_TilePath) + 40;
-		//tmpString = new char[tmpLen];
-		std::string tmpString;
+		std::cout << "Composing final png files...\n";
 		// Prepare a temporary buffer to copy the current line to, since we need the width to be a multiple of 4096
 		// and adjusting the whole image to that would be a waste of memory
 	}
 	const size_t tempWidth = (Global::tilePath.empty() ? gPngLineWidthChans : ((gPngWidth - 5) / 4096 + 1) * 4096);
 	const size_t tempWidthChans = tempWidth * CHANSPERPIXEL;
 
-	uint8_t *lineWrite = new uint8_t[tempWidthChans];
-	uint8_t *lineRead = new uint8_t[gPngLineWidthChans];
+	std::vector<uint8_t> lineWrite(tempWidthChans);
+	std::vector<uint8_t> lineRead(gPngLineWidthChans);
 
 	// Prepare an array of png structs that will output simultaneously to the various tiles
 	size_t sizeOffset[7], last = 0;
@@ -455,7 +481,7 @@ bool composeFinalImage()
 	if (!Global::tilePath.empty()) {
 		for (size_t i = 0; i < 7; ++i) {
 			sizeOffset[i] = last;
-			last += ((tempWidth - 1) / pow(2, 12 - i)) + 1;
+			last += ((tempWidth - 1) / static_cast<size_t>(pow(2, 12 - i))) + 1;
 		}
 		tile = new ImageTile[sizeOffset[6]];
 		memset(tile, 0, sizeOffset[6] * sizeof(ImageTile));
@@ -466,64 +492,65 @@ bool composeFinalImage()
 			printProgress(size_t(y), size_t(gPngHeight));
 		}
 		// paint each image on this one
-		memset(lineWrite, 0, tempWidthChans);
+		std::fill(lineWrite.begin(), lineWrite.end(), 0);
 		// the partial images are kept in this list. they're already in the correct order in which they have to me merged and blended
 		for (imageList::iterator it = partialImages.begin(); it != partialImages.end(); it++) {
-			ImagePart *img = *it;
+			ImagePart& img = *it;
 			// do we have to open this image?
-			if (img->y == y && img->pngPtr == NULL) {
-				img->pngFileHandle = fopen(img->filename, "rb");
-				if (img->pngFileHandle == NULL) {
-					printf("Error opening temporary image %s\n", img->filename);
+			if (img.y == y && img.pngPtr == NULL) {
+				img.pngFileHandle = std::fstream(img.filename, std::ios::in | std::ios::binary);
+				if (img.pngFileHandle.fail()) {
+					std::cerr << "Error opening temporary image " << img.filename << '\n';
 					return false;
 				}
-				img->pngPtr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-				if (img->pngPtr == NULL) {
-					printf("Error creating read struct for temporary image %s\n", img->filename);
+				img.pngPtr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+				if (img.pngPtr == NULL) {
+					std::cerr << "Error creating read struct for temporary image " << img.filename <<'\n';
 					return false; // Not really cleaning up here, but program will terminate anyways, so why bother
 				}
-				img->pngInfo = png_create_info_struct(img->pngPtr);
-				if (img->pngInfo == NULL || setjmp(png_jmpbuf(img->pngPtr))) {
-					printf("Error reading data from temporary image %s\n", img->filename);
+				img.pngInfo = png_create_info_struct(img.pngPtr);
+				if (img.pngInfo == NULL || setjmp(png_jmpbuf(img.pngPtr))) {
+					std::cerr << "Error reading data from temporary image " << img.filename << '\n';
 					return false; // Same here
 				}
-				png_init_io(img->pngPtr, img->pngFileHandle);
-				png_read_info(img->pngPtr, img->pngInfo);
+
+				png_set_read_fn(img.pngPtr, (png_voidp)&img.pngFileHandle, userReadData);
+				//png_init_io(img->pngPtr, img->pngFileHandle);
+				png_read_info(img.pngPtr, img.pngInfo);
 				// Check if image dimensions match what is expected
 				int type, interlace, comp, filter, bitDepth;
 				png_uint_32 width, height;
-				png_uint_32 ret = png_get_IHDR(img->pngPtr, img->pngInfo, &width, &height, &bitDepth, &type, &interlace, &comp, &filter);
-				if (ret == 0 || width != (png_uint_32)img->width || height != (png_uint_32)img->height) {
-					printf("Temp image %s has wrong dimensions; expected %dx%d, got %dx%d\n", img->filename, img->width, img->height, (int)width, (int)height);
+				png_uint_32 ret = png_get_IHDR(img.pngPtr, img.pngInfo, &width, &height, &bitDepth, &type, &interlace, &comp, &filter);
+				if (ret == 0 || width != (png_uint_32)img.width || height != (png_uint_32)img.height) {
+					std::cerr << "Temp image " << img.filename << " has wrong dimensions; expected " << std::to_string(img.width) << 'x' << std::to_string(img.height) << ", got " << width << 'x' << height << '\n';
 					return false;
 				}
 			}
 			// Here, the image is either open and ready for reading another line, or its not open when it doesn't have to be copied/blended here, or is already finished
-			if (img->pngPtr == NULL) {
+			if (img.pngPtr == NULL) {
 				continue;   // Not your turn, image!
 			}
 			// Read next line from current image chunk
-			png_read_row(img->pngPtr, (png_bytep)lineRead, NULL);
+			png_read_row(img.pngPtr, (png_bytep)lineRead.data(), NULL);
 			// Now this puts all the pixels in the right spot of the current line of the final image
-			const uint8_t *end = lineWrite + (img->x + img->width) * CHANSPERPIXEL;
-			uint8_t *read = lineRead;
-			for (uint8_t *write = lineWrite + (img->x * CHANSPERPIXEL); write < end; write += CHANSPERPIXEL) {
-				blend(write, read);
+			const size_t end = (img.x + img.width) * CHANSPERPIXEL;
+			size_t read = 0;
+			for (size_t write = (img.x * CHANSPERPIXEL); write < end; write += CHANSPERPIXEL) {
+				blend(&lineWrite[write], &lineRead[read]);
 				read += CHANSPERPIXEL;
 			}
 			// Now check if we're done with this image chunk
-			if (--(img->height) == 0) { // if so, close and discard
-				png_destroy_read_struct(&(img->pngPtr), &(img->pngInfo), NULL);
-				fclose(img->pngFileHandle);
-				img->pngFileHandle = NULL;
-				img->pngPtr = NULL;
-				remove(img->filename);
+			if (--(img.height) == 0) { // if so, close and discard
+				png_destroy_read_struct(&(img.pngPtr), &(img.pngInfo), NULL);
+				img.pngFileHandle.close();
+				img.pngPtr = NULL;
+				remove(img.filename.c_str());
 			}
 		}
 		// Done composing this line, write to final image
 		if (Global::tilePath.empty()) {
 			// Single file
-			png_write_row(pngPtrMain, (png_bytep)lineWrite);
+			png_write_row(pngPtrMain, (png_bytep)lineWrite.data());
 		} else {
 			// Tiled output
 			// Handle all png files
@@ -536,16 +563,15 @@ bool composeFinalImage()
 				else if (y % 256 == 0) start = 4;
 				else start = 5;
 				for (size_t tileSize = start; tileSize < 6; ++tileSize) {
-					const size_t tileWidth = pow(2, 12 - tileSize);
+					const size_t tileWidth = static_cast<size_t>(pow(2, 12 - tileSize));
 					for (size_t tileIndex = sizeOffset[tileSize]; tileIndex < sizeOffset[tileSize+1]; ++tileIndex) {
 						ImageTile &t = tile[tileIndex];
-						if (t.fileHandle != NULL) { // Unload/close first
+						if (t.fileHandle.is_open()) { // Unload/close first
 							//printf("Calling end with ptr == %p, y == %d, start == %d, tileSize == %d, tileIndex == %d, to == %d, numpng == %d\n",
 									//t.pngPtr, y, (int)start, (int)tileSize, (int)tileIndex, (int)sizeOffset[tileSize+1], (int)numpng);
 							png_write_end(t.pngPtr, NULL);
 							png_destroy_write_struct(&(t.pngPtr), &(t.pngInfo));
-							fclose(t.fileHandle);
-							t.fileHandle = NULL;
+							t.fileHandle.close();
 						}
 						if (tileWidth * (tileIndex - sizeOffset[tileSize]) < size_t(gPngWidth)) {
 							// Open new tile file for a while
@@ -553,28 +579,30 @@ bool composeFinalImage()
 							//snprintf(tmpString, tmpLen, "%s/x%dy%dz%d.png", g_TilePath,
 									//int(tileIndex - sizeOffset[tileSize]), int((y / pow(2, 12 - tileSize))), int(tileSize));
 #ifdef _DEBUG
-							printf("Starting tile %s of size %d...\n", tmpString, (int)pow(2, 12 - tileSize));
+							std::cout << "Starting tile " << tmpString << " of size " << (int)pow(2, 12 - tileSize) << "...\n";
 #endif
-							t.fileHandle = fopen(tmpString.c_str(), "wb");
-							if (t.fileHandle == NULL) {
-								printf("Error opening file!\n");
+							t.fileHandle.open(tmpString, std::ios::out | std::ios::binary);
+							if (t.fileHandle.fail()) {
+								std::cerr << "Error opening file!\n";
 								return false;
 							}
 							t.pngPtr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 							if (t.pngPtr == NULL) {
-								printf("Error creating png write struct!\n");
+								std::cerr << "Error creating png write struct!\n";
 								return false;
 							}
 							if (setjmp(png_jmpbuf(t.pngPtr))) {
+								__debugbreak(); //error in pngLib
 								return false;
 							}
 							t.pngInfo = png_create_info_struct(t.pngPtr);
 							if (t.pngInfo == NULL) {
-								printf("Error creating png info struct!\n");
+								std::cerr << "Error creating png info struct!\n";
 								png_destroy_write_struct(&(t.pngPtr), NULL);
 								return false;
 							}
-							png_init_io(t.pngPtr, t.fileHandle);
+							png_set_write_fn(t.pngPtr, (png_voidp)&t.fileHandle, userWriteData, NULL);
+							//png_init_io(t.pngPtr, t.fileHandle);
 							png_set_IHDR(t.pngPtr, t.pngInfo,
 									uint32_t(pow(2, 12 - tileSize)), uint32_t(pow(2, 12 - tileSize)),
 									8, PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE,
@@ -586,10 +614,10 @@ bool composeFinalImage()
 			} // done preparing tiles
 			// Write data to all current tiles
 			for (size_t tileSize = 0; tileSize < 6; ++tileSize) {
-				const size_t tileWidth = pow(2, 12 - tileSize);
+				const size_t tileWidth = static_cast<size_t>(pow(2, 12 - tileSize));
 				for (size_t tileIndex = sizeOffset[tileSize]; tileIndex < sizeOffset[tileSize+1]; ++tileIndex) {
-					if (tile[tileIndex].fileHandle == NULL) continue;
-					png_write_row(tile[tileIndex].pngPtr, png_bytep(lineWrite + tileWidth * (tileIndex - sizeOffset[tileSize]) * CHANSPERPIXEL));
+					if (tile[tileIndex].fileHandle.fail() || !tile[tileIndex].fileHandle.is_open()) continue;
+					png_write_row(tile[tileIndex].pngPtr, png_bytep(&lineWrite[tileWidth * (tileIndex - sizeOffset[tileSize]) * CHANSPERPIXEL]));
 				}
 			} // done writing line
 			//
@@ -601,24 +629,22 @@ bool composeFinalImage()
 		png_destroy_write_struct(&pngPtrMain, &pngInfoPtrMain);
 	} else {
 		// Finish all current tiles
-		memset(lineWrite, 0, tempWidth * BYTESPERPIXEL);
+		std::fill(lineWrite.begin(), lineWrite.end(), 0);;
 		for (size_t tileSize = 0; tileSize < 6; ++tileSize) {
-			const size_t tileWidth = pow(2, 12 - tileSize);
+			const size_t tileWidth = static_cast<size_t>(pow(2, 12 - tileSize));
 			for (size_t tileIndex = sizeOffset[tileSize]; tileIndex < sizeOffset[tileSize+1]; ++tileIndex) {
-				if (tile[tileIndex].fileHandle == NULL) continue;
+				if (!tile[tileIndex].fileHandle.is_open()) continue;
 				const int imgEnd = (((gPngHeight - 1) / tileWidth) + 1) * tileWidth;
 				for (int i = gPngHeight; i < imgEnd; ++i) {
-					png_write_row(tile[tileIndex].pngPtr, png_bytep(lineWrite));
+					png_write_row(tile[tileIndex].pngPtr, png_bytep(lineWrite.data()));
 				}
 				png_write_end(tile[tileIndex].pngPtr, NULL);
 				png_destroy_write_struct(&(tile[tileIndex].pngPtr), &(tile[tileIndex].pngInfo));
-				fclose(tile[tileIndex].fileHandle);
+				tile[tileIndex].fileHandle.close();
 			}
 		}
 	}
 	printProgress(10, 10);
-	delete[] lineWrite;
-	delete[] lineRead;
 	return true;
 }
 
