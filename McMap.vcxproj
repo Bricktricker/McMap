@@ -159,6 +159,7 @@
     <ClInclude Include="filesystem.h" />
     <ClInclude Include="globals.h" />
     <ClInclude Include="helper.h" />
+    <ClInclude Include="json.hpp" />
     <ClInclude Include="nbt.h" />
     <ClInclude Include="pngreader.h" />
     <ClInclude Include="worldloader.h" />

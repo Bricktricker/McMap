@@ -38,6 +38,8 @@ bool dumpColorsToFile(const std::string& file);
 bool extractColors(const std::string& file);
 //bool loadBiomeColors(const std::string& path);
 
+bool loadBlocks(const std::string& path);
+
 #define AIR 0
 #define STONE 1
 #define GRASS 2
