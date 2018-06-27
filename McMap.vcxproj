@@ -162,6 +162,8 @@
     <ClInclude Include="json.hpp" />
     <ClInclude Include="nbt.h" />
     <ClInclude Include="pngreader.h" />
+    <ClInclude Include="RangeMap.h" />
+    <ClInclude Include="Tree.h" />
     <ClInclude Include="worldloader.h" />
   </ItemGroup>
   <ItemGroup>

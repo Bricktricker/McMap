@@ -101,6 +101,7 @@ T ntoh(void* u, size_t size)
 //static bool loadChunk(uint8_t* buffer, const size_t len);
 bool loadChunk(const std::vector<uint8_t>& buffer);
 bool loadAnvilChunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ);
+bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ);
 void allocateTerrain();
 bool loadAllRegions();
 bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks);
@@ -272,13 +273,15 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 	}
 
 	if (dataVersion > 1343) {
-		std::cerr << "Minecraft 1.13 not supported, please wait\n";
-		return false;
+		return load113Chunk(level, chunkX, chunkZ);
 	}else{
+		std::cerr << "trying to load old Anvil World. Currently not supported\n";
+		return false;
 		return loadAnvilChunk(level, chunkX, chunkZ);
 	}
 }
 
+//TODO: rewrite to use new color system
 bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t chunkZ)
 {
 	PrimArray<uint8_t> *blockdata, *lightdata, *skydata, *justData, *addData = 0;
@@ -403,12 +406,17 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 	return true;
 }
 
+bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ)
+{
+	return false;
+}
+
 uint64_t calcTerrainSize(const int chunksX, const int chunksZ)
 {
-	uint64_t size = 2 * uint64_t(chunksX+2) * CHUNKSIZE_X * uint64_t(chunksZ+2) * CHUNKSIZE_Z * uint64_t(Global::MapsizeY);
+	uint64_t size = uint64_t(chunksX+2) * CHUNKSIZE_X * uint64_t(chunksZ+2) * CHUNKSIZE_Z * uint64_t(Global::MapsizeY);
 
 	if (Global::settings.nightmode || Global::settings.underground || Global::settings.blendUnderground || Global::settings.skylight) {
-			size += size / 4;
+			size += (2*size) / 4;
 	}
 	/* biomes no longer supported
 	if (g_UseBiomes) {
@@ -551,8 +559,8 @@ void allocateTerrain()
 	//printf("%d -- %d\n", g_MapsizeX, g_MapsizeZ); //dimensions of terrain map (in memory)
 	Global::Terrainsize = Global::MapsizeX * Global::MapsizeY * Global::MapsizeZ;
 
-	std::cout << "Terrain takes up " << std::to_string(float(Global::Terrainsize*2 / float(1024 * 1024))) << "MiB";
-	Global::terrain.resize(Global::Terrainsize*2, 0);  // Preset: Air
+	std::cout << "Terrain takes up " << std::to_string(float(Global::Terrainsize / float(1024 * 1024))) << "MiB";
+	Global::terrain.resize(Global::Terrainsize, 0);  // Preset: Air
 
 	if (Global::settings.nightmode || Global::settings.underground || Global::settings.blendUnderground || Global::settings.skylight) {
 		Global::lightsize = Global::MapsizeZ * Global::MapsizeX * ((Global::MapsizeY + (Global::MapminY % 2 == 0 ? 1 : 2)) / 2);
@@ -649,7 +657,6 @@ bool loadTerrain(const std::string& fromPath, int &loadedChunks)
 }
 
 /*
-  TODO: Funktion umschreiben um fstream zu nutzen
  */
 bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks)
 {
@@ -831,7 +838,7 @@ void uncoverNether()
 		for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
 			// Remove blocks on top, otherwise there is not much to see here
 			int massive = 0;
-			uint8_t *bp = &Global::terrain[((z + (x * Global::MapsizeZ) + 1) * Global::MapsizeY) - 1];
+			uint16_t *bp = &Global::terrain[((z + (x * Global::MapsizeZ) + 1) * Global::MapsizeY) - 1];
 			int i;
 			for (i = 0; i < to; ++i) { // Go down 74 blocks from the ceiling to see if there is anything except solid
 				if (massive && (*bp == AIR || *bp == LAVA || *bp == STAT_LAVA)) {

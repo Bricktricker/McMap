@@ -16,7 +16,8 @@ std::vector<uint16_t> Global::biomeMap;
 int Global::grasscolorDepth = 0, Global::foliageDepth = 0;
 
 std::vector<Marker> Global::markers;
-std::vector<uint8_t> Global::terrain; /*
+//std::vector<uint8_t> Global::terrain;
+/*
 addData: "add" => for blocks with blockIDs > 255
 Double size of number of blocks
 1. Half: Block ID (0,...,255)

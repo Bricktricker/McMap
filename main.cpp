@@ -268,37 +268,9 @@ int main(int argc, char **argv)
 		memlimit = 1800 * uint64_t(1024 * 1024);
 	}
 
-	// Load colormap from file
-	loadColors(); // Default base, in case some are missing in colors.txt (if used)
-	// Load files from colors.txt
-	if (fileExists(colorfile)) {
-		if (!loadColorsFromFile(colorfile)) {
-			printf("Error loading colors from %s: Opening failed.\n", colorfile);
-			return 1;
-		}
-	} else if (!colorfile.empty()) {
-		printf("Error loading colors from %s: File not found.\n", colorfile);
-		return 1;
-	}
-	// Extract colors from terrain.png
-	if (fileExists(texturefile)) {
-		if (!extractColors(texturefile)) {
-			printf("Error extracting colors from %s: Opening failed (not a valid terrain png?).\n", texturefile);
-			return 1;
-		}
-	} else if (!texturefile.empty()) {
-		printf("Error loading colors from %s: File not found.\n", texturefile);
-		return 1;
-	}
-	// If colors should be dumped to file, exit afterwards
-	if (dumpColors) {
-		if (!dumpColorsToFile("defaultcolors.txt")) {
-			printf("Could not dump colors to defaultcolors.txt, error opening file.\n");
-			return 1;
-		}
-		printf("Colors written to defaultcolors.txt\n");
-		return 0;
-	}
+	// Load colors TODO: allow change of path
+	loadBlockTree("compressBlock.json");
+	loadColorMap("dataWithColors.json");
 
 	if (filename.empty()) {
 		printf("Error: No world given. Please add the path to your world to the command line.\n");
