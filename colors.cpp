@@ -9,7 +9,7 @@
 using nlohmann::json;
 
 std::map<std::string, Tree<std::string, uint16_t>> blockTree; //Maps blockState to id
-RangeMap<uint16_t, color_t> colorMap; //maps id to color_t
+RangeMap<uint16_t, Color_t> colorMap; //maps id to color_t
 
 void buildTree(std::vector<std::string>& strVec, const json jState, Tree<std::string, uint16_t>& tree) {
 	for (auto itr = jState.begin(); itr != jState.end(); ++itr) {
@@ -83,7 +83,7 @@ void loadColorMap(const std::string& path)
 		blockType = col["blockType"];
 		uint8_t brightness = (uint8_t)sqrt(double(r) *  double(r) * .236 + double(g) *  double(g) * .601 + double(b) * double(b) * .163);
 
-		color_t finalCol{ r, g, b, a, noise, brightness, blockType };
+		Color_t finalCol{ r, g, b, a, noise, brightness, blockType };
 		colorMap.insert(from, to, finalCol);
 	}
 

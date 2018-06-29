@@ -63,7 +63,7 @@ public:
 	static int grasscolorDepth, foliageDepth;
 
 	static std::vector<Marker> markers;
-	//static std::vector<uint8_t> terrain;
+	static std::vector<uint16_t> terrain;
 	static std::vector<uint8_t>	light; // 3D arrays holding terrain/lightmap
 	static std::vector<uint16_t> heightMap; // 2D array to store min and max block height per X/Z - it's 2 bytes per index, upper for highest, lower for lowest (don't ask!)
 	static size_t lightsize; // Size of lightmap

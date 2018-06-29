@@ -83,8 +83,9 @@ bool isNumeric(const std::string& str);
 bool isAlphaWorld(const std::string& path);
 bool strEndsWith(std::string const &fullString, std::string const &ending);
 
+
 template<typename Out>
-void strSplit(const std::string &s, char delim, Out result) {
+void strSplit(const std::string &s, char delim, Out& result) {
 	std::stringstream ss(s);
 	std::string item;
 	while (std::getline(ss, item, delim)) {
@@ -92,5 +93,11 @@ void strSplit(const std::string &s, char delim, Out result) {
 	}
 }
 
+template<typename T>
+constexpr size_t numBits() {
+	return sizeof(T) * 8;
+}
+
+uint64_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne);
 std::vector<std::string> strSplit(const std::string &s, char delim);
 #endif

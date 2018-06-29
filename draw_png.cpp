@@ -73,8 +73,9 @@ namespace
 	std::fstream gPngPartialFileHandle;
 
 	inline void assignBiome(uint8_t* const color, const uint8_t biome, const uint16_t block);
-	inline void blend(uint8_t * const destination, const uint8_t * const source);
-	inline void modColor(uint8_t * const color, const int mod);
+	inline void blend(uint8_t* const destination, const Color_t& source); //Blend color to pixel
+	inline void blend(uint8_t* const destination, const uint8_t* const source); //Blend to pixel
+	Color_t modColor(const Color_t& color, const int mod);
 	inline void addColor(uint8_t * const color, const int16_t * const add);
 	inline void addColorSimple(uint8_t * const color, const int16_t * const add);
 
@@ -657,7 +658,7 @@ fsub: brightnessAdjustment
 biom parameter not used
 TODO: Rewrite to use new color system
 */
-void setPixel(const size_t x, const size_t y, const uint16_t color, const float fsub, const uint16_t biome)
+void setPixel(const size_t x, const size_t y, const uint16_t stateID, const float fsub, const uint16_t biome)
 {
 
 	// Sets pixels around x,y where A is the anchor
@@ -667,15 +668,15 @@ void setPixel(const size_t x, const size_t y, const uint16_t color, const float 
 	// D D L L
 	//	  D L
 	// First determine how much the color has to be lightened up or darkened
-	int sub = int(fsub * (float(colors[color][BRIGHTNESS]) / 323.0f + .21f)); // The brighter the color, the stronger the impact
-	uint8_t L[CHANSPERPIXEL], D[CHANSPERPIXEL], c[CHANSPERPIXEL];
+	int sub = static_cast<int>(fsub * (static_cast<float>(colorMap[stateID].brightness) / 323.0f + 0.21f));  // The brighter the color, the stronger the impact
+	//uint8_t L[CHANSPERPIXEL], D[CHANSPERPIXEL], c[CHANSPERPIXEL];
+	Color_t L, D;
+	Color_t currentColor = colorMap[stateID];
 	// Now make a local copy of the color that we can modify just for this one block
-	memcpy(c, colors[color], BYTESPERPIXEL);
-	modColor(c, sub); //set brightness
+	currentColor = modColor(currentColor, sub); //set brightness
 
 	//if (g_UseBiomes && g_WorldFormat == 2) assignBiome(c, biome, color); //dropped biom support
-
-	uint8_t colortype = colors[color][BLOCKTYPE] % BLOCKBIOME;
+	uint8_t colortype = currentColor.blockType % BLOCKBIOME;
 
 	if (Global::settings.blendAll) {
 		// Then check the block type, as some types will be drawn differently
@@ -702,10 +703,9 @@ void setPixel(const size_t x, const size_t y, const uint16_t color, const float 
 		}
 		// All the above blocks didn't need the shaded down versions of the color, so we only calc them here
 		// They are for the sides of blocks
-		memcpy(L, c, BYTESPERPIXEL);
-		memcpy(D, c, BYTESPERPIXEL);
-		modColor(L, -17);
-		modColor(D, -27);
+		L = modColor(currentColor, -17);
+		D = modColor(currentColor, -27);
+
 		// A few more blocks with special handling... Those need the two colors we just mixed
 		switch (colortype)
 		{
@@ -747,10 +747,8 @@ void setPixel(const size_t x, const size_t y, const uint16_t color, const float 
 		}
 		// All the above blocks didn't need the shaded down versions of the color, so we only calc them here
 		// They are for the sides of blocks
-		memcpy(L, c, BYTESPERPIXEL);
-		memcpy(D, c, BYTESPERPIXEL);
-		modColor(L, -17);
-		modColor(D, -27);
+		L = modColor(currentColor, -17);
+		D = modColor(currentColor, -27);
 		// A few more blocks with special handling... Those need the two colors we just mixed
 		switch (colortype)
 		{
@@ -770,11 +768,12 @@ void setPixel(const size_t x, const size_t y, const uint16_t color, const float 
 	}
 	// In case the user wants noise, calc the strength now, depending on the desired intensity and the block's brightness
 	int noise = 0;
-	if (Global::settings.noise && colors[color][NOISE]) {
-		noise = int(float(Global::settings.noise * colors[color][NOISE]) * (float(GETBRIGHTNESS(c) + 10) / 2650.0f));
+	if (Global::settings.noise && currentColor.noise) {
+		noise = static_cast<int>(static_cast<float>(Global::settings.noise * currentColor.noise) * (static_cast<float>(currentColor.brightness + 10) / 2650.0f));
+		//noise = int(float(Global::settings.noise * colors[color][NOISE]) * (float(GETBRIGHTNESS(c) + 10) / 2650.0f));
 	}
 	// Ordinary blocks are all rendered the same way
-	if (c[PALPHA] == 255) { // Fully opaque - faster
+	if (currentColor.a == 255) { // Fully opaque - faster
 		// Top row
 		uint8_t *pos = &PIXEL(x, y);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
@@ -848,7 +847,7 @@ void setPixel(const size_t x, const size_t y, const uint16_t color, const float 
 	// The above two branches are almost the same, maybe one could just create a function pointer and...
 }
 
-void blendPixel(const size_t x, const size_t y, const uint8_t color, const float fsub)
+void blendPixel(const size_t x, const size_t y, const uint16_t stateID, const float fsub)
 {
 	// This one is used for cave overlay
 	// Sets pixels around x,y where A is the anchor
@@ -858,18 +857,19 @@ void blendPixel(const size_t x, const size_t y, const uint8_t color, const float
 	// D D L L
 	//	  D L
 	uint8_t L[CHANSPERPIXEL], D[CHANSPERPIXEL], c[CHANSPERPIXEL];
+	Color_t L, D;
+	Color_t currentColor = colorMap[stateID];
 	// Now make a local copy of the color that we can modify just for this one block
-	memcpy(c, colors[color], BYTESPERPIXEL);
-	c[PALPHA] = clamp(int(float(c[PALPHA]) * fsub)); // The brighter the color, the stronger the impact
+	//c[PALPHA] = clamp(int(float(c[PALPHA]) * fsub)); // The brighter the color, the stronger the impact
+	currentColor.a = clamp(static_cast<int>(static_cast<float>(currentColor.a) * fsub));
 	// They are for the sides of blocks
-	memcpy(L, c, BYTESPERPIXEL);
-	memcpy(D, c, BYTESPERPIXEL);
-	modColor(L, -17);
-	modColor(D, -27);
+	L = modColor(currentColor, -17);
+	D = modColor(currentColor, -27);
 	// In case the user wants noise, calc the strength now, depending on the desired intensity and the block's brightness
 	int noise = 0;
-	if (Global::settings.noise && colors[color][NOISE]) {
-		noise = int(float(Global::settings.noise * colors[color][NOISE]) * (float(GETBRIGHTNESS(c) + 10) / 2650.0f));
+	if (Global::settings.noise && currentColor.noise) {
+		//noise = int(float(Global::settings.noise * colors[color][NOISE]) * (float(GETBRIGHTNESS(c) + 10) / 2650.0f));
+		noise = static_cast<int>(static_cast<float>(currentColor.noise * Global::settings.noise) * (static_cast<float>(currentColor.brightness + 10) / 2650.0f));
 	}
 	// Top row
 	uint8_t *pos = &PIXEL(x, y);
@@ -901,9 +901,10 @@ namespace
 		addColor(color, biomes[biome]);
 	}
 
-	inline void blend(uint8_t * const destination, const uint8_t * const source)
+	inline void blend(uint8_t* const destination, const uint8_t* const source)
 	{
-		if (destination[PALPHA] == 0 || source[PALPHA] == 255) {
+#define PALPHA 3
+		if (destination[PALPHA] == 0 || source[PALPHA] == 255) { //compare alpha
 			memcpy(destination, source, BYTESPERPIXEL);
 			return;
 		}
@@ -914,11 +915,29 @@ namespace
 		destination[PALPHA] += (size_t(source[PALPHA]) * size_t(255 - destination[PALPHA])) / 255;
 	}
 
-	inline void modColor(uint8_t * const color, const int mod)
+	inline void blend(uint8_t* const destination, const Color_t& source)
 	{
-		color[0] = clamp(color[0] + mod);
-		color[1] = clamp(color[1] + mod);
-		color[2] = clamp(color[2] + mod);
+		if (destination[PALPHA] == 0 || source.a == 255) { //compare alpha
+			destination[0] = source.r;
+			destination[1] = source.g;
+			destination[2] = source.b;
+			destination[3] = source.a;
+			return;
+		}
+#define BLEND(ca,aa,cb) uint8_t(((size_t(ca) * size_t(aa)) + (size_t(255 - aa) * size_t(cb))) / 255)
+		destination[0] = BLEND(source[0], source[PALPHA], destination[0]);
+		destination[1] = BLEND(source[1], source[PALPHA], destination[1]);
+		destination[2] = BLEND(source[2], source[PALPHA], destination[2]);
+		destination[PALPHA] += (size_t(source[PALPHA]) * size_t(255 - destination[PALPHA])) / 255;
+	}
+
+	Color_t modColor(const Color_t& color, const int mod)
+	{
+		Color_t retCol = color;
+		retCol.r = clamp(color.r + mod);
+		retCol.g = clamp(color.g + mod);
+		retCol.b = clamp(color.b + mod);
+		return retCol;
 	}
 
 	inline void addColor(uint8_t * const color, const int16_t * const add)

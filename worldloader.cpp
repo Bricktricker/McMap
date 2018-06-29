@@ -339,7 +339,8 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 		// Copy data
 		for (int x = 0; x < CHUNKSIZE_X; ++x) {
 			for (int z = 0; z < CHUNKSIZE_Z; ++z) {
-				uint8_t *targetBlock, *lightByte;
+				uint16_t* targetBlock = nullptr;
+				uint8_t *lightByte = nullptr;
 				if (Global::settings.orientation == East) {
 					targetBlock = &BLOCKEAST(x + offsetx, yoffset, z + offsetz); //BLOCKEAST
 					if (Global::settings.skylight || Global::settings.nightmode) lightByte = &SETLIGHTEAST(x + offsetx, yoffset, z + offsetz);
@@ -408,6 +409,7 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 
 bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ)
 {
+	//
 	return false;
 }
 
@@ -838,7 +840,7 @@ void uncoverNether()
 		for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
 			// Remove blocks on top, otherwise there is not much to see here
 			int massive = 0;
-			uint16_t *bp = &Global::terrain[((z + (x * Global::MapsizeZ) + 1) * Global::MapsizeY) - 1];
+			uint16_t* bp = &Global::terrain[((z + (x * Global::MapsizeZ) + 1) * Global::MapsizeY) - 1];
 			int i;
 			for (i = 0; i < to; ++i) { // Go down 74 blocks from the ceiling to see if there is anything except solid
 				if (massive && (*bp == AIR || *bp == LAVA || *bp == STAT_LAVA)) {

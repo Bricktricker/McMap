@@ -151,3 +151,35 @@ std::vector<std::string> strSplit(const std::string &s, char delim) {
 	strSplit(s, delim, std::back_inserter(elems));
 	return elems;
 }
+
+uint64_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne) {
+	const size_t maxObj = (arr.size() * numBits<uint64_t>()) / lengthOfOne;
+	if (maxObj <= index)
+		throw std::out_of_range("out of range");
+
+	size_t startBit = index * lengthOfOne;
+	size_t endBit = (startBit + lengthOfOne) - 1;
+	if ((startBit / numBits<uint64_t>()) != (endBit / numBits<uint64_t>())) {
+		size_t bitsLow = ((index + 1) * lengthOfOne) - startBit - 1;
+		size_t bitsUp = lengthOfOne - bitsLow;
+
+		uint64_t lowByte = arr[startBit / numBits<uint64_t>()];
+		uint64_t upByte = arr[endBit / numBits<uint64_t>()];
+		upByte &= ~(~0 << bitsUp);
+		upByte = upByte << bitsLow;
+
+		//lowByte &= ~0 << bitsLow;
+		lowByte = lowByte >> (numBits<uint64_t>() - bitsLow);
+
+		return upByte | lowByte;
+	}
+	else {
+		//on same indiex in arr
+		uint64_t val = arr[startBit / numBits<uint64_t>()];
+		const auto m = ((startBit / numBits<uint64_t>()) * numBits<uint64_t>());
+		val = val >> (startBit - m);
+		val &= ~(~0 << lengthOfOne);
+		return val;
+	}
+
+}

@@ -549,13 +549,11 @@ int main(int argc, char **argv)
 				const int max = (HEIGHTAT(x, z) & 0xFF00) >> 8;
 				for (int y = uint8_t(HEIGHTAT(x, z)); y < max; ++y) {
 					bmpPosY -= Global::OffsetY;
-					uint8_t &c = BLOCKAT(x, y, z); //Normal BlockID (0,...,255)
+					const uint16_t &c = BLOCKAT(x, y, z);
 					if (c == AIR) {
 						continue;
 					}
 
-					const uint8_t c2 = BLOCKDATA(x, y, z); 
-					uint16_t c16 = (c) + (static_cast<uint16_t>(c2) << 8); //First 8 LSBits: BlockID, First 8MSBits: extraData (see globals.cpp:23)
 					//float col = float(y) * .78f - 91;
 					float brightnessAdjustment = brightnessLookup[y];
 					if (Global::settings.blendUnderground) {
@@ -589,19 +587,17 @@ int main(int argc, char **argv)
 						}
 					}
 					// Edge detection (this means where terrain goes 'down' and the side of the block is not visible)
-					uint8_t &b = BLOCKAT(x - 1, y - 1, z - 1);
-					uint8_t &b2 = BLOCKDATA(x - 1, y - 1, z - 1);
-					uint16_t b16 = (b) + (b2 << 8);
+					uint16_t &b = BLOCKAT(x - 1, y - 1, z - 1);
 
 					if ((y && y + 1 < Global::MapsizeY)  // In bounds?
 					      && BLOCKAT(x, y + 1, z) == AIR  // Only if block above is air
 					      && BLOCKAT(x - 1, y + 1, z - 1) == AIR  // and block above and behind is air
-					      && (b == AIR || b16 == c16)   // block behind (from pov) this one is same type or air
+					      && (b == AIR || b == c)   // block behind (from pov) this one is same type or air
 					      && (BLOCKAT(x - 1, y, z) == AIR || BLOCKAT(x, y, z - 1) == AIR)) {   // block TL/TR from this one is air = edge
 						brightnessAdjustment += 13;
 					}
-					std::cout << c16 << '\n';
-					setPixel(bmpPosX, bmpPosY, c16, brightnessAdjustment, biome);
+
+					setPixel(bmpPosX, bmpPosY, c, brightnessAdjustment, biome);
 				}
 			}
 		}
@@ -634,7 +630,7 @@ int main(int argc, char **argv)
 					const size_t bmpPosX = (Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX) - cropLeft;
 					size_t bmpPosY = Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY) - cropTop;
 					for (int y = 0; y < MIN(Global::MapsizeY, 64); ++y) {
-						uint8_t &c = BLOCKAT(x, y, z);
+						uint16_t &c = BLOCKAT(x, y, z);
 						if (c != AIR) { // If block is not air (colors[c][3] != 0)
 							blendPixel(bmpPosX, bmpPosY, c, float(y + 30) * .0048f);
 						}
@@ -674,7 +670,7 @@ int main(int argc, char **argv)
 #ifdef _DEBUG
 static size_t gBlocksRemoved = 0;
 #endif
-void optimizeTerrain2(int cropLeft, int cropRight)
+void optimizeTerrain2(int cropLeft, int cropRight) //TODO: args not needed
 {
 	printf("Optimizing terrain...\n");
 #ifdef _DEBUG
@@ -690,7 +686,7 @@ void optimizeTerrain2(int cropLeft, int cropRight)
 		printProgress(maxX - (x + 1), maxX);
 		offsetZ = offsetGlobal;
 		for (int z = CHUNKSIZE_Z; z < maxZ; ++z) {
-			const uint8_t *block = &BLOCKAT(x, 0, z); // Get the lowest block at that point
+			const uint16_t *block = &BLOCKAT(x, 0, z); // Get the lowest block at that point
 			int highest = 0, lowest = 0xFF; // remember lowest and highest block which are visible to limit the Y-for-loop later
 			for (int y = 0; y < Global::MapsizeY; ++y) { // Go up
 				uint8_t &current = blocked[((y+offsetY) % Global::MapsizeY) + (offsetZ % modZ)];
@@ -750,7 +746,7 @@ void optimizeTerrain3()
 		const int max2 = MIN(max, x - CHUNKSIZE_X + 1); // Block array will be traversed diagonally, determine how many blocks there are
 		for (int i = 0; i < max2; ++i) { // This traverses the block array diagonally, which would be upwards in the image
 			const int blockedOffset = Global::MapsizeY * (i % 3);
-			uint8_t *block = &BLOCKAT(x - i, 0, maxZ - i); // Get the lowest block at that point
+			uint16_t *block = &BLOCKAT(x - i, 0, maxZ - i); // Get the lowest block at that point
 			int highest = 0, lowest = 0xFF;
 			for (int j = 0; j < Global::MapsizeY; ++j) { // Go up
 				if (blocked[blockedOffset + (j+offset) % Global::MapsizeY]) { // Block is hidden, remove
@@ -785,7 +781,7 @@ void optimizeTerrain3()
 		const int max2 = MIN(max, z - CHUNKSIZE_Z + 1);
 		for (int i = 0; i < max2; ++i) {
 			const int blockedOffset = Global::MapsizeY * (i % 3);
-			uint8_t *block = &BLOCKAT(maxX - i, 0, z - i);
+			uint16_t *block = &BLOCKAT(maxX - i, 0, z - i);
 			int highest = 0, lowest = 0xFF;
 			for (int j = 0; j < Global::MapsizeY; ++j) {
 				if (blocked[blockedOffset + (j+offset) % Global::MapsizeY]) {
@@ -873,7 +869,7 @@ void undergroundMode(bool explore)
 			size_t ground = 0;
 			size_t cave = 0;
 			for (int y = Global::MapsizeY - 1; y >= 0; --y) {
-				uint8_t &c = BLOCKAT(x, y, z);
+				uint16_t &c = BLOCKAT(x, y, z);
 				if (c != AIR && cave > 0) { // Found a cave, leave floor
 					if (c == GRASS || c == LEAVES || c == SNOW || GETLIGHTAT(x, y, z) == 0) {
 						c = AIR; // But never count snow or leaves
