@@ -76,29 +76,31 @@ namespace
 	inline void blend(uint8_t* const destination, const Color_t& source); //Blend color to pixel
 	inline void blend(uint8_t* const destination, const uint8_t* const source); //Blend to pixel
 	Color_t modColor(const Color_t& color, const int mod);
+	inline void modColor(uint8_t* const pos, const int mod);
 	inline void addColor(uint8_t * const color, const int16_t * const add);
 	inline void addColorSimple(uint8_t * const color, const int16_t * const add);
+	inline void setColor(uint8_t* const pos, const Color_t& color);
 
 	// Split them up so setPixel won't be one hell of a mess
-	void setSnow(const size_t x, const size_t y, const uint8_t * const color);
-	void setTorch(const size_t x, const size_t y, const uint8_t * const color);
-	void setFlower(const size_t x, const size_t y, const uint8_t * const color);
-	void setRedwire(const size_t x, const size_t y, const uint8_t * const color);
-	void setFire(const size_t x, const size_t y, const uint8_t * const color, const uint8_t * const light, const uint8_t * const dark);
-	void setGrass(const size_t x, const size_t y, const uint8_t * const color, const uint8_t * const light, const uint8_t * const dark, const int sub);
-	void setFence(const size_t x, const size_t y, const uint8_t * const color);
-	void setStep(const size_t x, const size_t y, const uint8_t * const color, const uint8_t * const light, const uint8_t * const dark);
-	void setUpStep(const size_t x, const size_t y, const uint8_t * const color, const uint8_t * const light, const uint8_t * const dark);
-#  define setRailroad setSnowBA
+	void setSnow(const size_t x, const size_t y, const Color_t& color);
+	void setTorch(const size_t x, const size_t y, const Color_t& color);
+	void setFlower(const size_t x, const size_t y, const Color_t& color);
+	void setRedwire(const size_t x, const size_t y, const Color_t& color);
+	void setFire(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark);
+	void setGrass(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark, const int sub);
+	void setFence(const size_t x, const size_t y, const Color_t& color);
+	void setStep(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark);
+	void setUpStep(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark);
+# define setRailroad setSnowBA
 
-	// Then make duplicate copies so it is one hell of a mess
+	// Then make duplicate copies so it is one hell of a mess (BlendAll functions)
 	// ..but hey, its for speeeeeeeeed!
-	void setSnowBA(const size_t x, const size_t y, const uint8_t * const color);
-	void setTorchBA(const size_t x, const size_t y, const uint8_t * const color);
-	void setFlowerBA(const size_t x, const size_t y, const uint8_t * const color);
-	void setGrassBA(const size_t x, const size_t y, const uint8_t * const color, const uint8_t * const light, const uint8_t * const dark, const int sub);
-	void setStepBA(const size_t x, const size_t y, const uint8_t * const color, const uint8_t * const light, const uint8_t * const dark);
-	void setUpStepBA(const size_t x, const size_t y, const uint8_t * const color, const uint8_t * const light, const uint8_t * const dark);
+	void setSnowBA(const size_t x, const size_t y, const Color_t& color);
+	void setTorchBA(const size_t x, const size_t y, const Color_t& color);
+	void setFlowerBA(const size_t x, const size_t y, const Color_t& color);
+	void setGrassBA(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark, const int sub);
+	void setStepBA(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark);
+	void setUpStepBA(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark);
 
 	void userWriteData(png_structp pngPtr, png_bytep data, uint32_t length)
 	{
@@ -683,22 +685,22 @@ void setPixel(const size_t x, const size_t y, const uint16_t stateID, const floa
 		switch (colortype)
 		{
 		case BLOCKFLAT:
-			setSnowBA(x, y, c);
+			setSnowBA(x, y, currentColor);
 			return;
 		case BLOCKTORCH:
-			setTorchBA(x, y, c);
+			setTorchBA(x, y, currentColor);
 			return;
 		case BLOCKFLOWER:
-			setFlowerBA(x, y, c);
+			setFlowerBA(x, y, currentColor);
 			return;
 		case BLOCKFENCE:
-			setFence(x, y, c);
+			setFence(x, y, currentColor);
 			return;
 		case BLOCKWIRE:
-			setRedwire(x, y, c);
+			setRedwire(x, y, currentColor);
 			return;
 		case BLOCKRAILROAD:
-			setRailroad(x, y, c);
+			setRailroad(x, y, currentColor);
 			return;
 		}
 		// All the above blocks didn't need the shaded down versions of the color, so we only calc them here
@@ -710,16 +712,16 @@ void setPixel(const size_t x, const size_t y, const uint16_t stateID, const floa
 		switch (colortype)
 		{
 		case BLOCKGRASS:
-			setGrassBA(x, y, c, L, D, sub);
+			setGrassBA(x, y, currentColor, L, D, sub);
 			return;
 		case BLOCKFIRE:
-			setFire(x, y, c, L, D);
+			setFire(x, y, currentColor, L, D);
 			return;
 		case BLOCKSTEP:
-			setStepBA(x, y, c, L, D);
+			setStepBA(x, y, currentColor, L, D);
 			return;
 		case BLOCKUPSTEP:
-			setUpStepBA(x, y, c, L, D);
+			setUpStepBA(x, y, currentColor, L, D);
 			return;
 		}
 	} else {
@@ -727,22 +729,22 @@ void setPixel(const size_t x, const size_t y, const uint16_t stateID, const floa
 		switch (colortype)
 		{
 		case BLOCKFLAT:
-			setSnow(x, y, c);
+			setSnow(x, y, currentColor);
 			return;
 		case BLOCKTORCH:
-			setTorch(x, y, c);
+			setTorch(x, y, currentColor);
 			return;
 		case BLOCKFLOWER:
-			setFlower(x, y, c);
+			setFlower(x, y, currentColor);
 			return;
 		case BLOCKFENCE:
-			setFence(x, y, c);
+			setFence(x, y, currentColor);
 			return;
 		case BLOCKWIRE:
-			setRedwire(x, y, c);
+			setRedwire(x, y, currentColor);
 			return;
 		case BLOCKRAILROAD:
-			setRailroad(x, y, c);
+			setRailroad(x, y, currentColor);
 			return;
 		}
 		// All the above blocks didn't need the shaded down versions of the color, so we only calc them here
@@ -753,16 +755,16 @@ void setPixel(const size_t x, const size_t y, const uint16_t stateID, const floa
 		switch (colortype)
 		{
 		case BLOCKGRASS:
-			setGrass(x, y, c, L, D, sub);
+			setGrass(x, y, currentColor, L, D, sub);
 			return;
 		case BLOCKFIRE:
-			setFire(x, y, c, L, D);
+			setFire(x, y, currentColor, L, D);
 			return;
 		case BLOCKSTEP:
-			setStep(x, y, c, L, D);
+			setStep(x, y, currentColor, L, D);
 			return;
 		case BLOCKUPSTEP:
-			setUpStep(x, y, c, L, D);
+			setUpStep(x, y, currentColor, L, D);
 			return;
 		}
 	}
@@ -777,7 +779,7 @@ void setPixel(const size_t x, const size_t y, const uint16_t stateID, const floa
 		// Top row
 		uint8_t *pos = &PIXEL(x, y);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
-			memcpy(pos, c, BYTESPERPIXEL);
+			setColor(pos, currentColor);
 			if (noise) {
 				modColor(pos, rand() % (noise * 2) - noise);
 			}
@@ -785,7 +787,7 @@ void setPixel(const size_t x, const size_t y, const uint16_t stateID, const floa
 		// Second row (going down)
 		pos = &PIXEL(x, y+1);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
-			memcpy(pos, (i < 2 ? D : L), BYTESPERPIXEL);
+			setColor(pos, (i < 2 ? D : L));
 			// The weird check here is to get the pattern right, as the noise should be stronger
 			// every other row, but take into account the isometric perspective
 			if (noise) {
@@ -795,7 +797,7 @@ void setPixel(const size_t x, const size_t y, const uint16_t stateID, const floa
 		// Third row (going down)
 		pos = &PIXEL(x, y+2);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
-			memcpy(pos, (i < 2 ? D : L), BYTESPERPIXEL);
+			setColor(pos, (i < 2 ? D : L));
 			if (noise) {
 				modColor(pos, rand() % (noise * 2) - noise * (i == 0 || i == 3 ? 2 : 1));
 			}
@@ -803,7 +805,7 @@ void setPixel(const size_t x, const size_t y, const uint16_t stateID, const floa
 		// Last row (going down)
 		pos = &PIXEL(x, y+3);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
-			memcpy(pos, (i < 2 ? D : L), BYTESPERPIXEL);
+			setColor(pos, (i < 2 ? D : L));
 			// The weird check here is to get the pattern right, as the noise should be stronger
 			// every other row, but take into account the isometric perspective
 			if (noise) {
@@ -814,7 +816,7 @@ void setPixel(const size_t x, const size_t y, const uint16_t stateID, const floa
 		// Top row
 		uint8_t *pos = &PIXEL(x, y);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
-			blend(pos, c);
+			blend(pos, currentColor);
 			if (noise) {
 				modColor(pos, rand() % (noise * 2) - noise);
 			}
@@ -856,7 +858,7 @@ void blendPixel(const size_t x, const size_t y, const uint16_t stateID, const fl
 	// D D L L
 	// D D L L
 	//	  D L
-	uint8_t L[CHANSPERPIXEL], D[CHANSPERPIXEL], c[CHANSPERPIXEL];
+	//uint8_t L[CHANSPERPIXEL], D[CHANSPERPIXEL], c[CHANSPERPIXEL];
 	Color_t L, D;
 	Color_t currentColor = colorMap[stateID];
 	// Now make a local copy of the color that we can modify just for this one block
@@ -874,7 +876,7 @@ void blendPixel(const size_t x, const size_t y, const uint16_t stateID, const fl
 	// Top row
 	uint8_t *pos = &PIXEL(x, y);
 	for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
-		blend(pos, c);
+		blend(pos, currentColor);
 		if (noise) {
 			modColor(pos, rand() % (noise * 2) - noise);
 		}
@@ -897,8 +899,9 @@ namespace
 		//do there what you want, this code response for changing single pixel depending on its biome
 		//note this works only for anvli format. old one still requires donkey kong biome extractor
 
-		if (colors[block][BLOCKTYPE] / BLOCKBIOME)
-		addColor(color, biomes[biome]);
+		//if (colorMap[block].blockType / BLOCKBIOME)
+			//addColor(color, biomes[biome]);
+		__debugbreak(); //dropped biom support
 	}
 
 	inline void blend(uint8_t* const destination, const uint8_t* const source)
@@ -925,10 +928,10 @@ namespace
 			return;
 		}
 #define BLEND(ca,aa,cb) uint8_t(((size_t(ca) * size_t(aa)) + (size_t(255 - aa) * size_t(cb))) / 255)
-		destination[0] = BLEND(source[0], source[PALPHA], destination[0]);
-		destination[1] = BLEND(source[1], source[PALPHA], destination[1]);
-		destination[2] = BLEND(source[2], source[PALPHA], destination[2]);
-		destination[PALPHA] += (size_t(source[PALPHA]) * size_t(255 - destination[PALPHA])) / 255;
+		destination[0] = BLEND(source.r, source.a, destination[0]);
+		destination[1] = BLEND(source.g, source.a, destination[1]);
+		destination[2] = BLEND(source.b, source.a, destination[2]);
+		destination[PALPHA] += (size_t(source.a) * size_t(255 - destination[PALPHA])) / 255;
 	}
 
 	Color_t modColor(const Color_t& color, const int mod)
@@ -940,7 +943,14 @@ namespace
 		return retCol;
 	}
 
-	inline void addColor(uint8_t * const color, const int16_t * const add)
+	void modColor(uint8_t* const pos, const int mod)
+	{
+		pos[0] = clamp(pos[0] + mod);
+		pos[1] = clamp(pos[1] + mod);
+		pos[2] = clamp(pos[2] + mod);
+	}
+
+	inline void addColor(uint8_t* const color, const int16_t * const add)
 	{
 		const float v2 = (float(add[PALPHA]) / 255.0f);
 		const float v1 = (1.0f - (v2 * .2f));
@@ -956,37 +966,57 @@ namespace
 		color[2] = clamp(color[2] + add[2]);
 	}
 
-	//setzt collor an pos + 3 weitere
-	void setSnow(const size_t x, const size_t y, const uint8_t * const color)
+	void setColor(uint8_t* const pos, const Color_t & color)
+	{
+		pos[0] = color.r;
+		pos[1] = color.g;
+		pos[2] = color.b;
+		pos[3] = color.a;
+	}
+
+	//setzt color an pos + 3 weitere
+	void setSnow(const size_t x, const size_t y, const Color_t& color)
 	{
 		// Top row (second row)
 		uint8_t *pos = &PIXEL(x, y+1);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
-			memcpy(pos, color, BYTESPERPIXEL);
+			pos[0] = color.r;
+			pos[1] = color.g;
+			pos[2] = color.b;
+			pos[3] = color.a;
 		}
 	}
 
-	void setTorch(const size_t x, const size_t y, const uint8_t * const color)
+	void setTorch(const size_t x, const size_t y, const Color_t& color)
 	{
 		// Maybe the orientation should be considered when drawing, but it probably isn't worth the efford
 		uint8_t *pos = &PIXEL(x+2, y+1);
-		memcpy(pos, color, BYTESPERPIXEL);
-		pos = &PIXEL(x+2, y+2);
-		memcpy(pos, color, BYTESPERPIXEL);
+		pos[0] = color.r;
+		pos[1] = color.g;
+		pos[2] = color.b;
+		pos[3] = color.a;
+
+		pos = &PIXEL(x + 2, y + 2);
+		pos[0] = color.r;
+		pos[1] = color.g;
+		pos[2] = color.b;
+		pos[3] = color.a;
 	}
 
-	void setFlower(const size_t x, const size_t y, const uint8_t * const color)
+	void setFlower(const size_t x, const size_t y, const Color_t& color)
 	{
 		uint8_t *pos = &PIXEL(x, y+1);
-		memcpy(pos+(CHANSPERPIXEL), color, BYTESPERPIXEL);
-		memcpy(pos+(CHANSPERPIXEL*3), color, BYTESPERPIXEL);
-		pos = &PIXEL(x+2, y+2);
-		memcpy(pos, color, BYTESPERPIXEL);
-		pos = &PIXEL(x+1, y+3);
-		memcpy(pos, color, BYTESPERPIXEL);
+		setColor(pos + (CHANSPERPIXEL), color);
+		setColor(pos + (CHANSPERPIXEL*3), color);
+
+		pos = &PIXEL(x + 2, y + 2);
+		setColor(pos, color);
+
+		pos = &PIXEL(x + 1, y + 3);
+		setColor(pos, color);
 	}
 
-	void setFire(const size_t x, const size_t y, const uint8_t * const color, const uint8_t * const light, const uint8_t * const dark)
+	void setFire(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark)
 	{
 		// This basically just leaves out a few pixels
 		// Top row
@@ -1005,48 +1035,51 @@ namespace
 		blend(pos+(CHANSPERPIXEL*2), light);
 	}
 
-	void setGrass(const size_t x, const size_t y, const uint8_t * const color, const uint8_t * const light, const uint8_t * const dark, const int sub)
+	void setGrass(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark, const int sub)
 	{
 		// this will make grass look like dirt from the side
-		uint8_t L[CHANSPERPIXEL], D[CHANSPERPIXEL];
-		memcpy(L, colors[GRASSBOTTOM], BYTESPERPIXEL);
-		memcpy(D, colors[GRASSBOTTOM], BYTESPERPIXEL);
+		__debugbreak(); //are the two lower lines working?
+		Color_t L = colorMap[blockTree["minecraft:dirt"].get()];
+		Color_t D = L;
 		modColor(L, sub - 15);
 		modColor(D, sub - 25);
 		// consider noise
 		int noise = 0;
-		if (Global::settings.noise && colors[GRASS][NOISE]) {
-			noise = int(float(Global::settings.noise * colors[GRASS][NOISE]) * (float(GETBRIGHTNESS(color) + 10) / 2650.0f));
+		if (Global::settings.noise && color.noise) {
+			//noise = int(float(Global::settings.noise * colors[GRASS][NOISE]) * (float(GETBRIGHTNESS(color) + 10) / 2650.0f));
+			noise = static_cast<int>(static_cast<float>(Global::settings.noise * color.noise) * (static_cast<float>(color.brightness + 10) / 2650.0f));
 		}
 		// Top row
 		uint8_t *pos = &PIXEL(x, y);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
-			memcpy(pos, color, BYTESPERPIXEL);
+			setColor(pos, color);
 			if (noise) {
 				modColor(pos, rand() % (noise * 2) - noise);
 			}
 		}
 		// Second row
 		pos = &PIXEL(x, y+1);
-		memcpy(pos, dark, BYTESPERPIXEL);
-		memcpy(pos+CHANSPERPIXEL, dark, BYTESPERPIXEL);
-		memcpy(pos+CHANSPERPIXEL*2, light, BYTESPERPIXEL);
-		memcpy(pos+CHANSPERPIXEL*3, light, BYTESPERPIXEL);
+		setColor(pos, dark);
+		setColor(pos+CHANSPERPIXEL, dark);
+		setColor(pos+CHANSPERPIXEL*2, light);
+		setColor(pos+CHANSPERPIXEL*3, light);
+
 		// Third row
 		pos = &PIXEL(x, y+2);
-		memcpy(pos, D, BYTESPERPIXEL);
-		memcpy(pos+CHANSPERPIXEL, D, BYTESPERPIXEL);
-		memcpy(pos+CHANSPERPIXEL*2, L, BYTESPERPIXEL);
-		memcpy(pos+CHANSPERPIXEL*3, L, BYTESPERPIXEL);
+		setColor(pos, D);
+		setColor(pos+CHANSPERPIXEL, D);
+		setColor(pos+CHANSPERPIXEL*2, L);
+		setColor(pos+CHANSPERPIXEL*3, L);
+
 		// Last row
 		pos = &PIXEL(x, y+3);
-		memcpy(pos, D, BYTESPERPIXEL);
-		memcpy(pos+CHANSPERPIXEL, D, BYTESPERPIXEL);
-		memcpy(pos+CHANSPERPIXEL*2, L, BYTESPERPIXEL);
-		memcpy(pos+CHANSPERPIXEL*3, L, BYTESPERPIXEL);
+		setColor(pos, D);
+		setColor(pos + CHANSPERPIXEL, D);
+		setColor(pos + CHANSPERPIXEL * 2, L);
+		setColor(pos + CHANSPERPIXEL * 3, L);
 	}
 
-	void setFence(const size_t x, const size_t y, const uint8_t * const color)
+	void setFence(const size_t x, const size_t y, const Color_t& color)
 	{
 		// First row
 		uint8_t *pos = &PIXEL(x, y);
@@ -1061,31 +1094,31 @@ namespace
 		blend(pos+CHANSPERPIXEL*2, color);
 	}
 
-	void setStep(const size_t x, const size_t y, const uint8_t * const color, const uint8_t * const light, const uint8_t * const dark)
+	void setStep(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark)
 	{
 		uint8_t *pos = &PIXEL(x, y+1);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
-			memcpy(pos, color, BYTESPERPIXEL);
+			setColor(pos, color);
 		}
 		pos = &PIXEL(x, y+2);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
-			memcpy(pos, color, BYTESPERPIXEL);
+			setColor(pos, color);
 		}
 	}
 
-	void setUpStep(const size_t x, const size_t y, const uint8_t * const color, const uint8_t * const light, const uint8_t * const dark)
+	void setUpStep(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark)
 	{
 		uint8_t *pos = &PIXEL(x, y);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
-			memcpy(pos, color, BYTESPERPIXEL);
+			setColor(pos, color);
 		}
 		pos = &PIXEL(x, y+1);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
-			memcpy(pos, color, BYTESPERPIXEL);
+			setColor(pos, color);
 		}
 	}
 
-	void setRedwire(const size_t x, const size_t y, const uint8_t * const color)
+	void setRedwire(const size_t x, const size_t y, const Color_t& color)
 	{
 		uint8_t *pos = &PIXEL(x+1, y+2);
 		blend(pos, color);
@@ -1094,7 +1127,7 @@ namespace
 
 	// The g_BlendAll versions of the block set functions
 	//
-	void setSnowBA(const size_t x, const size_t y, const uint8_t * const color)
+	void setSnowBA(const size_t x, const size_t y, const Color_t& color)
 	{
 		// Top row (second row)
 		uint8_t *pos = &PIXEL(x, y+1);
@@ -1103,7 +1136,7 @@ namespace
 		}
 	}
 
-	void setTorchBA(const size_t x, const size_t y, const uint8_t * const color)
+	void setTorchBA(const size_t x, const size_t y, const Color_t& color)
 	{
 		// Maybe the orientation should be considered when drawing, but it probably isn't worth the effort
 		uint8_t *pos = &PIXEL(x+2, y+1);
@@ -1112,7 +1145,7 @@ namespace
 		blend(pos, color);
 	}
 
-	void setFlowerBA(const size_t x, const size_t y, const uint8_t * const color)
+	void setFlowerBA(const size_t x, const size_t y, const Color_t& color)
 	{
 		uint8_t *pos = &PIXEL(x, y+1);
 		blend(pos+CHANSPERPIXEL, color);
@@ -1123,18 +1156,19 @@ namespace
 		blend(pos, color);
 	}
 
-	void setGrassBA(const size_t x, const size_t y, const uint8_t * const color, const uint8_t * const light, const uint8_t * const dark, const int sub)
+	void setGrassBA(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark, const int sub)
 	{
 		// this will make grass look like dirt from the side
-		uint8_t L[CHANSPERPIXEL], D[CHANSPERPIXEL];
-		memcpy(L, colors[GRASSBOTTOM], BYTESPERPIXEL);
-		memcpy(D, colors[GRASSBOTTOM], BYTESPERPIXEL);
+		__debugbreak(); //are the two lower lines working?
+		Color_t L = colorMap[blockTree["minecraft:dirt"].get()];
+		Color_t D = L;
 		modColor(L, sub - 15);
 		modColor(D, sub - 25);
 		// consider noise
 		int noise = 0;
-		if (Global::settings.noise && colors[GRASS][NOISE]) {
-			noise = int(float(Global::settings.noise * colors[GRASS][NOISE]) * (float(GETBRIGHTNESS(color) + 10) / 2650.0f));
+		if (Global::settings.noise && color.noise) {
+			//noise = int(float(Global::settings.noise * colors[GRASS][NOISE]) * (float(GETBRIGHTNESS(color) + 10) / 2650.0f));
+			noise = static_cast<int>(static_cast<float>(Global::settings.noise * color.noise) * (static_cast<float>(color.brightness + 10) / 2650.0f));
 		}
 		// Top row
 		uint8_t *pos = &PIXEL(x, y);
@@ -1164,7 +1198,7 @@ namespace
 		blend(pos+CHANSPERPIXEL*3, L);
 	}
 
-	void setStepBA(const size_t x, const size_t y, const uint8_t * const color, const uint8_t * const light, const uint8_t * const dark)
+	void setStepBA(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark)
 	{
 		uint8_t *pos = &PIXEL(x, y+1);
 		for (size_t i = 0; i < 3; ++i, pos += CHANSPERPIXEL) {
@@ -1176,7 +1210,7 @@ namespace
 		}
 	}
 
-	void setUpStepBA(const size_t x, const size_t y, const uint8_t * const color, const uint8_t * const light, const uint8_t * const dark)
+	void setUpStepBA(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark)
 	{
 		uint8_t *pos = &PIXEL(x, y);
 		for (size_t i = 0; i < 3; ++i, pos += CHANSPERPIXEL) {
