@@ -284,6 +284,8 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 //TODO: rewrite to use new color system
 bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t chunkZ)
 {
+#pragma region CHUKLOADING
+/*
 	PrimArray<uint8_t> *blockdata, *lightdata, *skydata, *justData, *addData = 0;
 	int32_t len, yoffset, yoffsetsomething = (Global::MapminY + SECTION_Y * 10000) % SECTION_Y;
 	int8_t yo;
@@ -401,9 +403,11 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 		printf("marker-%d-%d---%d-%d---%d---\n\n",chunkX,chunkZ,m.offsetX,m.offsetZ,m.color);
 			}
 		}
-*/
+
 
 	}
+	*/
+#pragma endregion
 	return true;
 }
 

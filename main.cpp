@@ -686,26 +686,25 @@ void optimizeTerrain2(int cropLeft, int cropRight) //TODO: args not needed
 		printProgress(maxX - (x + 1), maxX);
 		offsetZ = offsetGlobal;
 		for (int z = CHUNKSIZE_Z; z < maxZ; ++z) {
-			const uint16_t *block = &BLOCKAT(x, 0, z); // Get the lowest block at that point
 			int highest = 0, lowest = 0xFF; // remember lowest and highest block which are visible to limit the Y-for-loop later
 			for (int y = 0; y < Global::MapsizeY; ++y) { // Go up
+				const uint16_t block = BLOCKAT(x, y, z); // Get the lowest block at that point
 				uint8_t &current = blocked[((y+offsetY) % Global::MapsizeY) + (offsetZ % modZ)];
 				if (current) { // Block is hidden, remove
 #ifdef _DEBUG
-					if (*block != AIR) {
+					if (block != AIR) {
 						++gBlocksRemoved;
 					}
 #endif
 				} else { // block is not hidden by another block
-					if (*block != AIR && lowest == 0xFF) { // if it's not air, this is the lowest block to draw
+					if (block != AIR && lowest == 0xFF) { // if it's not air, this is the lowest block to draw
 						lowest = y;
 					}
-					if (colors[*block][PALPHA] == 255) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration
+					if (colorMap[block].a == 255) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration
 						current = 1;
 					}
-					if (*block != AIR) highest = y; // if it's not air, it's the new highest block encountered so far
+					if (block != AIR) highest = y; // if it's not air, it's the new highest block encountered so far
 				}
-				++block; // Go up
 			}
 			HEIGHTAT(x, z) = (((uint16_t)highest + 1) << 8) | (uint16_t)lowest; // cram them both into a 16bit int
 			blocked[(offsetY % Global::MapsizeY) + (offsetZ % modZ)] = 0;
@@ -746,25 +745,24 @@ void optimizeTerrain3()
 		const int max2 = MIN(max, x - CHUNKSIZE_X + 1); // Block array will be traversed diagonally, determine how many blocks there are
 		for (int i = 0; i < max2; ++i) { // This traverses the block array diagonally, which would be upwards in the image
 			const int blockedOffset = Global::MapsizeY * (i % 3);
-			uint16_t *block = &BLOCKAT(x - i, 0, maxZ - i); // Get the lowest block at that point
 			int highest = 0, lowest = 0xFF;
 			for (int j = 0; j < Global::MapsizeY; ++j) { // Go up
+				const uint16_t block = BLOCKAT(x - i, j, maxZ - i); // Get the lowest block at that point
 				if (blocked[blockedOffset + (j+offset) % Global::MapsizeY]) { // Block is hidden, remove
 #ifdef _DEBUG
-					if (*block != AIR) {
+					if (block != AIR) {
 						++gBlocksRemoved;
 					}
 #endif
 				} else {
-					if (*block != AIR && lowest == 0xFF) {
+					if (block != AIR && lowest == 0xFF) {
 						lowest = j;
 					}
-					if (colors[*block][PALPHA] == 255) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration
+					if (colorMap[block].a == 255) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration
 						blocked[blockedOffset + (j+offset) % Global::MapsizeY] = 1;
 					}
-					if (*block != AIR) highest = j;
+					if (block != AIR) highest = j;
 				}
-				++block; // Go up
 			}
 			HEIGHTAT(x - i, maxZ - i) = (((uint16_t)highest + 1) << 8) | (uint16_t)lowest;
 			blocked[blockedOffset + ((offset + 1) % Global::MapsizeY)] = 0; // This will be the array index responsible for the top most block in the next itaration. Set it to 0 as it can't be hidden.
@@ -781,25 +779,24 @@ void optimizeTerrain3()
 		const int max2 = MIN(max, z - CHUNKSIZE_Z + 1);
 		for (int i = 0; i < max2; ++i) {
 			const int blockedOffset = Global::MapsizeY * (i % 3);
-			uint16_t *block = &BLOCKAT(maxX - i, 0, z - i);
 			int highest = 0, lowest = 0xFF;
 			for (int j = 0; j < Global::MapsizeY; ++j) {
+				const uint16_t block = BLOCKAT(maxX - i, j, z - i);
 				if (blocked[blockedOffset + (j+offset) % Global::MapsizeY]) {
 #ifdef _DEBUG
-					if (*block != AIR) {
+					if (block != AIR) {
 						++gBlocksRemoved;
 					}
 #endif
 				} else {
-					if (*block != AIR && lowest == 0xFF) {
+					if (block != AIR && lowest == 0xFF) {
 						lowest = j;
 					}
-					if (colors[*block][PALPHA] == 255) {
+					if (colorMap[block].a == 255) {
 						blocked[blockedOffset + (j+offset) % Global::MapsizeY] = 1;
 					}
-					if (*block != AIR) highest = j;
+					if (block != AIR) highest = j;
 				}
-				++block;
 			}
 			HEIGHTAT(maxX - i, z - i) = (((uint16_t)highest + 1) << 8) | (uint16_t)lowest;
 			blocked[blockedOffset + ((offset + 1) % Global::MapsizeY)] = 0;
