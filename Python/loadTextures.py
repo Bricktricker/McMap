@@ -15,36 +15,68 @@ def parseStr(inStr):
         out[s[0]] = s[1]
     return out
 
+def handleSpecialBlocks(model):
+    if model == "grass_block":
+        return ("top", 0)
+    if model.endswith("_slab"): #slab bottom
+        return ("top", 9)
+    if model.endswith("_slab_top"): #slab top
+        return ("top", 10)
+    if model.endswith("_slab_double"): #slab double/full block
+        return ("top", 0)
+    if model.contains("fence"):
+        return ("texture", 4)
+    if model.endswith("_carpet"):
+        return ("wool", 1)
+    if model.contains("height"):
+        return ("texture", 1)
+    if model.contains("trapdoor"):
+        return ("texture", 1)
+
+    return None
+
 def getTextureFromModel(model):
     modelData = json.loads(open("{}models/{}.json".format(path, model)).read())
     textures = modelData["textures"]
     texture = ""
-    blockType = 0 #0 = SOLID, 1 = FLAT (Snow/Trapdor/Carpet), 2 = TORCH, 3 = FLOWER/PLANT, 4 = FENCE, 5 = WIRE, 6 = RAIL, 8= FIRE, 9 = SLAP
-    if 'all' in textures:
-        texture = textures['all']
-    elif 'top' in textures:
-        texture = textures['top']
-    elif 'side' in textures:
-        texture = textures['side']
-    elif 'cross' in textures:
-        texture = textures['cross']
-        blockType = 3
-    elif 'rail' in textures:
-        texture = textures['rail']
-        blockType = 6
-    elif 'texture' in textures:
-        texture = textures['texture']
-    elif 'crop' in textures:
-        texture = textures['crop']
-        blockType = 3
-    elif 'plant' in texture:
-        texture = textures['plant']
-        blockType = 3
-    elif 'particle' in textures:
-        texture = textures['particle']
+    blockType = 0 #0 = SOLID, 1 = FLAT (Snow/Trapdor/Carpet), 2 = TORCH, 3 = FLOWER/PLANT, 4 = FENCE, 5 = WIRE, 6 = RAIL, 8= FIRE, 9 = SLAP bottom, 10 = SLAP top
+    special = handleSpecialBlocks(model)
+
+    if special not None:
+        texture = textures[special[0]]
+        blockType = special[1]
     else:
-        texture = textures[list(textures.keys())[0]] #simply take first texture
-        #print("Take first texture for {}".format(model))
+        if 'all' in textures:
+            texture = textures['all']
+        elif 'top' in textures:
+            texture = textures['top']
+        elif 'side' in textures:
+            texture = textures['side']
+        elif 'cross' in textures:
+            texture = textures['cross']
+            blockType = 3
+        elif 'rail' in textures:
+            texture = textures['rail']
+            blockType = 6
+        elif 'texture' in textures:
+            texture = textures['texture']
+        elif 'crop' in textures:
+            texture = textures['crop']
+            blockType = 3
+        elif 'plant' in texture:
+            texture = textures['plant']
+            blockType = 3
+        elif 'line' in texture:
+            texture = textures['line']
+            blockType = 5
+        elif 'torch' in texture:
+            texture = textures['torch']
+            blockType = 2
+        elif 'particle' in textures:
+            texture = textures['particle']
+        else:
+            texture = textures[list(textures.keys())[0]] #simply take first texture
+            #print("Take first texture for {}".format(model))
 
     return (texture, blockType)
 
@@ -131,7 +163,7 @@ for blockNameL, blockData in allBlocks.items():
 #remove duplicates     
 pos = 0
 while pos < len(outData)-1:
-    if outData[pos]["texture"] == outData[pos+1]["texture"]:
+    if outData[pos]["texture"] == outData[pos+1]["texture"] and outData[pos]["blockType"] == outData[pos+1]["blockType"]:
         if outData[pos]["to"]+1 == outData[pos+1]["from"]:
             outData[pos]["to"] = outData[pos+1]["to"]
             del outData[pos+1]
