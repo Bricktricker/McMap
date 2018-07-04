@@ -11,6 +11,7 @@ using std::string;
 
 class NBT_Tag;
 typedef std::map<std::string, NBT_Tag*> tagmap;
+typedef std::list<NBT_Tag*>* NBTlist;
 
 enum TagType {
 	tagUnknown = 0, // Tag_End is not made available, so 0 should never be in any list of available elements

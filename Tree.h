@@ -47,14 +47,6 @@ public:
 		root.value = value;
 	}
 
-    ValT& get(const std::vector<KeyT>& states){
-        TreeNode* current = &root;
-        for(const KeyT& state : states){
-            current = &(current->nodes.at(state));
-        }
-        return current->value;
-    }
-
 	const ValT& get(const std::vector<KeyT>& states) const {
 		TreeNode* current = &root;
 		for (const KeyT& state : states) {
@@ -62,10 +54,6 @@ public:
 		}
 		return current->value;
 	}
-
-    ValT& get() noexcept {
-        return root.value;
-    }
 
 	const ValT& get() const noexcept {
 		return root.value;

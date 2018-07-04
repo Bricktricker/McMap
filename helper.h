@@ -98,6 +98,6 @@ constexpr size_t numBits() {
 	return sizeof(T) * 8;
 }
 
-uint64_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne);
+size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne);
 std::vector<std::string> strSplit(const std::string &s, char delim);
 #endif

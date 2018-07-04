@@ -289,7 +289,7 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 	PrimArray<uint8_t> *blockdata, *lightdata, *skydata, *justData, *addData = 0;
 	int32_t len, yoffset, yoffsetsomething = (Global::MapminY + SECTION_Y * 10000) % SECTION_Y;
 	int8_t yo;
-	std::list<NBT_Tag*> *sections = NULL;
+	std::list<NBT_Tag*> *sections = nullptr;
 	bool ok;
 	//
 	ok = level->getList("Sections", sections);
@@ -298,8 +298,8 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 		return false;
 	}
 	//
-	const int offsetz = (chunkZ - Global::FromChunkZ) * CHUNKSIZE_Z; //Blocks into world, from lowets point
-	const int offsetx = (chunkX - Global::FromChunkX) * CHUNKSIZE_X; //Blocks into world, from lowets point
+	const int offsetz = (chunkZ - Global::FromChunkZ) * CHUNKSIZE_Z; //Blocks into world, from lowest point
+	const int offsetx = (chunkX - Global::FromChunkX) * CHUNKSIZE_X; //Blocks into world, from lowest point
 	for (std::list<NBT_Tag *>::iterator it = sections->begin(); it != sections->end(); it++) {
 		NBT_Tag *section = *it;
 		ok = section->getByte("Y", yo);
@@ -308,7 +308,7 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 			return false;
 		}
 		if (yo < Global::sectionMin || yo > Global::sectionMax) continue;
-		yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - yoffsetsomething; //Blocks into redner zone in Y-Axis
+		yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - yoffsetsomething; //Blocks into render zone in Y-Axis
 		if (yoffset < 0) yoffset = 0;
 		ok = section->getByteArray("Blocks", blockdata);
 		if(ok) len = blockdata->_len;
@@ -413,7 +413,112 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 
 bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ)
 {
-	//
+	NBTlist sections;
+	if (!level->getList("sections", sections)) {
+		std::cerr << "no Sections in Chunk\n";
+		return false;
+	}
+
+	const int offsetz = (chunkZ - Global::FromChunkZ) * CHUNKSIZE_Z; //Blocks into world, from lowest point
+	const int offsetx = (chunkX - Global::FromChunkX) * CHUNKSIZE_X; //Blocks into world, from lowest point
+	size_t yoffsetsomething = (Global::MapminY + SECTION_Y * 10000) % SECTION_Y;
+	if (yoffsetsomething != 0)
+		__debugbreak();
+
+	for (auto secItr = sections->begin(); secItr != sections->end(); secItr++) {
+		int8_t yo = -1;
+		if((*secItr)->getByte("Y", yo)){
+			std::cerr << "Y-Offset not found in section\n";
+			return false;
+		}
+		if (yo < Global::sectionMin || yo > Global::sectionMax) continue; //sub-Chunk out of bounds, continue
+		int32_t yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - yoffsetsomething; //Blocks into redner zone in Y-Axis
+
+		PrimArray<int64_t>* blockStatesPrim;
+		if(!(*secItr)->getLongArray("BlockStates", blockStatesPrim)) {
+			std::cerr << "no blockStates in sub-Chunk\n";
+			continue;
+		}
+		std::vector<uint64_t> blockStates((uint64_t*)blockStatesPrim->_data, (uint64_t*)blockStatesPrim->_data + blockStatesPrim->_len);
+
+		NBTlist palette;
+		if (!(*secItr)->getList("Palette", palette)) {
+			std::cerr << "NO Palette in sub-Chunk\n";
+			continue;
+		}
+		std::vector<uint16_t> idList;
+		for (const auto state : *palette) {
+			std::string blockName;
+			if (!state->getString("name", blockName)) {
+				std::cerr << "State has no name\n";
+				continue;
+			}
+			NBT_Tag* property;
+			uint16_t blockID;
+			if (state->getCompound("Properties", property)) {
+				//has complex properties
+				const auto& tree = blockTree.at(blockName);
+				const auto& order = tree.getOrder();
+				std::vector<std::string> stateValues;
+
+				for (const auto& item : order) {
+					std::string s;
+					if (!property->getString(item, s)) {
+						std::cerr << item << "-state not in tree\n";
+						return false;
+					}
+					stateValues.push_back(s);
+				}
+
+				blockID = tree.get(stateValues);
+			}else{
+				//Simple Block, no extra properties
+				const auto& tree = blockTree.at(blockName);
+				 blockID = tree.get();
+			}
+			idList.push_back(blockID);
+		}
+		//Now IDList is build up, no run through all block in sub-Chunk
+		//TODO: add light support
+		for (int x = 0; x < CHUNKSIZE_X; ++x) {
+			for (int z = 0; z < CHUNKSIZE_Z; ++z) {
+				uint16_t* targetBlock = nullptr;
+				uint8_t *lightByte = nullptr;
+				if (Global::settings.orientation == East) {
+					targetBlock = &BLOCKEAST(x + offsetx, yoffset, z + offsetz); //BLOCKEAST
+					if (Global::settings.skylight || Global::settings.nightmode) lightByte = &SETLIGHTEAST(x + offsetx, yoffset, z + offsetz);
+					//if (g_UseBiomes) BIOMEEAST(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
+				}
+				else if (Global::settings.orientation == North) {
+					targetBlock = &BLOCKNORTH(x + offsetx, yoffset, z + offsetz);
+					if (Global::settings.skylight || Global::settings.nightmode) lightByte = &SETLIGHTNORTH(x + offsetx, yoffset, z + offsetz);
+					//if (g_UseBiomes) BIOMENORTH(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
+				}
+				else if (Global::settings.orientation == South) {
+					targetBlock = &BLOCKSOUTH(x + offsetx, yoffset, z + offsetz);
+					if (Global::settings.skylight || Global::settings.nightmode) lightByte = &SETLIGHTSOUTH(x + offsetx, yoffset, z + offsetz);
+					//if (g_UseBiomes) BIOMESOUTH(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
+				}
+				else {
+					targetBlock = &BLOCKWEST(x + offsetx, yoffset, z + offsetz);
+					if (Global::settings.skylight || Global::settings.nightmode) lightByte = &SETLIGHTWEST(x + offsetx, yoffset, z + offsetz);
+					//if (g_UseBiomes) BIOMEWEST(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
+				}
+				//set targetBlock
+				for (size_t y = 0; y < SECTION_Y; ++y) {
+					// In bounds check
+					if (Global::sectionMin == yo && y < yoffsetsomething) continue;
+					if (Global::sectionMax == yo && y + yoffset >= Global::MapsizeY) break;
+
+					const size_t block1D = (y)+((z)+((x)* CHUNKSIZE_Z)) * SECTION_Y;
+					const size_t IDLIstIndex = getZahl(blockStates, block1D, (blockStates.size()*64)/4096);
+					*targetBlock = idList[IDLIstIndex];
+				} //for y
+			} //for z
+		} //for x
+
+	}
+
 	return false;
 }
 
