@@ -10,6 +10,15 @@
 struct Color_t {
 	uint8_t r, g, b, a, noise, brightness;
 	uint8_t blockType;
+
+	Color_t()
+		: r(0), g(0), b(0), a(0), noise(0), brightness(0), blockType(0)
+	{}
+
+	Color_t(const uint8_t _r, const uint8_t _g, const uint8_t _b, const uint8_t _a, const uint8_t _n, const uint8_t _bright, const uint8_t _bType)
+		: r(_r), g(_g), b(_b), a(_a), noise(_n), brightness(_bright), blockType(_bType)
+	{}
+
 };
 
 extern std::map<std::string, Tree<std::string, uint16_t>> blockTree; //Maps blockState to id

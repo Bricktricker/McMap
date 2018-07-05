@@ -108,7 +108,12 @@ template<typename keyT,
 			throw std::out_of_range("key not in map");
 		}
 		valT& operator[](const keyT& key) {
+			try{
 			return get(key);
+			}
+			catch (std::out_of_range e) {
+				return valT{};
+			}
 		}
 
 		void balance() {
