@@ -1,6 +1,6 @@
 import json
 
-allBlocks = json.loads(open("blocks.json").read())
+allBlocks = json.loads(open("../../Python/113/blocks.json").read())
 outData = {}
 
 for blockName, blockVals in allBlocks.items():

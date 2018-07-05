@@ -100,4 +100,14 @@ constexpr size_t numBits() {
 
 size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne);
 std::vector<std::string> strSplit(const std::string &s, char delim);
+
+//Fuctions to determinate certain blocks
+bool inRange(const uint16_t bID, uint16_t lowLim, uint16_t upLim);
+bool isWater(const uint16_t bID);
+bool isLava(const uint16_t bID);
+bool isGrass(const uint16_t bID);
+bool isLeave(const uint16_t bID);
+bool isSnow(const uint16_t bID);
+bool isTorch(const uint16_t bID);
+
 #endif

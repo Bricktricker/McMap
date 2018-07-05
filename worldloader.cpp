@@ -524,10 +524,10 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 
 uint64_t calcTerrainSize(const int chunksX, const int chunksZ)
 {
-	uint64_t size = uint64_t(chunksX+2) * CHUNKSIZE_X * uint64_t(chunksZ+2) * CHUNKSIZE_Z * uint64_t(Global::MapsizeY);
+	uint64_t size = sizeof(uint16_t) * uint64_t(chunksX+2) * CHUNKSIZE_X * uint64_t(chunksZ+2) * CHUNKSIZE_Z * uint64_t(Global::MapsizeY);
 
 	if (Global::settings.nightmode || Global::settings.underground || Global::settings.blendUnderground || Global::settings.skylight) {
-			size += (2*size) / 4;
+			size += size / 4;
 	}
 	/* biomes no longer supported
 	if (g_UseBiomes) {
@@ -666,7 +666,7 @@ void allocateTerrain()
 	    Global::biomeMapSize = Global::MapsizeX * Global::MapsizeZ;
 		Global::biomeMap.resize(Global::biomeMapSize, 0);
 	}*/
-	Global::heightMap.resize(Global::MapsizeX * Global::MapsizeZ, 0);
+	Global::heightMap.resize(Global::MapsizeX * Global::MapsizeZ, 0xff00);
 	//printf("%d -- %d\n", g_MapsizeX, g_MapsizeZ); //dimensions of terrain map (in memory)
 	Global::Terrainsize = Global::MapsizeX * Global::MapsizeY * Global::MapsizeZ;
 
@@ -952,12 +952,12 @@ void uncoverNether()
 			uint16_t* bp = &Global::terrain[((z + (x * Global::MapsizeZ) + 1) * Global::MapsizeY) - 1];
 			int i;
 			for (i = 0; i < to; ++i) { // Go down 74 blocks from the ceiling to see if there is anything except solid
-				if (massive && (*bp == AIR || *bp == LAVA || *bp == STAT_LAVA)) {
+				if (massive && (*bp == AIR || isLava(*bp))) {
 					if (--massive == 0) {
 						break;   // Ignore caves that are only 2 blocks high
 					}
 				}
-				if (*bp != AIR && *bp != LAVA && *bp != STAT_LAVA) {
+				if (*bp != AIR && !isLava(*bp)) {
 					massive = 3;
 				}
 				--bp;

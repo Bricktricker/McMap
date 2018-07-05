@@ -269,8 +269,8 @@ int main(int argc, char **argv)
 	}
 
 	// Load colors TODO: allow change of path
-	loadBlockTree("compressBlock.json");
-	loadColorMap("dataWithColors.json");
+	loadBlockTree("BlockIDs.json");
+	loadColorMap("colors.json");
 
 	if (filename.empty()) {
 		printf("Error: No world given. Please add the path to your world to the command line.\n");
@@ -826,7 +826,7 @@ void undergroundMode(bool explore)
 			printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
 			for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
 				for (int y = 0; y < MIN(Global::MapsizeY, 64) - 1; y++) {
-					if (BLOCKAT(x, y, z) == TORCH) {
+					if (isTorch(BLOCKAT(x, y, z))) {
 						// Torch
 						BLOCKAT(x, y, z) = AIR;
 						for (int ty = int(y) - 9; ty < int(y) + 9; ty += 2) { // The trick here is to only take into account
@@ -868,15 +868,15 @@ void undergroundMode(bool explore)
 			for (int y = Global::MapsizeY - 1; y >= 0; --y) {
 				uint16_t &c = BLOCKAT(x, y, z);
 				if (c != AIR && cave > 0) { // Found a cave, leave floor
-					if (c == GRASS || c == LEAVES || c == SNOW || GETLIGHTAT(x, y, z) == 0) {
+					if (isGrass(c) || isLeave(c) || isSnow(c) || GETLIGHTAT(x, y, z) == 0) {
 						c = AIR; // But never count snow or leaves
 					} //else cnt[*c]++;
-					if (c != WATER && c != STAT_WATER) {
+					if (!isWater(c)) {
 						--cave;
 					}
 				} else if (c != AIR) { // Block is not air, count up "ground"
 					c = AIR;
-					if (c != LOG && c != LEAVES && c != SNOW && c != WOOD && c != WATER && c != STAT_WATER) {
+					if (/*c != LOG &&*/ !isLeave(c) && !isSnow(c) && /*c != WOOD &&*/ !isWater(c)) {
 						++ground;
 					}
 				} else if (ground < 3) { // Block is air, if there was not enough ground above, don't treat that as a cave

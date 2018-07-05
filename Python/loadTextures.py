@@ -3,7 +3,7 @@ import re
 import math
 
 path = "C:/Users/Philipp/AppData/Roaming/.minecraft/versions/1.13-pre6/minecraft/"
-allBlocks = json.loads(open("blocks.json").read()) #grass, blocks
+allBlocks = json.loads(open("../../Python/113/blocks.json").read()) #grass, blocks
 
 outData = []
 
@@ -23,16 +23,18 @@ def handleSpecialBlocks(model):
     if model.endswith("_slab_top"): #slab top
         return ("top", 10)
     if model.endswith("_slab_double"): #slab double/full block
-        return ("top", 0)
-    if model.contains("fence"):
+        return ("end", 0)
+    if "fence" in model:
         return ("texture", 4)
     if model.endswith("_carpet"):
         return ("wool", 1)
-    if model.contains("height"):
+    if "height" in model:
         return ("texture", 1)
-    if model.contains("trapdoor"):
+    if "trapdoor" in model:
         return ("texture", 1)
-
+    if model.startswith("block/fire") and "coral" not in model:
+        return ("fire", 8)
+        
     return None
 
 def getTextureFromModel(model):
@@ -42,7 +44,7 @@ def getTextureFromModel(model):
     blockType = 0 #0 = SOLID, 1 = FLAT (Snow/Trapdor/Carpet), 2 = TORCH, 3 = FLOWER/PLANT, 4 = FENCE, 5 = WIRE, 6 = RAIL, 8= FIRE, 9 = SLAP bottom, 10 = SLAP top
     special = handleSpecialBlocks(model)
 
-    if special not None:
+    if special is not None:
         texture = textures[special[0]]
         blockType = special[1]
     else:
@@ -109,7 +111,18 @@ def getTextures(block):
 
     if 'variants' not in blockStatesData:
         #print("no variants in {}".format(block))
-        return {} #properly multipart block
+        if 'multipart' not in blockStatesData:
+            return {}
+        else:
+            #print("multipart in: {}".format(block))
+            apply = list(blockStatesData["multipart"])[0]["apply"] #take first mdoel in multipart
+            model = ""
+            if type(apply) is list:
+                model = apply[0]["model"]
+            else:
+                model = apply["model"]
+            return {"": getTextureFromModel(model)}
+                
 
     variants = blockStatesData["variants"]
 

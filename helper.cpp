@@ -152,6 +152,41 @@ std::vector<std::string> strSplit(const std::string &s, char delim) {
 	return elems;
 }
 
+bool inRange(const uint16_t bID, uint16_t lowLim, uint16_t upLim)
+{
+	return bID >= lowLim && bID <= upLim;
+}
+
+bool isWater(const uint16_t bID)
+{
+	return inRange(bID, 34, 49);
+}
+
+bool isLava(const uint16_t bID)
+{
+	return inRange(bID, 50, 65);
+}
+
+bool isGrass(const uint16_t bID)
+{
+	return inRange(bID, 8, 9);
+}
+
+bool isLeave(const uint16_t bID)
+{
+	return inRange(bID, 144, 227);
+}
+
+bool isSnow(const uint16_t bID)
+{
+	return inRange(bID, 3415, 3422) || bID == 3424;
+}
+
+bool isTorch(const uint16_t bID)
+{
+	return inRange(bID, 1130, 1134);
+}
+
 size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne) {
 	const size_t maxObj = (arr.size() * numBits<uint64_t>()) / lengthOfOne;
 	if (maxObj <= index)

@@ -48,7 +48,7 @@ public:
 	}
 
 	const ValT& get(const std::vector<KeyT>& states) const {
-		TreeNode* current = &root;
+		TreeNode const *current = &root;
 		for (const KeyT& state : states) {
 			current = &(current->nodes.at(state));
 		}
