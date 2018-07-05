@@ -414,7 +414,7 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ)
 {
 	NBTlist sections;
-	if (!level->getList("sections", sections)) {
+	if (!level->getList("Sections", sections)) {
 		std::cerr << "no Sections in Chunk\n";
 		return false;
 	}
@@ -427,7 +427,7 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 
 	for (auto secItr = sections->begin(); secItr != sections->end(); secItr++) {
 		int8_t yo = -1;
-		if((*secItr)->getByte("Y", yo)){
+		if(!(*secItr)->getByte("Y", yo)){
 			std::cerr << "Y-Offset not found in section\n";
 			return false;
 		}
@@ -449,7 +449,7 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 		std::vector<uint16_t> idList;
 		for (const auto state : *palette) {
 			std::string blockName;
-			if (!state->getString("name", blockName)) {
+			if (!state->getString("Name", blockName)) {
 				std::cerr << "State has no name\n";
 				continue;
 			}
@@ -511,6 +511,7 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 					if (Global::sectionMax == yo && y + yoffset >= Global::MapsizeY) break;
 
 					const size_t block1D = (y)+((z)+((x)* CHUNKSIZE_Z)) * SECTION_Y;
+					if (block1D == 20 && chunkX == -2 && chunkZ == -11 && yo == 4) __debugbreak();
 					const size_t IDLIstIndex = getZahl(blockStates, block1D, (blockStates.size()*64)/4096);
 					*targetBlock = idList[IDLIstIndex];
 				} //for y
@@ -519,7 +520,7 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 
 	}
 
-	return false;
+	return true;
 }
 
 uint64_t calcTerrainSize(const int chunksX, const int chunksZ)

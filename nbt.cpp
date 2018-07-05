@@ -586,7 +586,7 @@ bool NBT_Tag::getCompound(const string& name, NBT_Tag* &compound)
 		}
 	}
 
-	__debugbreak();
+	//__debugbreak();
 	compound = nullptr;
 	return false;
 }

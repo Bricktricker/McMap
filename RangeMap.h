@@ -109,9 +109,10 @@ template<typename keyT,
 		}
 		valT& operator[](const keyT& key) {
 			try{
-			return get(key);
+				return get(key);
 			}
 			catch (std::out_of_range e) {
+				__debugbreak();
 				return valT{};
 			}
 		}
