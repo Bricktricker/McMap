@@ -413,9 +413,9 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 
 bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ)
 {
-	NBTlist sections;
-	if (!level->getList("Sections", sections)) {
-		std::cerr << "no Sections in Chunk\n";
+	NBTlist sections = nullptr;
+	if (!level->getList("Sections", sections) || sections == nullptr) {
+		std::cerr << "No sections found in region\n";
 		return false;
 	}
 
@@ -432,18 +432,21 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 			return false;
 		}
 		if (yo < Global::sectionMin || yo > Global::sectionMax) continue; //sub-Chunk out of bounds, continue
-		int32_t yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - yoffsetsomething; //Blocks into redner zone in Y-Axis
+		int32_t yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - yoffsetsomething; //Blocks into render zone in Y-Axis
+		if (yoffset < 0) yoffset = 0;
 
 		PrimArray<int64_t>* blockStatesPrim;
 		if(!(*secItr)->getLongArray("BlockStates", blockStatesPrim)) {
-			std::cerr << "no blockStates in sub-Chunk\n";
+			std::cerr << "No blockStates in sub-Chunk\n";
 			continue;
 		}
+		//else if (blockStatesPrim->_len < CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) __debugbreak();
+
 		std::vector<uint64_t> blockStates((uint64_t*)blockStatesPrim->_data, (uint64_t*)blockStatesPrim->_data + blockStatesPrim->_len);
 
 		NBTlist palette;
 		if (!(*secItr)->getList("Palette", palette)) {
-			std::cerr << "NO Palette in sub-Chunk\n";
+			std::cerr << "No Palette in sub-Chunk\n";
 			continue;
 		}
 		std::vector<uint16_t> idList;
@@ -510,10 +513,11 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 					if (Global::sectionMin == yo && y < yoffsetsomething) continue;
 					if (Global::sectionMax == yo && y + yoffset >= Global::MapsizeY) break;
 
-					const size_t block1D = (y)+((z)+((x)* CHUNKSIZE_Z)) * SECTION_Y;
-					if (block1D == 20 && chunkX == -2 && chunkZ == -11 && yo == 4) __debugbreak();
+					const size_t block1D = x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X;
+					//if (chunkX == -2 && chunkZ == -11 && yo == 4) __debugbreak();
 					const size_t IDLIstIndex = getZahl(blockStates, block1D, (blockStates.size()*64)/4096);
 					*targetBlock = idList[IDLIstIndex];
+					targetBlock++;
 				} //for y
 			} //for z
 		} //for x
@@ -671,7 +675,7 @@ void allocateTerrain()
 	//printf("%d -- %d\n", g_MapsizeX, g_MapsizeZ); //dimensions of terrain map (in memory)
 	Global::Terrainsize = Global::MapsizeX * Global::MapsizeY * Global::MapsizeZ;
 
-	std::cout << "Terrain takes up " << std::to_string(float(Global::Terrainsize / float(1024 * 1024))) << "MiB";
+	std::cout << "Terrain takes up " << std::to_string(float(Global::Terrainsize*sizeof(uint16_t) / float(1024 * 1024))) << "MiB";
 	Global::terrain.resize(Global::Terrainsize, 0);  // Preset: Air
 
 	if (Global::settings.nightmode || Global::settings.underground || Global::settings.blendUnderground || Global::settings.skylight) {

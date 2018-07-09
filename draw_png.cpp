@@ -662,7 +662,7 @@ TODO: Rewrite to use new color system
 */
 void setPixel(const size_t x, const size_t y, const uint16_t stateID, const float fsub, const uint16_t biome)
 {
-
+	//if (isLeave(stateID)) __debugbreak();
 	// Sets pixels around x,y where A is the anchor
 	// T = given color, D = darker, L = lighter
 	// A T T T

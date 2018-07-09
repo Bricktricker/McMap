@@ -107,14 +107,25 @@ template<typename keyT,
 			}
 			throw std::out_of_range("key not in map");
 		}
-		valT& operator[](const keyT& key) {
-			try{
-				return get(key);
+		valT operator[](const keyT& key) {
+			if (!root) {
+				throw std::out_of_range("Map is empty");
 			}
-			catch (std::out_of_range e) {
-				__debugbreak();
-				return valT{};
+			MapNode* current = root.get();
+			while (current) {
+				if (compare(key, current->lowerBound)) {
+					// key < current->lowerBound, weiter nach links
+					current = current->leftTree.get();
+				}
+				else if (compare(current->upperBound, key)) {
+					//current->upperBound < key, weiter nach rechts
+					current = current->rightTree.get();
+				}
+				else {
+					return current->value;
+				}
 			}
+			return valT{};
 		}
 
 		void balance() {

@@ -38,6 +38,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
+#include <iomanip>
 #ifdef _DEBUG
 #include <cassert>
 #endif
@@ -70,6 +71,7 @@ void printHelp(char *binary);
 
 int main(int argc, char **argv)
 {
+	std::cout << std::setprecision(2);
 	// ########## command line parsing ##########
 	if (argc < 2) {
 		printHelp(argv[0]);

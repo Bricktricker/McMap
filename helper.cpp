@@ -187,6 +187,9 @@ bool isTorch(const uint16_t bID)
 	return inRange(bID, 1130, 1134);
 }
 
+/*
+TODO: read uint64_t value, swap endianes and continue as before
+*/
 size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne) {
 	const size_t maxObj = (arr.size() * numBits<uint64_t>()) / lengthOfOne;
 	if (maxObj <= index)
@@ -195,11 +198,12 @@ size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_
 	size_t startBit = index * lengthOfOne;
 	size_t endBit = (startBit + lengthOfOne) - 1;
 	if ((startBit / numBits<uint64_t>()) != (endBit / numBits<uint64_t>())) {
+		return 0;
 		size_t bitsLow = ((index + 1) * lengthOfOne) - startBit - 1;
 		size_t bitsUp = lengthOfOne - bitsLow;
 
-		uint64_t lowByte = arr[startBit / numBits<uint64_t>()];
-		uint64_t upByte = arr[endBit / numBits<uint64_t>()];
+		uint64_t lowByte = swap_endian(arr[startBit / numBits<uint64_t>()]);
+		uint64_t upByte = swap_endian(arr[endBit / numBits<uint64_t>()]);
 		upByte &= ~(~0 << bitsUp);
 		upByte = upByte << bitsLow;
 
@@ -210,7 +214,10 @@ size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_
 	}
 	else {
 		//on same index in arr
-		uint64_t val = arr[startBit / numBits<uint64_t>()];
+		const uint64_t norm = arr[startBit / numBits<uint64_t>()];
+		uint64_t val = swap_endian(norm);
+		const uint64_t low = val & 0b11111111;
+		const uint64_t up = val & (((uint64_t)0b11111111) << 56);
 		const auto m = ((startBit / numBits<uint64_t>()) * numBits<uint64_t>());
 		val = val >> (startBit - m);
 		val &= ~(~0 << lengthOfOne);
