@@ -1,10 +1,8 @@
 import json
-from PIL import Image
+from PIL import Image, ImageChops
 
-data = json.loads(open("final.json").read())
-path = "C:/Users/Philipp/AppData/Roaming/.minecraft/versions/1.13-pre6/minecraft/"
-
-outData = []
+def tint_image(image, tint_color):
+    return ImageChops.multiply(image, Image.new('RGBA', image.size, tint_color))
 
 def calcRGBA(img):
     mode = img.mode
@@ -14,10 +12,11 @@ def calcRGBA(img):
     b = 0
     a = 0
     noise = 0
-    n = width * height
+    minSize = min(width, height)
+    n = minSize * minSize
     if img.mode == "RGBA":
-        for x in range(0, width):
-            for y in range(0, height):
+        for x in range(0, minSize):
+            for y in range(0, minSize):
                 TmpR, TmpG, TmpB, TmpA = img.getpixel((x, y))
                 if TmpA == 0:
                     n -= 1
@@ -32,8 +31,8 @@ def calcRGBA(img):
         b /= n
         a /= n
         var = 0.0
-        for x in range(0, width):
-            for y in range(0, height):
+        for x in range(0, minSize):
+            for y in range(0, minSize):
                 TmpR, TmpG, TmpB, TmpA = img.getpixel((x, y))
                 var += (pow(TmpR - r, 2.0) + pow(TmpG - b, 2.0) + pow(TmpB - g, 2.0)) / (3.0 * n)
     
@@ -53,17 +52,22 @@ def calcRGBA(img):
     return r, g, b, a, noise
 
 
-for tex in data:
-    fullPath = "{}textures/{}.png".format(path, tex["texture"])
+def calc(texture, path, tint):
+    fullPath = "{}textures/{}.png".format(path, texture)
     img = Image.open(fullPath)
     img.load()
     img = img.convert("RGBA")
+    if tint:
+        img = tint_image(img, (92,170,71,255))
+    if "block/water_" in texture:
+        img = tint_image(img, (40,93,255,255))
     r, g, b, a, n = calcRGBA(img)
 
     col = {"r": r, "g": g, "b": b, "a": a, "n": n}
-    d = {"texture": tex["texture"], "from": tex["from"], "to": tex["to"], "color": col, "blockType": tex["blockType"]}
-    outData.append(d)
+    
+    if "block/water_" in texture:
+        col["a"] = 36
+        print(col)
 
-with open('colors.json', 'w') as outfile:
-    json.dump(outData, outfile)
+    return col
 

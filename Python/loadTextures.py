@@ -1,11 +1,32 @@
 import json
 import re
 import math
+import calcColors
 
 path = "C:/Users/Philipp/AppData/Roaming/.minecraft/versions/1.13-pre6/minecraft/"
 allBlocks = json.loads(open("../../Python/113/blocks.json").read()) #grass, blocks
 
 outData = []
+
+def isTinted(data, selection):
+    if "elements" not in data:
+        if "parent" in data:
+            return isTinted(json.loads(open("{}models/{}.json".format(path, data["parent"])).read()), selection)
+        return False
+    
+    elements = data["elements"]
+    for elem in elements:
+        faces = elem["faces"]
+        for faceName, face in faces.items():
+            if "texture" in face:
+                if face["texture"] == ("#" + selection):
+                    if "tintindex" in face:
+                        return True
+
+    if "parent" in data:
+        return isTinted(json.loads(open("{}models/{}.json".format(path, data["parent"])).read()), selection)
+    else:
+        return False
 
 def parseStr(inStr):
     d = re.findall(r'[a-zA-Z_-]+=[A-Za-z0-9_-]+', inStr)
@@ -16,7 +37,7 @@ def parseStr(inStr):
     return out
 
 def handleSpecialBlocks(model):
-    if model == "grass_block":
+    if model == "block/grass_block":
         return ("top", 0)
     if model.endswith("_slab"): #slab bottom
         return ("top", 9)
@@ -34,6 +55,8 @@ def handleSpecialBlocks(model):
         return ("texture", 1)
     if model.startswith("block/fire") and "coral" not in model:
         return ("fire", 8)
+    if model == "block/seagrass":
+        return ("seagrass", 3)
         
     return None
 
@@ -44,43 +67,60 @@ def getTextureFromModel(model):
     blockType = 0 #0 = SOLID, 1 = FLAT (Snow/Trapdor/Carpet), 2 = TORCH, 3 = FLOWER/PLANT, 4 = FENCE, 5 = WIRE, 6 = RAIL, 8= FIRE, 9 = SLAP bottom, 10 = SLAP top
     special = handleSpecialBlocks(model)
 
+    selection = ""
     if special is not None:
         texture = textures[special[0]]
         blockType = special[1]
+        selection = special[0]
     else:
         if 'all' in textures:
             texture = textures['all']
+            selection = 'all'
         elif 'top' in textures:
             texture = textures['top']
+            selection = 'top'
         elif 'side' in textures:
             texture = textures['side']
+            selection = 'side'
         elif 'cross' in textures:
             texture = textures['cross']
             blockType = 3
+            selection = 'cross'
         elif 'rail' in textures:
             texture = textures['rail']
             blockType = 6
+            selection = 'rail'
         elif 'texture' in textures:
             texture = textures['texture']
+            selection = 'texture'
         elif 'crop' in textures:
             texture = textures['crop']
             blockType = 3
+            selection = 'crop'
         elif 'plant' in texture:
             texture = textures['plant']
             blockType = 3
+            selection = 'plant'
         elif 'line' in texture:
             texture = textures['line']
             blockType = 5
+            selection = 'line'
         elif 'torch' in texture:
             texture = textures['torch']
             blockType = 2
+            selection = 'torch'
         elif 'particle' in textures:
             texture = textures['particle']
+            selection = 'particle'
         else:
-            texture = textures[list(textures.keys())[0]] #simply take first texture
+            selection = list(textures.keys())[0]
+            texture = textures[selection] #simply take first texture
             #print("Take first texture for {}".format(model))
 
-    return (texture, blockType)
+    tint = False
+    tint = isTinted(modelData, selection)
+    
+    return (texture, blockType, tint)
 
 def getTextureFromState(textures, propOfState): #returns texture tuple for given state
     if len(textures) == 1:
@@ -144,8 +184,6 @@ for blockNameL, blockData in allBlocks.items():
     if blockNameL == "minecraft:air" or blockNameL == "minecraft:void_air" or blockNameL == "minecraft:cave_air":
         continue
 
-    blockOutData = {} #Data of Block that gets written to disc
-
     #remove "minecraft:" from name
     blockName = blockNameL
     if blockNameL.startswith("minecraft:"):
@@ -163,20 +201,22 @@ for blockNameL, blockData in allBlocks.items():
             break
         state = list(blockData["states"])[0]
         texture = textures[list(textures.keys())[0]]
-        d = {"texture": texture[0], "from": state["id"], "to": state["id"], "blockType": texture[1]}
+        color = calcColors.calc(texture[0], path, texture[2]) #calc rgba values for texture
+        d = {"texture": texture[0], "from": state["id"], "to": state["id"], "blockType": texture[1], "color": color}
         outData.append(d)
 
     else: #multiple states
         for state in blockData["states"]:
             propOfState = state["properties"]
             texture = getTextureFromState(textures, propOfState)
-            d = {"texture": texture[0], "from": state["id"], "to": state["id"], "blockType": texture[1]}
+            color = calcColors.calc(texture[0], path, texture[2]) #calc rgba values for texture
+            d = {"texture": texture[0], "from": state["id"], "to": state["id"], "blockType": texture[1], "color": color}
             outData.append(d)
 
 #remove duplicates     
 pos = 0
 while pos < len(outData)-1:
-    if outData[pos]["texture"] == outData[pos+1]["texture"] and outData[pos]["blockType"] == outData[pos+1]["blockType"]:
+    if outData[pos]["texture"] == outData[pos+1]["texture"] and outData[pos]["blockType"] == outData[pos+1]["blockType"] and outData[pos]["color"] == outData[pos+1]["color"]:
         if outData[pos]["to"]+1 == outData[pos+1]["from"]:
             outData[pos]["to"] = outData[pos+1]["to"]
             del outData[pos+1]

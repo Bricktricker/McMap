@@ -107,7 +107,7 @@ template<typename keyT,
 			}
 			throw std::out_of_range("key not in map");
 		}
-		valT operator[](const keyT& key) {
+		valT operator[](const keyT& key) const {
 			if (!root) {
 				throw std::out_of_range("Map is empty");
 			}
