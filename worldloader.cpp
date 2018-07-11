@@ -36,7 +36,7 @@ namespace {
 
 #include "helper.h"
 
-template <typename T>
+template <typename T, typename std::enable_if_t<std::is_integral<T>::value>* = nullptr>
 T ntoh(T u)
 {
 	static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
@@ -64,7 +64,7 @@ T ntoh(T u)
 	return dest.u;
 }
 
-template <typename T>
+template <typename T, typename std::enable_if_t<std::is_integral<T>::value>* = nullptr>
 T ntoh(void* u, size_t size)
 {
 	static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
@@ -265,6 +265,16 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 		return false;
 	}
 
+	std::string status;
+	if (!level->getString("Status", status)) {
+		std::cerr << "could not find Status in Chunk\n";
+		__debugbreak();
+		return false;
+	}
+	if (status != "postprocessed") {
+		return false;
+	}
+
 	// Check if chunk is in desired bounds (not a chunk where the filename tells a different position)
 	if (chunkX < Global::FromChunkX || chunkX >= Global::ToChunkX || chunkZ < Global::FromChunkZ || chunkZ >= Global::ToChunkZ) {
 		if (!chunk.good()) printf("Chunk is out of bounds. %d %d\n", chunkX, chunkZ);
@@ -440,9 +450,24 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 			std::cerr << "No blockStates in sub-Chunk\n";
 			continue;
 		}
-		//else if (blockStatesPrim->_len < CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) __debugbreak();
-
 		std::vector<uint64_t> blockStates((uint64_t*)blockStatesPrim->_data, (uint64_t*)blockStatesPrim->_data + blockStatesPrim->_len);
+
+		PrimArray<uint8_t>* lightdata = nullptr;
+		if (Global::settings.nightmode || Global::settings.skylight) { // If nightmode, we need the light information too
+			bool ok = (*secItr)->getByteArray("BlockLight", lightdata);
+			if (!ok || lightdata->_len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
+				std::cerr << "No block light\n";
+				return false;
+			}
+		}
+
+		PrimArray<uint8_t>* skydata;
+		if (Global::settings.skylight) { // Skylight desired - wish granted
+			bool ok = (*secItr)->getByteArray("SkyLight", skydata);
+			if (!ok || skydata->_len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
+				return false;
+			}
+		}
 
 		NBTlist palette;
 		if (!(*secItr)->getList("Palette", palette)) {
@@ -486,7 +511,8 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 		for (int x = 0; x < CHUNKSIZE_X; ++x) {
 			for (int z = 0; z < CHUNKSIZE_Z; ++z) {
 				uint16_t* targetBlock = nullptr;
-				uint8_t *lightByte = nullptr;
+				uint8_t* lightByte = nullptr;
+
 				if (Global::settings.orientation == East) {
 					targetBlock = &BLOCKEAST(x + offsetx, yoffset, z + offsetz); //BLOCKEAST
 					if (Global::settings.skylight || Global::settings.nightmode) lightByte = &SETLIGHTEAST(x + offsetx, yoffset, z + offsetz);
@@ -509,15 +535,42 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 				}
 				//set targetBlock
 				for (size_t y = 0; y < SECTION_Y; ++y) {
+					if (((y+yoffset) / 2) + ((z+offsetz)+((x+offsetx)* Global::MapsizeZ)) * ((Global::MapsizeY + 1) / 2) == 10106910)
+						__debugbreak();
+
 					// In bounds check
 					if (Global::sectionMin == yo && y < yoffsetsomething) continue;
 					if (Global::sectionMax == yo && y + yoffset >= Global::MapsizeY) break;
 
 					const size_t block1D = x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X;
-					//if (chunkX == -2 && chunkZ == -11 && yo == 4) __debugbreak();
+					//if (block1D == 2163 && chunkX == -2 && chunkZ == -11 && yo == 4) __debugbreak();
 					const size_t IDLIstIndex = getZahl(blockStates, block1D, (blockStates.size()*64)/4096);
-					*targetBlock = idList[IDLIstIndex];
+					const uint16_t block = idList[IDLIstIndex];
+					*targetBlock = block;
 					targetBlock++;
+					// Light
+					if (Global::settings.underground) {
+						if (isTorch(block)) {
+							if (y + yoffset < Global::MapminY) continue;
+							std::cout << "Torch at " << std::to_string(x + offsetx) << ' ' << std::to_string(yoffset + y) << ' ' << std::to_string(z + offsetz) << '\n';
+							lightCave(x + offsetx, yoffset + y, z + offsetz);
+						}
+					}
+					else if (Global::settings.skylight && (y & 1) == 0) {
+						const uint8_t highlight = ((lightdata->_data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
+						const uint8_t lowlight = ((lightdata->_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
+						uint8_t highsky = ((skydata->_data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
+						uint8_t lowsky = ((skydata->_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
+						if (Global::settings.nightmode) {
+							highsky = clamp(highsky / 3 - 2);
+							lowsky = clamp(lowsky / 3 - 2);
+						}
+						*lightByte++ = ((MAX(highlight, highsky) & 0x0F) << 4) | (MAX(lowlight, lowsky) & 0x0F);
+					}
+					else if (Global::settings.nightmode && (y & 1) == 0) {
+						*lightByte++ = ((lightdata->_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F)
+							| ((lightdata->_data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) << 4);
+					}
 				} //for y
 			} //for z
 		} //for x
@@ -671,7 +724,7 @@ void allocateTerrain()
 	    Global::biomeMapSize = Global::MapsizeX * Global::MapsizeZ;
 		Global::biomeMap.resize(Global::biomeMapSize, 0);
 	}*/
-	Global::heightMap.resize(Global::MapsizeX * Global::MapsizeZ, 0xff00);
+	Global::heightMap.resize(Global::MapsizeX * Global::MapsizeZ, 0xff00); //0xff00
 	//printf("%d -- %d\n", g_MapsizeX, g_MapsizeZ); //dimensions of terrain map (in memory)
 	Global::Terrainsize = Global::MapsizeX * Global::MapsizeY * Global::MapsizeZ;
 

@@ -264,7 +264,7 @@ int main(int argc, char **argv)
 	//if (Global::settings.hell || Global::settings.serverHell || Global::settings.end) Global::useBiomes = false;
 #pragma endregion
 
-	printf("mcmap " VERSION " %dbit by Zahl & mcmap3 by WRIM\n", (int)(8*sizeof(size_t)));
+	printf("mcmap " VERSION " %dbit by Zahl & mcmap3 by WRIM & 1.13 support by Philipp\n", (int)(8*sizeof(size_t)));
 
 	if (sizeof(size_t) < 8 && memlimit > 1800 * uint64_t(1024 * 1024)) {
 		memlimit = 1800 * uint64_t(1024 * 1024);
@@ -551,7 +551,7 @@ int main(int argc, char **argv)
 				const int max = (HEIGHTAT(x, z) & 0xFF00) >> 8;
 				for (int y = uint8_t(HEIGHTAT(x, z)); y < max; ++y) {
 					bmpPosY -= Global::OffsetY;
-					const uint16_t &c = BLOCKAT(x, y, z);
+					const uint16_t& c = BLOCKAT(x, y, z);
 					if (c == AIR) {
 						continue;
 					}
@@ -665,7 +665,6 @@ int main(int argc, char **argv)
 	if (fileHandle != NULL) fclose(fileHandle);
 
 	printf("Job complete.\n");
-	system("pause");
 	return 0;
 }
 
