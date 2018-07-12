@@ -13,6 +13,7 @@
 
 #include <fstream>
 #include <regex>
+#include <cassert>
 
 //clamps value between 0 and 255
 uint8_t clamp(int32_t val)
@@ -230,6 +231,7 @@ size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_
 		//lowByte &= ~0 << bitsLow;
 		lowByte = lowByte >> (numBits<uint64_t>() - bitsLow);
 
+		assert((upByte|lowByte)==(upByte+lowByte));
 		return static_cast<size_t>(upByte | lowByte);
 	}
 	else {

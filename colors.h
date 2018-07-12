@@ -23,6 +23,7 @@ struct Color_t {
 
 extern std::map<std::string, Tree<std::string, uint16_t>> blockTree; //Maps blockState to id
 extern RangeMap<uint16_t, Color_t> colorMap; //maps id to color_t
+extern const std::map<uint16_t, uint16_t> metaToState; //maps old blockid:meta to new states
 
 void loadBlockTree(const std::string& path);
 void loadColorMap(const std::string& path);

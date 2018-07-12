@@ -107,7 +107,7 @@ bool loadAllRegions();
 bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks);
 bool loadTerrainRegion(const std::string& fromPath, int &loadedChunks);
 inline void assignBlock(const uint8_t &source, uint8_t* &dest, int &x, int &y, int &z, const uint8_t* &justData);
-inline void assignBlock(const uint8_t &source, uint8_t* &dest, int &x, int &y, int &z, const uint8_t* &justData, const uint8_t* &addData);
+inline void assignBlock(const uint8_t &source, uint16_t* &dest, int &x, int &y, int &z, const uint8_t* &justData, const uint8_t* &addData);
 inline void lightCave(const int x, const int y, const int z);
 
 WorldFormat getWorldFormat(const std::string& worldPath)
@@ -294,8 +294,8 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 //TODO: rewrite to use new color system
 bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t chunkZ)
 {
-#pragma region CHUKLOADING
-/*
+#pragma region CHUNKLOADING
+
 	PrimArray<uint8_t> *blockdata, *lightdata, *skydata, *justData, *addData = 0;
 	int32_t len, yoffset, yoffsetsomething = (Global::MapminY + SECTION_Y * 10000) % SECTION_Y;
 	int8_t yo;
@@ -372,16 +372,26 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 				}
 				//const int toY = g_MapsizeY + g_MapminY;
 				for (int y = 0; y < SECTION_Y; ++y) {
+					__debugbreak(); //Function below is unchecked!!
 					// In bounds check
 					if (Global::sectionMin == yo && y < yoffsetsomething) continue;
 					if (Global::sectionMax == yo && y + yoffset >= Global::MapsizeY) break;
 					// Block data
-					const uint8_t &block = blockdata->_data[x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X]; //Block-ID (0,..,255)
-					const uint8_t* tmpAddData = addData ? addData->_data : nullptr;
-					assignBlock(block, targetBlock, x, y, z, justData->_data, tmpAddData);
+					uint16_t block = static_cast<uint16_t>(blockdata->_data[x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X]); //Block-ID (0,..,255)
+					
+					if (addData != nullptr) {
+						const uint8_t add = (addData->_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF;
+						assert(block | (add << 8) == (block + (add << 8)));
+						block += (add << 8);
+					}
+					const uint8_t col = (justData->_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF; //Get the 4Bits of MetaData
+					assert(block | (col << 12) == (block + (col << 12)));
+					block += (col << 12);
+					block = metaToState.at(block);
+
 					// Light
 					if (Global::settings.underground) {
-						if (block == TORCH) {
+						if (isTorch(block)) {
 							if (y + yoffset < Global::MapminY) continue;
 							std::cout << "Torch at " << std::to_string(x + offsetx) << ' ' << std::to_string(yoffset + y) << ' ' << std::to_string(z + offsetz) << '\n';
 							lightCave(x + offsetx, yoffset + y, z + offsetz);
@@ -414,9 +424,8 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 			}
 		}
 
-
+		*/
 	}
-	*/
 #pragma endregion
 	return true;
 }
@@ -535,9 +544,6 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 				}
 				//set targetBlock
 				for (size_t y = 0; y < SECTION_Y; ++y) {
-					if (((y+yoffset) / 2) + ((z+offsetz)+((x+offsetx)* Global::MapsizeZ)) * ((Global::MapsizeY + 1) / 2) == 10106910)
-						__debugbreak();
-
 					// In bounds check
 					if (Global::sectionMin == yo && y < yoffsetsomething) continue;
 					if (Global::sectionMax == yo && y + yoffset >= Global::MapsizeY) break;
@@ -916,19 +922,20 @@ bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks
 	return true;
 }
 
-inline void assignBlock(const uint8_t &block, uint8_t* &targetBlock, int &x, int &y, int &z, const uint8_t* &justData, const uint8_t* &addData)
+inline void assignBlock(const uint8_t &block, uint16_t* &targetBlock, int &x, int &y, int &z, const uint8_t* &justData, const uint8_t* &addData)
 {
 	//WorldFormat == 2
 	uint8_t add = 0;
 	uint8_t col = (justData[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF; //Get the 4Bits of MetaData
-	if (addData != 0)
+	if (addData != nullptr)
 	{
 		add = ( addData[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF;
 	}
 
 	//additional data
-	*(targetBlock + Global::Terrainsize) = (add) + (col << 4);
-	*targetBlock++ = block; //first write, then increment
+	*targetBlock = (add + block) | (col << 4);
+	//*(targetBlock + Global::Terrainsize) = (add) + (col << 4);
+	//*targetBlock++ = block; //first write, then increment
 }
 
 inline void assignBlock(const uint8_t &block, uint8_t* &targetBlock, int &x, int &y, int &z, uint8_t* &justData)
