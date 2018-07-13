@@ -38,7 +38,6 @@
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
-#include <iomanip>
 #ifdef _DEBUG
 #include <cassert>
 #endif
@@ -71,7 +70,6 @@ void printHelp(char *binary);
 
 int main(int argc, char **argv)
 {
-	std::cout << std::setprecision(2);
 	// ########## command line parsing ##########
 	if (argc < 2) {
 		printHelp(argv[0]);
@@ -701,7 +699,7 @@ void optimizeTerrain2(int cropLeft, int cropRight) //TODO: args not needed
 					if (block != AIR && lowest == 0xFF) { // if it's not air, this is the lowest block to draw
 						lowest = y;
 					}
-					if (colorMap[block].a == 255) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration
+					if (colorMap[block].a == 255 && colorMap[block].blockType != 0) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration
 						current = 1;
 					}
 					if (block != AIR) highest = y; // if it's not air, it's the new highest block encountered so far

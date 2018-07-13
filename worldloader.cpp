@@ -8,6 +8,7 @@
 #include <iostream>
 #include <cassert>
 #include <fstream>
+#include <iomanip>
 
 /*
 Callstack:
@@ -265,16 +266,6 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 		return false;
 	}
 
-	std::string status;
-	if (!level->getString("Status", status)) {
-		std::cerr << "could not find Status in Chunk\n";
-		__debugbreak();
-		return false;
-	}
-	if (status != "postprocessed") {
-		return false;
-	}
-
 	// Check if chunk is in desired bounds (not a chunk where the filename tells a different position)
 	if (chunkX < Global::FromChunkX || chunkX >= Global::ToChunkX || chunkZ < Global::FromChunkZ || chunkZ >= Global::ToChunkZ) {
 		if (!chunk.good()) printf("Chunk is out of bounds. %d %d\n", chunkX, chunkZ);
@@ -283,10 +274,20 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 	}
 
 	if (dataVersion > 1343) {
+		std::string status;
+		if (!level->getString("Status", status)) {
+			std::cerr << "could not find Status in Chunk\n";
+			__debugbreak();
+			return false;
+		}
+		if (status != "postprocessed") {
+			return false;
+		}
+
 		return load113Chunk(level, chunkX, chunkZ);
 	}else{
-		std::cerr << "trying to load old Anvil World. Currently not supported\n";
-		return false;
+		//std::cerr << "trying to load old Anvil World. Currently not supported\n";
+		//return false;
 		return loadAnvilChunk(level, chunkX, chunkZ);
 	}
 }
@@ -372,22 +373,33 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 				}
 				//const int toY = g_MapsizeY + g_MapminY;
 				for (int y = 0; y < SECTION_Y; ++y) {
-					__debugbreak(); //Function below is unchecked!!
+					//__debugbreak(); //Function below is unchecked!!
 					// In bounds check
 					if (Global::sectionMin == yo && y < yoffsetsomething) continue;
 					if (Global::sectionMax == yo && y + yoffset >= Global::MapsizeY) break;
 					// Block data
 					uint16_t block = static_cast<uint16_t>(blockdata->_data[x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X]); //Block-ID (0,..,255)
 					
-					if (addData != nullptr) {
+					if (addData != nullptr) { //For blockID > 255
+						__debugbreak();
 						const uint8_t add = (addData->_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF;
 						assert(block | (add << 8) == (block + (add << 8)));
 						block += (add << 8);
 					}
+					//for metadata
 					const uint8_t col = (justData->_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF; //Get the 4Bits of MetaData
+					//if (col != 0 && block != 1) __debugbreak();
 					assert(block | (col << 12) == (block + (col << 12)));
-					block += (col << 12);
-					block = metaToState.at(block);
+					const uint16_t blockWithMeta = block + (col << 12);
+
+					auto stateItr = metaToState.find(blockWithMeta);
+					if (stateItr != metaToState.end()) {
+						block = stateItr->second;
+					}else{
+						block = metaToState.at(block);
+					}
+					*targetBlock = block;
+					targetBlock++;
 
 					// Light
 					if (Global::settings.underground) {
@@ -734,12 +746,12 @@ void allocateTerrain()
 	//printf("%d -- %d\n", g_MapsizeX, g_MapsizeZ); //dimensions of terrain map (in memory)
 	Global::Terrainsize = Global::MapsizeX * Global::MapsizeY * Global::MapsizeZ;
 
-	std::cout << "Terrain takes up " << std::to_string(float(Global::Terrainsize*sizeof(uint16_t) / float(1024 * 1024))) << "MiB";
+	std::cout << "Terrain takes up " << std::setprecision(5) << float(Global::Terrainsize*sizeof(uint16_t) / float(1024 * 1024)) << "MiB";
 	Global::terrain.resize(Global::Terrainsize, 0);  // Preset: Air
 
 	if (Global::settings.nightmode || Global::settings.underground || Global::settings.blendUnderground || Global::settings.skylight) {
 		Global::lightsize = Global::MapsizeZ * Global::MapsizeX * ((Global::MapsizeY + (Global::MapminY % 2 == 0 ? 1 : 2)) / 2);
-		std::cout << ", lightmap " << std::to_string(float(Global::lightsize / float(1024 * 1024))) << "MiB";
+		std::cout << ", lightmap " << std::setprecision(5) << float(Global::lightsize / float(1024 * 1024)) << "MiB";
 		Global::light.resize(Global::lightsize);
 		// Preset: all bright / dark depending on night or day
 		if (Global::settings.nightmode) {
