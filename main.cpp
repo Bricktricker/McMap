@@ -696,10 +696,11 @@ void optimizeTerrain2(int cropLeft, int cropRight) //TODO: args not needed
 					}
 #endif
 				} else { // block is not hidden by another block
+					const auto col = colorMap[block];
 					if (block != AIR && lowest == 0xFF) { // if it's not air, this is the lowest block to draw
 						lowest = y;
 					}
-					if (colorMap[block].a == 255 && colorMap[block].blockType != 0) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration
+					if (col.a == 255 && col.blockType != 0) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration
 						current = 1;
 					}
 					if (block != AIR) highest = y; // if it's not air, it's the new highest block encountered so far

@@ -4,6 +4,7 @@ import math
 import calcColors
 
 path = "C:/Users/Philipp/AppData/Roaming/.minecraft/versions/1.13-pre6/minecraft/"
+csvPath = "specialBlocks.csv"
 allBlocks = json.loads(open("../../Python/113/blocks.json").read()) #grass, blocks
 
 outData = []
@@ -97,15 +98,15 @@ def getTextureFromModel(model):
             texture = textures['crop']
             blockType = 3
             selection = 'crop'
-        elif 'plant' in texture:
+        elif 'plant' in textures:
             texture = textures['plant']
             blockType = 3
             selection = 'plant'
-        elif 'line' in texture:
+        elif 'line' in textures:
             texture = textures['line']
             blockType = 5
             selection = 'line'
-        elif 'torch' in texture:
+        elif 'torch' in textures:
             texture = textures['torch']
             blockType = 2
             selection = 'torch'
@@ -201,7 +202,7 @@ for blockNameL, blockData in allBlocks.items():
             break
         state = list(blockData["states"])[0]
         texture = textures[list(textures.keys())[0]]
-        color = calcColors.calc(texture[0], path, texture[2]) #calc rgba values for texture
+        color = calcColors.calc(texture[0], path, texture[2], csvPath) #calc rgba values for texture
         d = {"texture": texture[0], "from": state["id"], "to": state["id"], "blockType": texture[1], "color": color}
         outData.append(d)
 
@@ -209,7 +210,7 @@ for blockNameL, blockData in allBlocks.items():
         for state in blockData["states"]:
             propOfState = state["properties"]
             texture = getTextureFromState(textures, propOfState)
-            color = calcColors.calc(texture[0], path, texture[2]) #calc rgba values for texture
+            color = calcColors.calc(texture[0], path, texture[2], csvPath) #calc rgba values for texture
             d = {"texture": texture[0], "from": state["id"], "to": state["id"], "blockType": texture[1], "color": color}
             outData.append(d)
 
@@ -225,6 +226,6 @@ while pos < len(outData)-1:
             print("{}\n{}".format(outData[pos], outData[pos+1]))
     pos += 1
             
-with open('colors.json', 'w') as outfile:
+with open('../colors.json', 'w') as outfile:
     json.dump(outData, outfile)
     
