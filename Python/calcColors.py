@@ -2,24 +2,10 @@ import json
 from PIL import Image, ImageChops
 import csv
 
-def tint_image(col, tint_color):
-    subR = col["r"] - 128
-    subG = col["g"] - 128
-    subB = col["b"] - 128
+cache = {}
 
-    addR = subR + tint_color[0]
-    addG = subG + tint_color[1]
-    addB = subB + tint_color[2]
-
-    addR = max(0, min(addR, 255))
-    addG = max(0, min(addG, 255))
-    addB = max(0, min(addB, 255))
-
-    return  {"r": addR, "g": addG, "b": addB, "a": col["a"], "n": col["n"]}
-    
-    #subIm = ImageChops.subtract(Image.new('RGBA', image.size, (128, 128, 128, 255)), image)
-    #return ImageChops.add(subIm, Image.new('RGBA', image.size, tint_color))
-    #return ImageChops.multiply(image, Image.new('RGBA', image.size, tint_color))
+def tint_image(image, tint_color):
+    return ImageChops.multiply(image, Image.new('RGBA', image.size, tint_color))
 
 def calcRGBA(img):
     mode = img.mode
@@ -73,6 +59,9 @@ def calcRGBA(img):
 
 
 def calc(texture, path, tint, csvFile):
+    if texture in cache:
+        return cache[texture]
+
     if csvFile:
         f = open(csvFile, 'r')
         reader = csv.reader(f, delimiter=';')
@@ -92,21 +81,28 @@ def calc(texture, path, tint, csvFile):
     img = Image.open(fullPath)
     img.load()
     img = img.convert("RGBA")
+    if "block/water_" in texture:
+        img = tint_image(img, (40,93,255,255))
+    elif tint:
+        img = tint_image(img, (102, 255, 76)) 
+        
     r, g, b, a, n = calcRGBA(img)
+
+    if not tint:
+        r = min(255, r+10)
+        g = min(255, g+10)
+        b = min(255, b+10)
 
     col = {"r": r, "g": g, "b": b, "a": a, "n": n}
 
     if tint:
-        col = tint_image(col, (176, 246, 107)) 
-    if "block/water_" in texture:
-        col = tint_image(col, (40,93,255,255))
-
-    if tint:
         pass
-        #print(col, texture)
+        #print(texture, col)
     
     if "block/water_" in texture:
         col["a"] = 36
+
+    cache[texture] = col
 
     return col
 
