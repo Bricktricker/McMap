@@ -280,11 +280,10 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 			__debugbreak();
 			return false;
 		}
-		if (status != "postprocessed") {
-			return false;
+		if (status >= "finalized" && status != "liquid_carved") {
+			return load113Chunk(level, chunkX, chunkZ);
 		}
-
-		return load113Chunk(level, chunkX, chunkZ);
+		return false;
 	}else{
 		//std::cerr << "trying to load old Anvil World. Currently not supported\n";
 		//return false;

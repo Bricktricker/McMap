@@ -23,16 +23,16 @@ def calcRGBA(img):
                 TmpR, TmpG, TmpB, TmpA = img.getpixel((x, y))
                 if TmpA == 0:
                     n -= 1
-                else:
-                    r += TmpR
-                    g += TmpG
-                    b += TmpB
-                    a += TmpA
+                    
+                r += TmpR
+                g += TmpG
+                b += TmpB
+                a += TmpA
 
-        r /= n
-        g /= n
-        b /= n
-        a /= n
+        r /= (minSize * minSize)
+        g /= (minSize * minSize)
+        b /= (minSize * minSize)
+        a /= (minSize * minSize)
         var = 0.0
         for x in range(0, minSize):
             for y in range(0, minSize):
@@ -89,9 +89,10 @@ def calc(texture, path, tint, csvFile):
     r, g, b, a, n = calcRGBA(img)
 
     if not tint:
-        r = min(255, r+10)
-        g = min(255, g+10)
-        b = min(255, b+10)
+        pass
+        #r = min(255, r+10)
+        #g = min(255, g+10)
+        #b = min(255, b+10)
 
     col = {"r": r, "g": g, "b": b, "a": a, "n": n}
 

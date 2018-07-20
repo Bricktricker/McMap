@@ -102,7 +102,7 @@ namespace
 	void setStepBA(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark);
 	void setUpStepBA(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark);
 
-	void userWriteData(png_structp pngPtr, png_bytep data, uint32_t length)
+	void userWriteData(png_structp pngPtr, png_bytep data, png_size_t length)
 	{
 		//Our std::ostream pointer.
 		png_voidp a = png_get_io_ptr(pngPtr);
