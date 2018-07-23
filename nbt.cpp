@@ -731,7 +731,6 @@ bool NBT_Tag::getString(const string& name, std::string& data)
 			}
 		}
 	}
-	__debugbreak();
 	data = "";
 	return false;
 }

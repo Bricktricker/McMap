@@ -7,7 +7,7 @@ cache = {}
 def tint_image(image, tint_color):
     return ImageChops.multiply(image, Image.new('RGBA', image.size, tint_color))
 
-def calcRGBA(img):
+def calcRGBA(img, glass):
     mode = img.mode
     width, height = img.size
     r = 0
@@ -21,17 +21,17 @@ def calcRGBA(img):
         for x in range(0, minSize):
             for y in range(0, minSize):
                 TmpR, TmpG, TmpB, TmpA = img.getpixel((x, y))
-                if TmpA == 0:
+                if TmpA == 0 and not glass:
                     n -= 1
-                    
-                r += TmpR
-                g += TmpG
-                b += TmpB
-                a += TmpA
+                else:
+                    r += TmpR
+                    g += TmpG
+                    b += TmpB
+                    a += TmpA
 
-        r /= (minSize * minSize)
-        g /= (minSize * minSize)
-        b /= (minSize * minSize)
+        r /= n
+        g /= n
+        b /= n
         a /= (minSize * minSize)
         var = 0.0
         for x in range(0, minSize):
@@ -86,7 +86,7 @@ def calc(texture, path, tint, csvFile):
     elif tint:
         img = tint_image(img, (102, 255, 76)) 
         
-    r, g, b, a, n = calcRGBA(img)
+    r, g, b, a, n = calcRGBA(img, "glass" in texture)
 
     if not tint:
         pass

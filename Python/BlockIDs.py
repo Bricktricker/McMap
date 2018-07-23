@@ -1,6 +1,6 @@
 import json
 
-allBlocks = json.loads(open("../../Python/113/blocks.json").read())
+allBlocks = json.loads(open("blocks.json").read())
 outData = {}
 
 for blockName, blockVals in allBlocks.items():
@@ -57,5 +57,5 @@ for blockName, blockVals in allBlocks.items():
     outData[blockName] = ret
 
 
-with open('BlockIDs.json', 'w') as outfile:
+with open('../BlockIDs.json', 'w') as outfile:
     json.dump(outData, outfile)

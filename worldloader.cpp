@@ -291,7 +291,6 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 	}
 }
 
-//TODO: rewrite to use new color system
 bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t chunkZ)
 {
 #pragma region CHUNKLOADING
@@ -395,6 +394,43 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 					if (stateItr != metaToState.end()) {
 						block = stateItr->second;
 					}else{
+						switch (block)
+						{
+						case 6:
+							//Verschiedene Saplings
+							break;
+						case 8:
+							break;
+						case 9:
+							break;
+						case 10:
+							break;
+						case 11:
+							break;
+						case 50:
+							break;
+						case 53:
+							break;
+						case 66:
+							break; //Rail
+						case 67:
+							break;
+						case 68:
+							break;
+						case 99:
+							break;
+						case 100:
+							break;
+						case 106:
+							break;
+						case 164:
+							break;
+						case 175:
+							break;
+						default:
+							std::cout << blockWithMeta << ' ' << block << ':' << std::to_string(col) << '\n';
+						}
+						
 						block = metaToState.at(block);
 					}
 					*targetBlock = block;
@@ -461,6 +497,9 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 			std::cerr << "Y-Offset not found in section\n";
 			return false;
 		}
+		
+		//if (offsetz == 1072 && offsetx == 208 && yo == 1) __debugbreak();
+
 		if (yo < Global::sectionMin || yo > Global::sectionMax) continue; //sub-Chunk out of bounds, continue
 		int32_t yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - yoffsetsomething; //Blocks into render zone in Y-Axis
 		if (yoffset < 0) yoffset = 0;
@@ -512,17 +551,26 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 				for (const auto& item : order) {
 					std::string s;
 					if (!property->getString(item, s)) {
-						std::cerr << item << "-state not in tree\n";
-						return false;
+						if (item == "waterlogged") {
+							s = "false";
+						}else {
+							std::cerr << blockName << ':' << item << "-state not in tree\n";
+							stateValues.clear();
+							blockID = 0;
+							break;
+						}
 					}
 					stateValues.push_back(s);
 				}
 
-				blockID = tree.get(stateValues);
+				if (!stateValues.empty()) {
+					blockID = tree.get(stateValues);
+				}
+
 			}else{
 				//Simple Block, no extra properties
 				const auto& tree = blockTree.at(blockName);
-				 blockID = tree.get();
+				blockID = tree.get();
 			}
 			idList.push_back(blockID);
 		}

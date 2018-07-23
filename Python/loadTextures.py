@@ -3,9 +3,9 @@ import re
 import math
 import calcColors
 
-path = "C:/Users/Philipp/AppData/Roaming/.minecraft/versions/1.13-pre6/minecraft/"
+path = "C:/Users/Philipp/AppData/Roaming/.minecraft/versions/1.13/minecraft/"
 csvPath = "specialBlocks.csv"
-allBlocks = json.loads(open("../../Python/113/blocks.json").read()) #grass, blocks
+allBlocks = json.loads(open("C:/Users/Philipp/AppData/Roaming/.minecraft/versions/1.13/Datengenerator/generated/reports/blocks.json").read()) #grass, blocks
 
 outData = []
 
@@ -58,6 +58,8 @@ def handleSpecialBlocks(model):
         return ("fire", 8)
     if model == "block/seagrass":
         return ("seagrass", 3)
+    if "vine" in model:
+        return ("vine", 4)
         
     return None
 
@@ -165,6 +167,7 @@ def getTextures(block):
             return {"": getTextureFromModel(model)}
                 
 
+    #loading variants, no multiblock
     variants = blockStatesData["variants"]
 
     buffer = {}
@@ -228,4 +231,4 @@ while pos < len(outData)-1:
             
 with open('../colors.json', 'w') as outfile:
     json.dump(outData, outfile)
-    
+

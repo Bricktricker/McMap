@@ -3,4 +3,6 @@ block/grass_block_top;102;142;62;255;14;0
 block/oak_leaves;54;135;40;180;12;0
 block/spruce_leaves;44;84;44;160;20;0
 block/birch_leaves;85;124;60;170;11;0
+block/dark_oak_leaves;29;110;15;180;0;0
 block/jungle_leaves;44;135;50;175;11;0
+block/glass;255;255;255;40;0;0
