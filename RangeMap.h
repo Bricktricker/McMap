@@ -132,7 +132,7 @@ template<typename keyT,
 			std::vector<MapNode*> nodes;
 			nodes.reserve(treeSize);
 			storeBSTNodes(root.release(), nodes);
-			const size_t n = nodes.size();
+			const int n = static_cast<const int>(nodes.size());
 			root.reset(reBuildTree(nodes, 0, n-1));
 		}
 

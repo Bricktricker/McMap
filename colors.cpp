@@ -1,5 +1,4 @@
 #include "colors.h"
-#include "extractcolors.h"
 #include "pngreader.h"
 #include "globals.h"
 #include <fstream>

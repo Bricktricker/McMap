@@ -125,7 +125,7 @@ WorldFormat getWorldFormat(const std::string& worldPath)
 			} else if (format != REGION && strEndsWith(file.name, ".mcr")) {
 				format = REGION;
 			}
-		} while (Dir::next(sd, path.c_str(), file));
+		} while (Dir::next(sd, path, file));
 		Dir::close(sd);
 	}
 	return format;
@@ -294,7 +294,7 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 #pragma region CHUNKLOADING
 
 	PrimArray<uint8_t> *blockdata, *lightdata, *skydata, *justData, *addData = 0;
-	int32_t len, yoffset, yoffsetsomething = (Global::MapminY + SECTION_Y * 10000) % SECTION_Y;
+	size_t len, yoffset, yoffsetsomething = (Global::MapminY + SECTION_Y * 10000) % SECTION_Y;
 	int8_t yo;
 	std::list<NBT_Tag*> *sections = nullptr;
 	bool ok;
@@ -379,13 +379,13 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 					if (addData != nullptr) { //For blockID > 255
 						__debugbreak();
 						const uint8_t add = (addData->_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF;
-						assert(block | (add << 8) == (block + (add << 8)));
+						assert((block | (add << 8)) == ((block + (add << 8))));
 						block += (add << 8);
 					}
 					//for metadata
 					const uint8_t col = (justData->_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF; //Get the 4Bits of MetaData
 					//if (col != 0 && block != 1) __debugbreak();
-					assert(block | (col << 12) == (block + (col << 12)));
+					assert((block | (col << 12)) == ((block + (col << 12))));
 					const uint16_t blockWithMeta = block + (col << 12);
 
 					auto stateItr = metaToState.find(blockWithMeta);
@@ -402,7 +402,7 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 						if (isTorch(block)) {
 							if (y + yoffset < Global::MapminY) continue;
 							std::cout << "Torch at " << std::to_string(x + offsetx) << ' ' << std::to_string(yoffset + y) << ' ' << std::to_string(z + offsetz) << '\n';
-							lightCave(x + offsetx, yoffset + y, z + offsetz);
+							lightCave(x + offsetx, static_cast<int>(yoffset) + y, z + offsetz);
 						}
 					} else if (Global::settings.skylight && (y & 1) == 0) {
 						const uint8_t highlight = ((lightdata->_data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
@@ -462,7 +462,7 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 		//if (offsetz == 1072 && offsetx == 208 && yo == 1) __debugbreak();
 
 		if (yo < Global::sectionMin || yo > Global::sectionMax) continue; //sub-Chunk out of bounds, continue
-		int32_t yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - yoffsetsomething; //Blocks into render zone in Y-Axis
+		int32_t yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - static_cast<int32_t>(yoffsetsomething); //Blocks into render zone in Y-Axis
 		if (yoffset < 0) yoffset = 0;
 
 		PrimArray<int64_t>* blockStatesPrim;
@@ -579,7 +579,7 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 						if (isTorch(block)) {
 							if (y + yoffset < Global::MapminY) continue;
 							std::cout << "Torch at " << std::to_string(x + offsetx) << ' ' << std::to_string(yoffset + y) << ' ' << std::to_string(z + offsetz) << '\n';
-							lightCave(x + offsetx, yoffset + y, z + offsetz);
+							lightCave(x + offsetx, yoffset + static_cast<int>(y), z + offsetz);
 						}
 					}
 					else if (Global::settings.skylight && (y & 1) == 0) {
@@ -975,7 +975,7 @@ inline void lightCave(const int x, const int y, const int z)
 		if (oty < 0) {
 			continue;   // areas around torches.
 		}
-		if (oty >= Global::MapsizeY) {
+		if (oty >= static_cast<int>(Global::MapsizeY)) {
 			break;
 		}
 		for (int tz = z - 18; tz < z + 18; ++tz) {
