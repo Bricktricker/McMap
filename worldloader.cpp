@@ -104,9 +104,7 @@ bool loadChunk(const std::vector<uint8_t>& buffer);
 bool loadAnvilChunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ);
 bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ);
 void allocateTerrain();
-bool loadAllRegions();
 bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks);
-bool loadTerrainRegion(const std::string& fromPath, int &loadedChunks);
 inline void assignBlock(const uint8_t &source, uint8_t* &dest, int &x, int &y, int &z, const uint8_t* &justData);
 inline void assignBlock(const uint8_t &source, uint16_t* &dest, int &x, int &y, int &z, const uint8_t* &justData, const uint8_t* &addData);
 inline void lightCave(const int x, const int y, const int z);
@@ -118,7 +116,7 @@ WorldFormat getWorldFormat(const std::string& worldPath)
 	path.append("/region");
 
 	myFile file;
-	DIRHANDLE sd = Dir::open(path.c_str(), file);
+	DIRHANDLE sd = Dir::open(path, file);
 	if (sd != NULL) {
 		do { // Here we finally arrived at the region files
 			if (strEndsWith(file.name, ".mca")) {
@@ -394,43 +392,6 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 					if (stateItr != metaToState.end()) {
 						block = stateItr->second;
 					}else{
-						switch (block)
-						{
-						case 6:
-							//Verschiedene Saplings
-							break;
-						case 8:
-							break;
-						case 9:
-							break;
-						case 10:
-							break;
-						case 11:
-							break;
-						case 50:
-							break;
-						case 53:
-							break;
-						case 66:
-							break; //Rail
-						case 67:
-							break;
-						case 68:
-							break;
-						case 99:
-							break;
-						case 100:
-							break;
-						case 106:
-							break;
-						case 164:
-							break;
-						case 175:
-							break;
-						default:
-							std::cout << blockWithMeta << ' ' << block << ':' << std::to_string(col) << '\n';
-						}
-						
 						block = metaToState.at(block);
 					}
 					*targetBlock = block;
