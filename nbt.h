@@ -82,7 +82,7 @@ private:
 	bool parseData(const std::vector<uint8_t>& data, size_t& pos, bool parseHeader = true);
 
 public:
-	void printTags();
+	void printTags() const;
 	bool getCompound(const string& name, NBT_Tag* &compound);
 	bool getList(const string& name, std::list<NBT_Tag*>& lst);
 	bool getByte(const string& name, int8_t& value);
@@ -104,16 +104,11 @@ class NBT : public NBT_Tag
 private:
 	const std::vector<uint8_t>& data;
 	bool _good;
-	//uint8_t *_blob;
-	//std::string _filename;
-	//size_t _bloblen;
 public:
 	explicit NBT(const std::vector<uint8_t>& _data);
-	//explicit NBT(const char * buffer, bool &success);
-	//explicit NBT(uint8_t * const buffer, const size_t len, const bool shared, bool &success);
-	//explicit NBT();
+	NBT(const NBT&) = delete;
+	NBT& operator=(const NBT&) = delete;
 	virtual ~NBT() = default;
-	//bool save();
 
 	bool good() const noexcept { return _good; }
 

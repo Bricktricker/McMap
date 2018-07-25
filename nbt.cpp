@@ -245,7 +245,7 @@ NBT_Tag::~NBT_Tag()
 	}
 }
 
-void NBT_Tag::printTags()
+void NBT_Tag::printTags() const
 {
 	if (_type != tagCompound) {
 		std::cerr << "Not a tagCompound\n";

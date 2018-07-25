@@ -43,7 +43,19 @@ namespace
 
 		{
 			pngFileHandle.open(filename, std::ios::binary);
-			std::cout << "Copy Constructor\n";
+		}
+
+		ImagePart& operator=(const ImagePart& part) {
+			this->x = part.x;
+			this->y = part.y;
+			this->width = part.width;
+			this->height = part.height;
+			this->filename = part.filename;
+			this->pngPtr = part.pngPtr;
+			this->pngInfo = part.pngInfo;
+
+			pngFileHandle.open(filename, std::ios::binary);
+			return *this;
 		}
 
 	};
@@ -329,7 +341,6 @@ int loadImagePart(const int startx, const int starty, const int width, const int
 	// These are set to NULL in saveImagePartPng to make sure the two functions are called in turn
 	if (pngPtrCurrent != NULL || gPngPartialFileHandle.is_open()) {
 		std::cerr << "Something wrong with disk caching.\n";
-		__debugbreak(); //Check
 		return -1;
 	}
 	// In case the image needs to be cropped the offsets will be negative
@@ -446,7 +457,6 @@ bool discardImagePart()
 bool composeFinalImage()
 {
 	std::string tmpString;
-	size_t tmpLen = 0;
 	if (Global::tilePath.empty()) {
 		std::cout << "Composing final png file...\n";
 		if (setjmp(png_jmpbuf(pngPtrMain))) {
@@ -466,9 +476,10 @@ bool composeFinalImage()
 	std::vector<uint8_t> lineRead(gPngLineWidthChans);
 
 	// Prepare an array of png structs that will output simultaneously to the various tiles
-	size_t sizeOffset[7], last = 0;
+	size_t sizeOffset[7];
 	ImageTile *tile = NULL;
 	if (!Global::tilePath.empty()) {
+		size_t last = 0;
 		for (size_t i = 0; i < 7; ++i) {
 			sizeOffset[i] = last;
 			last += ((tempWidth - 1) / static_cast<size_t>(pow(2, 12 - i))) + 1;
@@ -484,7 +495,7 @@ bool composeFinalImage()
 		// paint each image on this one
 		std::fill(lineWrite.begin(), lineWrite.end(), 0);
 		// the partial images are kept in this list. they're already in the correct order in which they have to me merged and blended
-		for (imageList::iterator it = partialImages.begin(); it != partialImages.end(); it++) {
+		for (imageList::iterator it = partialImages.begin(); it != partialImages.end(); ++it) {
 			ImagePart& img = *it;
 			// do we have to open this image?
 			if (img.y == y && img.pngPtr == NULL) {
@@ -578,7 +589,7 @@ bool composeFinalImage()
 								return false;
 							}
 							if (setjmp(png_jmpbuf(t.pngPtr))) {
-								__debugbreak(); //error in pngLib
+								//error in pngLib
 								return false;
 							}
 							t.pngInfo = png_create_info_struct(t.pngPtr);
@@ -647,7 +658,6 @@ biom parameter not used
 */
 void setPixel(const size_t x, const size_t y, const uint16_t stateID, const float fsub, const uint16_t biome)
 {
-	//if (isLeave(stateID)) __debugbreak();
 	// Sets pixels around x,y where A is the anchor
 	// T = given color, D = darker, L = lighter
 	// A T T T
@@ -886,7 +896,7 @@ namespace
 
 		//if (colorMap[block].blockType / BLOCKBIOME)
 			//addColor(color, biomes[biome]);
-		__debugbreak(); //dropped biom support
+		//dropped biom support
 	}
 
 	inline void blend(uint8_t* const destination, const uint8_t* const source)
@@ -1023,7 +1033,6 @@ namespace
 	void setGrass(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark, const int sub)
 	{
 		// this will make grass look like dirt from the side
-		__debugbreak(); //are the two lower lines working?
 		Color_t L = colorMap[blockTree["minecraft:dirt"].get()];
 		Color_t D = L;
 		modColor(L, sub - 15);

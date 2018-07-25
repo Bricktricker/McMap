@@ -9,8 +9,8 @@ class Tree{
     struct TreeNode {
         std::map<KeyT, TreeNode> nodes;
         ValT value;
-        TreeNode() = default;
-        TreeNode(const ValT& val)
+		TreeNode() = default;
+		explicit TreeNode(const ValT& val)
             : value(val)
         {}
     };
@@ -20,7 +20,7 @@ class Tree{
 
 public:
     Tree() = default;
-    Tree(const ValT& val)
+	explicit Tree(const ValT& val)
         : root(val)
     {}
 

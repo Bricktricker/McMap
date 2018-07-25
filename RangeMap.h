@@ -28,6 +28,19 @@ template<typename keyT,
 				rightTree.reset(new MapNode(*other.rightTree));
 		}
 
+		MapNode& operator=(const MapNode& other) {
+			lowerBound = other.lowerBound;
+			upperBound = other.upperBound;
+			value = other.value;
+
+			if (other.leftTree)
+				leftTree.reset(new MapNode(*other.leftTree));
+			if (other.rightTree)
+				rightTree.reset(new MapNode(*other.rightTree));
+
+			return *this;
+		}
+
 		MapNode(const keyT& lowBound, const keyT& upBound, const valT& val)
 			: lowerBound(lowBound), upperBound(upBound), value(val)
 		{}
@@ -38,7 +51,7 @@ template<typename keyT,
 	size_t treeSize;
 
 	public:
-		RangeMap(compT tmpCmp = compT{})
+		explicit RangeMap(compT tmpCmp = compT{})
 			: compare(tmpCmp), root{ nullptr }, treeSize(0)
 		{};
 
@@ -49,7 +62,7 @@ template<typename keyT,
 
 		RangeMap& operator=(const RangeMap<keyT, valT, compT>& other)
 		{
-			comparator(other.comparator);
+			compare = other.compare;
 			treeSize = other.treeSize;
 			if (other.root)
 				root.reset(PtrType{ new MapNode(*other.root) });

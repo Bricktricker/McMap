@@ -33,7 +33,7 @@ private:
 	uint8_t _status; //Bits left to right: bit 0: File error, bit 1: not a PNG, bit 2: libPNG error
 
 public:
-	PngReader(const std::string& filename);
+	explicit PngReader(const std::string& filename);
 	PngReader();
 	void open(const std::string& filename);
 	virtual ~PngReader() = default;

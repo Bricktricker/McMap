@@ -81,7 +81,7 @@ T ntoh(void* u, size_t size)
 		if (b.c[0] == 1) {
 			T t{};
 			memcpy(&t, u, size);
-			__debugbreak(); //check, may not working
+			//check, may not working
 			return t;
 		}
 	}
@@ -106,8 +106,6 @@ bool loadAnvilChunk(NBT_Tag* const level, const int32_t chunkX, const int32_t ch
 bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ);
 void allocateTerrain();
 bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks);
-inline void assignBlock(const uint8_t &source, uint8_t* &dest, int &x, int &y, int &z, const uint8_t* &justData);
-inline void assignBlock(const uint8_t &source, uint16_t* &dest, int &x, int &y, int &z, const uint8_t* &justData, const uint8_t* &addData);
 inline void lightCave(const int x, const int y, const int z);
 
 WorldFormat getWorldFormat(const std::string& worldPath)
@@ -156,7 +154,7 @@ bool scanWorldDirectory(const std::string& fromPath)
 					// Extract x coordinate from region filename
 					s = s.substr(2);
 					const auto values = strSplit(s, '.');
-					if (values.size() != 3) __debugbreak();
+					assert(values.size() == 3);
 
 					const int valX = std::stoi(values.at(0)) * REGIONSIZE;
 					// Extract z coordinate from region filename
@@ -179,7 +177,7 @@ bool scanWorldDirectory(const std::string& fromPath)
 	// Have yet to find out how slow this is on big maps to see if it's worth the effort
 	world.points.clear();
 
-	for (regionList::iterator it = world.regions.begin(); it != world.regions.end(); it++) {
+	for (regionList::iterator it = world.regions.begin(); it != world.regions.end(); ++it) {
 		Region& region = (*it);
 		std::ifstream fh(region.filename, std::ios::in | std::ios::binary);
 		//FILE *fh = fopen(region.filename.c_str(), "rb");
@@ -235,7 +233,6 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 	NBT chunk(buffer);
 	if (!chunk.good()) {
 		std::cerr << "Error loading chunk.\n";
-		__debugbreak();
 		return false; // chunk does not exist
 	}
 
@@ -297,7 +294,7 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 	//
 	const int offsetz = (chunkZ - Global::FromChunkZ) * CHUNKSIZE_Z; //Blocks into world, from lowest point
 	const int offsetx = (chunkX - Global::FromChunkX) * CHUNKSIZE_X; //Blocks into world, from lowest point
-	for (std::list<NBT_Tag *>::iterator it = sections.begin(); it != sections.end(); it++) {
+	for (std::list<NBT_Tag *>::iterator it = sections.begin(); it != sections.end(); ++it) {
 		NBT_Tag* section = *it;
 		ok = section->getByte("Y", yo);
 		if (!ok) {
@@ -359,7 +356,6 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 				}
 				//const int toY = g_MapsizeY + g_MapminY;
 				for (int y = 0; y < SECTION_Y; ++y) {
-					//__debugbreak(); //Function below is unchecked!!
 					// In bounds check
 					if (Global::sectionMin == yo && y < yoffsetsomething) continue;
 					if (Global::sectionMax == yo && y + yoffset >= Global::MapsizeY) break;
@@ -367,14 +363,12 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 					uint16_t block = static_cast<uint16_t>(blockdata._data[x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X]); //Block-ID (0,..,255)
 					
 					if (addData._len > 0) { //For blockID > 255
-						__debugbreak();
 						const uint8_t add = (addData._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF;
 						assert((block | (add << 8)) == ((block + (add << 8))));
 						block += (add << 8);
 					}
 					//for metadata
 					const uint8_t col = (justData._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF; //Get the 4Bits of MetaData
-					//if (col != 0 && block != 1) __debugbreak();
 					assert((block | (col << 12)) == ((block + (col << 12))));
 					const uint16_t blockWithMeta = block + (col << 12);
 
@@ -428,8 +422,7 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 	const int offsetz = (chunkZ - Global::FromChunkZ) * CHUNKSIZE_Z; //Blocks into world, from lowest point
 	const int offsetx = (chunkX - Global::FromChunkX) * CHUNKSIZE_X; //Blocks into world, from lowest point
 	size_t yoffsetsomething = (Global::MapminY + SECTION_Y * 10000) % SECTION_Y;
-	if (yoffsetsomething != 0)
-		__debugbreak();
+	assert(yoffsetsomething == 0); //I don't now what this variable does. Always 0
 
 	for (const auto sec : sections) { //auto secItr = sections->begin(); secItr != sections->end(); secItr++
 		int8_t yo = -1;
@@ -437,8 +430,6 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 			std::cerr << "Y-Offset not found in section\n";
 			return false;
 		}
-		
-		//if (offsetz == 1072 && offsetx == 208 && yo == 1) __debugbreak();
 
 		if (yo < Global::sectionMin || yo > Global::sectionMax) continue; //sub-Chunk out of bounds, continue
 		int32_t yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - static_cast<int32_t>(yoffsetsomething); //Blocks into render zone in Y-Axis
@@ -548,7 +539,6 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 					if (Global::sectionMax == yo && y + yoffset >= Global::MapsizeY) break;
 
 					const size_t block1D = x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X;
-					//if (block1D == 2163 && chunkX == -2 && chunkZ == -11 && yo == 4) __debugbreak();
 					const size_t IDLIstIndex = getZahl(blockStates, block1D, (blockStates.size()*64)/4096);
 					const uint16_t block = idList[IDLIstIndex];
 					*targetBlock = block;
@@ -604,15 +594,12 @@ uint64_t calcTerrainSize(const int chunksX, const int chunksZ)
 void calcBitmapOverdraw(int &left, int &right, int &top, int &bottom)
 {
 	top = left = bottom = right = 0x0fffffff;
-	int val, x, z;
-	pointList::iterator itP;
-	itP = world.points.begin();
+	int val;
 	
-	for (;;) {
+	for (pointList::iterator itP = world.points.begin(); itP != world.points.end(); ++itP) {
 
-		if (itP == world.points.end()) break;
-		x = (*itP).x; //x-Coordinate des Chunks
-		z = (*itP).z; //z-Coordinate des Chunks
+		int x = (*itP).x; //x-Coordinate des Chunks
+		int z = (*itP).z; //z-Coordinate des Chunks
 
 		if (Global::settings.orientation == North) {
 			// Right
@@ -707,8 +694,6 @@ void calcBitmapOverdraw(int &left, int &right, int &top, int &bottom)
 				bottom = val;
 			}
 		}
-		//
-		itP++;
 	}
 }
 
@@ -787,14 +772,14 @@ const inline int floorRegion(const int val)
 bool loadEntireTerrain()
 {
 	if(world.regions.empty()) {
-		__debugbreak(); //no regions loaded
+		//no regions loaded
 		return false;
 	}
 	allocateTerrain();
 	const size_t max = world.regions.size();
 	size_t count = 0;
 	std::cout << "Loading all chunks..\n";
-	for (regionList::iterator it = world.regions.begin(); it != world.regions.end(); it++) {
+	for (regionList::iterator it = world.regions.begin(); it != world.regions.end(); ++it) {
 		Region& region = (*it);
 		printProgress(count++, max);
 		int i;
@@ -856,13 +841,9 @@ bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks
 		return false;
 	}
 	z_stream zlibStream;
-	for (chunkMap::iterator ci = localChunks.begin(); ci != localChunks.end(); ci++) {
+	for (chunkMap::iterator ci = localChunks.begin(); ci != localChunks.end(); ++ci) {
 		uint32_t offset = ci->first;
-		//if (offset == 81920) __debugbreak(); //chunk[14, 28] in World at(14, -4) in file r.0.-1.mca
-		// Not even needed. duh.
-		//uint32_t index = ci->second;
-		//int x = (**it).x + (index / 4) % REGIONSIZE;
-		//int z = (**it).z + (index / 4) / REGIONSIZE;
+
 		rp.seekg(offset);
 		if (rp.fail()) {
 			std::cerr << "Error seeking to chunk in region file " << file << '\n';
@@ -905,45 +886,17 @@ bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks
 			len = zlibStream.total_out;
 			if (len == 0) {
 				std::cerr << "cold not decompress region! Error\n";
-				__debugbreak();
 			}
 		} else {
 			std::cerr << "Unsupported McRegion version: " << (int)version << '\n';
 			continue;
 		}
-		//__debugbreak(); //check if resize works
 		std::vector<uint8_t> buf(decompressedBuffer.begin(), decompressedBuffer.begin() + len);
 		if (loadChunk(buf)) {
 			loadedChunks++;
 		}
 	}
 	return true;
-}
-
-inline void assignBlock(const uint8_t &block, uint16_t* &targetBlock, int &x, int &y, int &z, const uint8_t* &justData, const uint8_t* &addData)
-{
-	//WorldFormat == 2
-	uint8_t add = 0;
-	uint8_t col = (justData[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF; //Get the 4Bits of MetaData
-	if (addData != nullptr)
-	{
-		add = ( addData[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF;
-	}
-
-	//additional data
-	*targetBlock = (add + block) | (col << 4);
-	//*(targetBlock + Global::Terrainsize) = (add) + (col << 4);
-	//*targetBlock++ = block; //first write, then increment
-}
-
-inline void assignBlock(const uint8_t &block, uint8_t* &targetBlock, int &x, int &y, int &z, uint8_t* &justData)
-{
-	//WorldFormat != 2
-	uint8_t col = (justData[(y + (z + (x * CHUNKSIZE_Z)) * CHUNKSIZE_Y) / 2] >> ((y % 2) * 4)) & 0xF;  //Get the 4Bits of MetaData
-
-	//additional data
-	*(targetBlock + Global::Terrainsize) = (col << 4);
-	*targetBlock++ = block;
 }
 
 inline void lightCave(const int x, const int y, const int z)
