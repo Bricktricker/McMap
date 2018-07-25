@@ -102,7 +102,10 @@ NBT::NBT(const std::vector<uint8_t>& _data)
 	_type = tagUnknown;
 	size_t pos = 0;
 	_good = parseData(_data, pos);
-	if (pos > _data.size()) __debugbreak(); //something went wrong
+	if (pos > _data.size()) {
+		std::cerr << "Error reading NBT data\n";
+		exit(1);
+	}
 }
 
 NBT_Tag::NBT_Tag()
@@ -115,14 +118,14 @@ NBT_Tag::NBT_Tag(const std::vector<uint8_t>& data, size_t& pos, TagType type)
 {
 	if (!parseData(data, pos, false)) {
 		std::cerr << "Error reading NBT\n";
-		__debugbreak();
+		exit(1);
 	}
 }
 
 NBT_Tag::NBT_Tag(const std::vector<uint8_t>& data, size_t& pos) {
 	if (!parseData(data, pos)) {
 		std::cerr << "Error reading NBT List\n";
-		__debugbreak();
+		exit(1);
 	}
 }
 
@@ -215,12 +218,12 @@ bool NBT_Tag::parseData(const std::vector<uint8_t>& data, size_t& pos, bool pars
 	}
 	default:
 		std::cerr << "NBT file corrupted\n";
-		__debugbreak();
+		exit(1);
 		break;
 	}
 
 	if (pos > data.size()) {
-		__debugbreak();
+		exit(1);
 		return false;
 	}
 

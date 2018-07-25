@@ -1153,7 +1153,6 @@ namespace
 	void setGrassBA(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark, const int sub)
 	{
 		// this will make grass look like dirt from the side
-		__debugbreak(); //are the two lower lines working?
 		Color_t L = colorMap[blockTree["minecraft:dirt"].get()];
 		Color_t D = L;
 		modColor(L, sub - 15);
