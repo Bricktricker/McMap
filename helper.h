@@ -58,7 +58,7 @@ bool strEndsWith(std::string const &fullString, std::string const &ending);
 
 
 template<typename Out>
-void strSplit(const std::string &s, char delim, Out& result) {
+void strSplit(const std::string &s, char delim, Out result) {
 	std::stringstream ss(s);
 	std::string item;
 	while (std::getline(ss, item, delim)) {

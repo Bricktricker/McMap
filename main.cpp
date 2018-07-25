@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 	}
 	bool wholeworld = false;
 	std::string filename, outfile, colorfile, blockfile, texturefile, infoFile, biomepath;
-	bool dumpColors = false, infoOnly = false;
+	bool infoOnly = false;
 	uint64_t memlimit;
 	const std::string numBits = sizeof(size_t) == 8 ? "64" : "32";
 	if(sizeof(size_t) < 8) { //test for 32Bit
@@ -78,7 +78,6 @@ int main(int argc, char **argv)
 	}
 	bool memlimitSet = false;
 
-#pragma region CommandLineParsing
 	{ // -- New command line parsing --
 #		define MOREARGS(x) (argpos + (x) < argc)
 #		define NEXTARG argv[++argpos]
@@ -180,8 +179,6 @@ int main(int argc, char **argv)
 				infoFile = NEXTARG;
 			} else if (option == "-infoonly") {
 				infoOnly = true;
-			} else if (option == "-dumpcolors") {
-				dumpColors = true;
 			} else if (option == "-north") {
 				Global::settings.orientation = North;
 			} else if (option == "-south") {
@@ -243,7 +240,6 @@ int main(int argc, char **argv)
 	}
 	// ########## end of command line parsing ##########
 	//if (Global::settings.hell || Global::settings.serverHell || Global::settings.end) Global::useBiomes = false;
-#pragma endregion
 
 	std::cout << "mcmap " << VERSION << ' ' << numBits << "bit by Zahl & mcmap3 by WRIM & 1.13 support by Philipp\n";
 

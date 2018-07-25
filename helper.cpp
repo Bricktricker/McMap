@@ -80,7 +80,7 @@ bool strEndsWith(std::string const &fullString, std::string const &ending) {
 
 std::vector<std::string> strSplit(const std::string &s, char delim) {
 	std::vector<std::string> elems;
-	strSplit(s, delim, std::back_inserter(elems));
+	strSplit<decltype(std::back_inserter(elems))>(s, delim, std::back_inserter(elems));
 	return elems;
 }
 
@@ -122,7 +122,7 @@ bool isTorch(const uint16_t bID)
 template <typename T, typename std::enable_if_t<std::is_integral<T>::value>* = nullptr>
 T swap_endian(T u)
 {
-	static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
+	static_assert (std::numeric_limits<unsigned char>::digits == 8, "CHAR_BIT != 8");
 
 	union
 	{
