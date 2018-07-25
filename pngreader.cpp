@@ -2,12 +2,11 @@
  * PngReader.cpp
  *
  *  Created on: 04.11.2010
- *      Author: Zahl
+ *      Author: Zahl, Philipp
  */
 
 #include "pngreader.h"
 #include <png.h>
-#include <cstdio>
 #include <fstream>
 
 void userReadData(png_structp pngPtr, png_bytep data, png_size_t length)

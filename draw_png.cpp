@@ -17,9 +17,6 @@
 #ifndef _WIN32
 #include <sys/stat.h>
 #endif
-#if defined(_WIN32) && !defined(__GNUC__)
-#  include <direct.h>
-#endif
 
 #ifndef Z_BEST_SPEED
 #	define Z_BEST_SPEED 6
@@ -253,8 +250,6 @@ bool saveImage()
 					for (size_t tileIndex = sizeOffset[tileSize]; tileIndex < sizeOffset[tileSize+1]; ++tileIndex) {
 						ImageTile& t = tile[tileIndex];
 						if (t.fileHandle.is_open()) { // Unload/close first
-							//printf("Calling end with ptr == %p, y == %d, start == %d, tileSize == %d, tileIndex == %d, to == %d, numpng == %d\n",
-									//t.pngPtr, y, (int)start, (int)tileSize, (int)tileIndex, (int)sizeOffset[tileSize+1], (int)numpng);
 							png_write_end(t.pngPtr, NULL);
 							png_destroy_write_struct(&(t.pngPtr), &(t.pngInfo));
 							t.fileHandle.close();
@@ -262,8 +257,6 @@ bool saveImage()
 						if (tileWidth * (tileIndex - sizeOffset[tileSize]) < size_t(gPngWidth)) {
 							// Open new tile file for a while
 							tmpString = Global::tilePath + "/x" + std::to_string(int(tileIndex - sizeOffset[tileSize])) + 'y' + std::to_string(int((y / pow(2, 12 - tileSize)))) + 'z' + std::to_string(int(tileSize)) + ".png";
-							//snprintf(tmpString, tmpLen, "%s/x%dy%dz%d.png", g_TilePath,
-									//int(tileIndex - sizeOffset[tileSize]), int((y / pow(2, 12 - tileSize))), int(tileSize));
 #ifdef _DEBUG
 							std::cout << "Starting tile " << tmpString << " of size " << (int)pow(2, 12 - tileSize) << "...\n";
 #endif
@@ -564,8 +557,6 @@ bool composeFinalImage()
 					for (size_t tileIndex = sizeOffset[tileSize]; tileIndex < sizeOffset[tileSize+1]; ++tileIndex) {
 						ImageTile &t = tile[tileIndex];
 						if (t.fileHandle.is_open()) { // Unload/close first
-							//printf("Calling end with ptr == %p, y == %d, start == %d, tileSize == %d, tileIndex == %d, to == %d, numpng == %d\n",
-									//t.pngPtr, y, (int)start, (int)tileSize, (int)tileIndex, (int)sizeOffset[tileSize+1], (int)numpng);
 							png_write_end(t.pngPtr, NULL);
 							png_destroy_write_struct(&(t.pngPtr), &(t.pngInfo));
 							t.fileHandle.close();
@@ -573,8 +564,6 @@ bool composeFinalImage()
 						if (tileWidth * (tileIndex - sizeOffset[tileSize]) < size_t(gPngWidth)) {
 							// Open new tile file for a while
 							tmpString = Global::tilePath + "/x" + std::to_string(int(tileIndex - sizeOffset[tileSize])) + 'y' + std::to_string(int((y / pow(2, 12 - tileSize)))) + 'z' + std::to_string(int(tileSize)) + ".png";
-							//snprintf(tmpString, tmpLen, "%s/x%dy%dz%d.png", g_TilePath,
-									//int(tileIndex - sizeOffset[tileSize]), int((y / pow(2, 12 - tileSize))), int(tileSize));
 #ifdef _DEBUG
 							std::cout << "Starting tile " << tmpString << " of size " << (int)pow(2, 12 - tileSize) << "...\n";
 #endif
@@ -655,7 +644,6 @@ uint64_t calcImageSize(const int mapChunksX, const int mapChunksZ, const size_t 
 /*
 fsub: brightnessAdjustment
 biom parameter not used
-TODO: Rewrite to use new color system
 */
 void setPixel(const size_t x, const size_t y, const uint16_t stateID, const float fsub, const uint16_t biome)
 {
@@ -667,10 +655,10 @@ void setPixel(const size_t x, const size_t y, const uint16_t stateID, const floa
 	// D D L L
 	//	  D L
 	// First determine how much the color has to be lightened up or darkened
-	int sub = static_cast<int>(fsub * (static_cast<float>(colorMap[stateID].brightness) / 323.0f + 0.21f));  // The brighter the color, the stronger the impact
+	Color_t currentColor = colorMap[stateID];
+	int sub = static_cast<int>(fsub * (static_cast<float>(currentColor.brightness) / 323.0f + 0.21f));  // The brighter the color, the stronger the impact
 	//uint8_t L[CHANSPERPIXEL], D[CHANSPERPIXEL], c[CHANSPERPIXEL];
 	Color_t L, D;
-	Color_t currentColor = colorMap[stateID];
 	// Now make a local copy of the color that we can modify just for this one block
 	currentColor = modColor(currentColor, sub); //set brightness
 

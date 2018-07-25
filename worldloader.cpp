@@ -3,6 +3,7 @@
 #include "nbt.h"
 #include "colors.h"
 #include "globals.h"
+
 #include <string>
 #include <zlib.h>
 #include <iostream>
@@ -163,7 +164,6 @@ bool scanWorldDirectory(const std::string& fromPath)
 					if (valX > -4000 && valX < 4000 && valZ > -4000 && valZ < 4000) {
 						string full = path + "/" + region.name;
 						world.regions.push_back(Region(full, valX, valZ));
-						//printf("Good region at %d %d\n", valX, valZ);
 					}
 					else {
 						std::cerr << std::string("Ignoring bad region at ") << valX << ' ' + valZ << '\n';
@@ -200,8 +200,6 @@ bool scanWorldDirectory(const std::string& fromPath)
 		for (int i = 0; i < REGIONSIZE * REGIONSIZE; ++i) {
 			const uint32_t offset = (ntoh<uint32_t>(&buffer[i * 4], 3) >> 8) * 4096;
 			if (offset == 0) continue;
-			//std::cout << "Scan region: " << region.filename << ' ' << std::to_string(offset) + ' ' + std::to_string(i);
-			//printf("Scan region %s, offset %d (%d)\n", region.filename,offset,i);
 
 			const int valX = region.x + i % REGIONSIZE;
 			const int valZ = region.z + i / REGIONSIZE;
@@ -224,7 +222,6 @@ bool scanWorldDirectory(const std::string& fromPath)
 	Global::ToChunkZ++;
 	//
 	std::cout << "Min: (" << Global::FromChunkX << '|' << Global::FromChunkZ << ") Max: (" << Global::ToChunkX << '|' << Global::ToChunkZ << ")\n";
-	//printf("Min: (%d|%d) Max: (%d|%d)\n", Global::FromChunkX, Global::FromChunkZ, Global::ToChunkX, Global::ToChunkZ);
 	return true;
 }
 
@@ -251,23 +248,19 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 	NBT_Tag *level = NULL;
 	ok = chunk.getCompound("Level", level);
 	if (!ok) {
-		printf("No level\n");
-		__debugbreak();
+		std::cerr << "No level\n";
 		return false;
 	}
 	int32_t chunkX, chunkZ;
 	ok = level->getInt("xPos", chunkX);
 	ok = ok && level->getInt("zPos", chunkZ);
 	if (!ok) {
-		printf("No pos\n");
-		__debugbreak();
+		std::cerr << "No pos\n";
 		return false;
 	}
 
 	// Check if chunk is in desired bounds (not a chunk where the filename tells a different position)
 	if (chunkX < Global::FromChunkX || chunkX >= Global::ToChunkX || chunkZ < Global::FromChunkZ || chunkZ >= Global::ToChunkZ) {
-		if (!chunk.good()) printf("Chunk is out of bounds. %d %d\n", chunkX, chunkZ);
-		//delete chunk;
 		return false; // Nope, its not...
 	}
 
@@ -275,7 +268,6 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 		std::string status;
 		if (!level->getString("Status", status)) {
 			std::cerr << "could not find Status in Chunk\n";
-			__debugbreak();
 			return false;
 		}
 		if (status >= "finalized" && status != "liquid_carved") {
@@ -283,8 +275,6 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 		}
 		return false;
 	}else{
-		//std::cerr << "trying to load old Anvil World. Currently not supported\n";
-		//return false;
 		return loadAnvilChunk(level, chunkX, chunkZ);
 	}
 }
@@ -293,10 +283,10 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 {
 #pragma region CHUNKLOADING
 
-	PrimArray<uint8_t> *blockdata, *lightdata, *skydata, *justData, *addData = 0;
+	PrimArray<uint8_t> blockdata, lightdata, skydata, justData, addData;
 	size_t len, yoffset, yoffsetsomething = (Global::MapminY + SECTION_Y * 10000) % SECTION_Y;
 	int8_t yo;
-	std::list<NBT_Tag*> *sections = nullptr;
+	std::list<NBT_Tag*> sections;
 	bool ok;
 	//
 	ok = level->getList("Sections", sections);
@@ -307,8 +297,8 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 	//
 	const int offsetz = (chunkZ - Global::FromChunkZ) * CHUNKSIZE_Z; //Blocks into world, from lowest point
 	const int offsetx = (chunkX - Global::FromChunkX) * CHUNKSIZE_X; //Blocks into world, from lowest point
-	for (std::list<NBT_Tag *>::iterator it = sections->begin(); it != sections->end(); it++) {
-		NBT_Tag *section = *it;
+	for (std::list<NBT_Tag *>::iterator it = sections.begin(); it != sections.end(); it++) {
+		NBT_Tag* section = *it;
 		ok = section->getByte("Y", yo);
 		if (!ok) {
 			std::cerr << "Y-Offset not found in section\n";
@@ -318,19 +308,19 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 		yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - yoffsetsomething; //Blocks into render zone in Y-Axis
 		if (yoffset < 0) yoffset = 0;
 		ok = section->getByteArray("Blocks", blockdata);
-		if(ok) len = blockdata->_len;
+		if(ok) len = blockdata._len;
 		if (!ok || len < CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) {
 			std::cerr << "No blocks\n";
 			return false;
 		}
 		ok = section->getByteArray("Data", justData); //Metadata
-		if(ok) len = justData->_len;
+		if(ok) len = justData._len;
 		if (!ok || len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
 			std::cerr << "No block data\n";
 			return false;
 		}
 		ok = section->getByteArray("Add", addData);
-		if(ok) len = addData->_len;
+		if(ok) len = addData._len;
 		if (Global::settings.nightmode || Global::settings.skylight) { // If nightmode, we need the light information too
 			ok = section->getByteArray("BlockLight", lightdata);
 			if (!ok || len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
@@ -340,7 +330,7 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 		}
 		if (Global::settings.skylight) { // Skylight desired - wish granted
 			ok = section->getByteArray("SkyLight", skydata);
-			len = skydata->_len;
+			len = skydata._len;
 			if (!ok || len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
 				return false;
 			}
@@ -374,16 +364,16 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 					if (Global::sectionMin == yo && y < yoffsetsomething) continue;
 					if (Global::sectionMax == yo && y + yoffset >= Global::MapsizeY) break;
 					// Block data
-					uint16_t block = static_cast<uint16_t>(blockdata->_data[x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X]); //Block-ID (0,..,255)
+					uint16_t block = static_cast<uint16_t>(blockdata._data[x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X]); //Block-ID (0,..,255)
 					
-					if (addData != nullptr) { //For blockID > 255
+					if (addData._len > 0) { //For blockID > 255
 						__debugbreak();
-						const uint8_t add = (addData->_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF;
+						const uint8_t add = (addData._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF;
 						assert((block | (add << 8)) == ((block + (add << 8))));
 						block += (add << 8);
 					}
 					//for metadata
-					const uint8_t col = (justData->_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF; //Get the 4Bits of MetaData
+					const uint8_t col = (justData._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF; //Get the 4Bits of MetaData
 					//if (col != 0 && block != 1) __debugbreak();
 					assert((block | (col << 12)) == ((block + (col << 12))));
 					const uint16_t blockWithMeta = block + (col << 12);
@@ -405,34 +395,23 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 							lightCave(x + offsetx, static_cast<int>(yoffset) + y, z + offsetz);
 						}
 					} else if (Global::settings.skylight && (y & 1) == 0) {
-						const uint8_t highlight = ((lightdata->_data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
-						const uint8_t lowlight =  ((lightdata->_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
-						uint8_t highsky = ((skydata->_data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
-						uint8_t lowsky =  ((skydata->_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
+						const uint8_t highlight = ((lightdata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
+						const uint8_t lowlight =  ((lightdata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
+						uint8_t highsky = ((skydata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
+						uint8_t lowsky =  ((skydata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
 						if (Global::settings.nightmode) {
 							highsky = clamp(highsky / 3 - 2);
 							lowsky = clamp(lowsky / 3 - 2);
 						}
 						*lightByte++ = ((MAX(highlight, highsky) & 0x0F) << 4) | (MAX(lowlight, lowsky) & 0x0F);
 					} else if (Global::settings.nightmode && (y & 1) == 0) {
-						*lightByte++ = ((lightdata->_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F)
-							| ((lightdata->_data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) << 4);
+						*lightByte++ = ((lightdata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F)
+							| ((lightdata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) << 4);
 					}
 				} // for y
 			} // for z
 		} // for x
 
-/*
-		// Markers Anvil - TODO
-		if (g_MarkerCount != 0) for (int i = 0; i < g_MarkerCount; ++i) {
-			Marker &m = g_Markers[i];
-			if (m.chunkX == chunkX && m.chunkZ == chunkZ) {
-				memset(blockdata + ((m.offsetZ + (m.offsetX * CHUNKSIZE_Z)) * SECTION_Y), m.color, SECTION_Y - 1);
-		printf("marker-%d-%d---%d-%d---%d---\n\n",chunkX,chunkZ,m.offsetX,m.offsetZ,m.color);
-			}
-		}
-
-		*/
 	}
 #pragma endregion
 	return true;
@@ -440,8 +419,8 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 
 bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ)
 {
-	NBTlist sections = nullptr;
-	if (!level->getList("Sections", sections) || sections == nullptr) {
+	NBTlist sections;
+	if (!level->getList("Sections", sections) || sections.empty()) {
 		std::cerr << "No sections found in region\n";
 		return false;
 	}
@@ -452,9 +431,9 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 	if (yoffsetsomething != 0)
 		__debugbreak();
 
-	for (auto secItr = sections->begin(); secItr != sections->end(); secItr++) {
+	for (const auto sec : sections) { //auto secItr = sections->begin(); secItr != sections->end(); secItr++
 		int8_t yo = -1;
-		if(!(*secItr)->getByte("Y", yo)){
+		if(!sec->getByte("Y", yo)){
 			std::cerr << "Y-Offset not found in section\n";
 			return false;
 		}
@@ -465,37 +444,37 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 		int32_t yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - static_cast<int32_t>(yoffsetsomething); //Blocks into render zone in Y-Axis
 		if (yoffset < 0) yoffset = 0;
 
-		PrimArray<int64_t>* blockStatesPrim;
-		if(!(*secItr)->getLongArray("BlockStates", blockStatesPrim)) {
+		PrimArray<int64_t> blockStatesPrim;
+		if(!sec->getLongArray("BlockStates", blockStatesPrim)) {
 			std::cerr << "No blockStates in sub-Chunk\n";
 			continue;
 		}
-		std::vector<uint64_t> blockStates((uint64_t*)blockStatesPrim->_data, (uint64_t*)blockStatesPrim->_data + blockStatesPrim->_len);
+		std::vector<uint64_t> blockStates((uint64_t*)blockStatesPrim._data, (uint64_t*)blockStatesPrim._data + blockStatesPrim._len);
 
-		PrimArray<uint8_t>* lightdata = nullptr;
+		PrimArray<uint8_t> lightdata;
 		if (Global::settings.nightmode || Global::settings.skylight) { // If nightmode, we need the light information too
-			bool ok = (*secItr)->getByteArray("BlockLight", lightdata);
-			if (!ok || lightdata->_len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
+			bool ok = sec->getByteArray("BlockLight", lightdata);
+			if (!ok || lightdata._len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
 				std::cerr << "No block light\n";
 				return false;
 			}
 		}
 
-		PrimArray<uint8_t>* skydata;
-		if (Global::settings.skylight) { // Skylight desired - wish granted
-			bool ok = (*secItr)->getByteArray("SkyLight", skydata);
-			if (!ok || skydata->_len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
+		PrimArray<uint8_t> skydata;
+		if (Global::settings.skylight) { // Skylight desired - wish granted?
+			bool ok = sec->getByteArray("SkyLight", skydata);
+			if (!ok || skydata._len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
 				return false;
 			}
 		}
 
 		NBTlist palette;
-		if (!(*secItr)->getList("Palette", palette)) {
+		if (!sec->getList("Palette", palette)) {
 			std::cerr << "No Palette in sub-Chunk\n";
 			continue;
 		}
 		std::vector<uint16_t> idList;
-		for (const auto state : *palette) {
+		for (const auto state : palette) {
 			std::string blockName;
 			if (!state->getString("Name", blockName)) {
 				std::cerr << "State has no name\n";
@@ -583,10 +562,10 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 						}
 					}
 					else if (Global::settings.skylight && (y & 1) == 0) {
-						const uint8_t highlight = ((lightdata->_data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
-						const uint8_t lowlight = ((lightdata->_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
-						uint8_t highsky = ((skydata->_data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
-						uint8_t lowsky = ((skydata->_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
+						const uint8_t highlight = ((lightdata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
+						const uint8_t lowlight = ((lightdata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
+						uint8_t highsky = ((skydata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
+						uint8_t lowsky = ((skydata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
 						if (Global::settings.nightmode) {
 							highsky = clamp(highsky / 3 - 2);
 							lowsky = clamp(lowsky / 3 - 2);
@@ -594,8 +573,8 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 						*lightByte++ = ((MAX(highlight, highsky) & 0x0F) << 4) | (MAX(lowlight, lowsky) & 0x0F);
 					}
 					else if (Global::settings.nightmode && (y & 1) == 0) {
-						*lightByte++ = ((lightdata->_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F)
-							| ((lightdata->_data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) << 4);
+						*lightByte++ = ((lightdata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F)
+							| ((lightdata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) << 4);
 					}
 				} //for y
 			} //for z
@@ -751,7 +730,6 @@ void allocateTerrain()
 		Global::biomeMap.resize(Global::biomeMapSize, 0);
 	}*/
 	Global::heightMap.resize(Global::MapsizeX * Global::MapsizeZ, 0xff00); //0xff00
-	//printf("%d -- %d\n", g_MapsizeX, g_MapsizeZ); //dimensions of terrain map (in memory)
 	Global::Terrainsize = Global::MapsizeX * Global::MapsizeY * Global::MapsizeZ;
 
 	std::cout << "Terrain takes up " << std::setprecision(5) << float(Global::Terrainsize*sizeof(uint16_t) / float(1024 * 1024)) << "MiB";

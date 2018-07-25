@@ -26,29 +26,20 @@
  *
  */
 
-#include "helper.h"
 #include "draw_png.h"
 #include "colors.h"
 #include "worldloader.h"
 #include "globals.h"
 #include "filesystem.h"
 #include "json.hpp"
+
 #include <string>
 #include <vector>
-#include <cstring>
-#include <cstdio>
-#include <cstdlib>
 #include <ctime>
 #include <iostream>
 #include <fstream>
-#ifdef _DEBUG
-#include <cassert>
-#endif
 #ifndef _WIN32
 #include <sys/stat.h>
-#endif
-#if defined(_WIN32) && !defined(__GNUC__)
-//#include <direct.h>
 #endif
 
 namespace
@@ -131,13 +122,11 @@ int main(int argc, char **argv)
 				std::cerr << "-biomecolors no longer supported\n";
 				return 1;
 				//biomepath = NEXTARG;
-			} else if (option == "-png") {
-				// void ?
-				__debugbreak();
 			} else if (option == "-blendall") {
 				Global::settings.blendAll = true;
 			} else if (option == "-lowmemory") {
 				std::cerr << "-lowmemory no longers supported\n";
+				return 1;
 			} else if ((option == "-noise") || (option == "-dither")) {
 				if (!MOREARGS(1) || !isNumeric(POLLARG(1))) {
 					std::cerr << "Error: " << option << " needs an integer argument, ie: " << option << " 10\n";
@@ -262,7 +251,7 @@ int main(int argc, char **argv)
 		memlimit = 1800 * uint64_t(1024 * 1024);
 	}
 
-	// Load colors TODO: allow change of path
+	// Load colors
 	if (blockfile.empty()) {
 		blockfile = "BlockIDs.json";
 	}
@@ -283,21 +272,21 @@ int main(int argc, char **argv)
 	}
 	if (Global::settings.hell) {
 		std::string tmp = filename + "/DIM-1";
-		if (!dirExists(tmp)) {
+		if (!Dir::dirExists(tmp)) {
 			std::cerr << "Error: This world does not have a hell world yet. Build a portal first!\n";
 			return 1;
 		}
 		filename = tmp;
 	} else if (Global::settings.end) {
 		std::string tmp = filename + "/DIM1";
-		if (!dirExists(tmp)) {
+		if (!Dir::dirExists(tmp)) {
 			std::cerr << "Error: This world does not have an end-world yet. Find an ender portal first!\n";
 			return 1;
 		}
 		filename = tmp;
 	} else if (Global::mystCraftAge) {
 		std::string tmp = filename + "/DIM_MYST" + std::to_string(Global::mystCraftAge);
-		if (!dirExists(tmp)) {
+		if (!Dir::dirExists(tmp)) {
 			std::cerr << "Error: This world does not have Age " << Global::mystCraftAge  << "!\n";
 			return 1;
 		}
@@ -325,7 +314,7 @@ int main(int argc, char **argv)
 	Global::sectionMin = Global::MapminY >> SECTION_Y_SHIFT;
 	Global::sectionMax = (Global::MapsizeY - 1) >> SECTION_Y_SHIFT;
 	Global::MapsizeY -= Global::MapminY;
-	std::cout << "MinY: " << Global::MapminY << " ... MaxY: " << Global::MapsizeY << " ... MinSecY: " << Global::sectionMin << " ... MaxSecY: " << Global::sectionMax << '\n';
+	std::cout << "MinY: " << Global::MapminY << " ... MaxY: " << Global::MapsizeY << " ... MinSecY: " << std::to_string(Global::sectionMin) << " ... MaxSecY: " << std::to_string(Global::sectionMax) << '\n';
 	// Whole area to be rendered, in chunks
 	// If -mem is omitted or high enough, this won't be needed
 	Global::TotalFromChunkX = Global::FromChunkX;
@@ -405,8 +394,6 @@ int main(int argc, char **argv)
 	}
 
 	// open output file only if not doing the tiled output
-	//TODO rewrite to use fstream
-	//FILE *fileHandle = NULL;
 	std::fstream fileHandle;
 	if (Global::tilePath.empty()) {
 		fileHandle.open(outfile, std::ios::in | std::ios::out | std::ios::binary);
@@ -425,7 +412,7 @@ int main(int argc, char **argv)
 	} else {
 		// This would mean tiled output
 		Dir::createDir(Global::tilePath);
-		if (!dirExists(Global::tilePath)) {
+		if (!Dir::dirExists(Global::tilePath)) {
 			std::cerr << "Error: '" << Global::tilePath << "' does not exist.\n";
 			return 1;
 		}
@@ -930,6 +917,7 @@ void printHelp(const std::string& binary)
 		<< "                will use incremental rendering or disk caching to stick to\n"
 		<< "                this limit. Default is 1800.\n"
 		<< "  -colors NAME  loads user defined colors from file 'NAME'\n"
+		<< "  -blocks NAME  loads user defined block ids from file 'NAME'\n"
 		<< "  -north -east -south -west\n"
 		<< "                controls which direction will point to the *top left* corner\n"
 		<< "                it only makes sense to pass one of them; East is default\n"
@@ -938,10 +926,11 @@ void printHelp(const std::string& binary)
 		<< "  -end          render the end dimension of the given world\n"
 		<< "  -serverhell   force cropping of blocks at the top (use for nether servers)\n"
 		<< "  -texture NAME extract colors from png file 'NAME'; eg. terrain.png\n"
-		<< "  -info NAME    Write information about map to file 'NAME' in JSON format \n"
+		<< "  -info NAME    Write information about map to file 'NAME' in JSON format\n"
+		<< "                use -infoonly to not render the world"
 		<< "  -split PATH   create tiled output (128x128 to 4096x4096) in given PATH\n"
-		<< "  -marker c x z place marker at x z with color c (r g b w)\n"
-		<< "\n    WORLDPATH is the path of the desired alpha/beta world.\n\n"
+		<< "  -marker c x z currently not working\n"
+		<< "\n    WORLDPATH is the path of the desired world.\n\n"
 		////////////////////////////////////////////////////////////////////////////////
 		<< "Examples:\n\n"
 #ifdef _WIN32

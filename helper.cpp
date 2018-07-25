@@ -1,16 +1,5 @@
 #include "helper.h"
-#include <cstring>
-#include <ctime>
-#include <cstdio>
-#include <sys/types.h>
-#include <sys/stat.h>
-#ifndef S_ISREG
-#define	S_ISREG(m)	(((m) & S_IFMT) == S_IFREG)
-#endif
-#ifndef S_ISDIR
-#define	S_ISDIR(m)	(((m) & S_IFMT) == S_IFDIR)
-#endif
-
+#include "filesystem.h"
 #include <fstream>
 #include <regex>
 #include <cassert>
@@ -46,36 +35,6 @@ std::string base36(int val)
 int base10(const std::string& val)
 {
 	return std::stoi(val);
-	//return atoi(val.c_str());
-	/*
-	//printf("Turning %s into ", val);
-	int res = 0;
-	bool neg = false;
-	if (*val == '-') {
-		neg = true;
-		++val;
-	}
-	for (;;) {
-		if (*val >= '0' && *val <= '9') {
-			res = res * 36 + (*val++ - '0');
-			continue;
-		}
-		if (*val >= 'a' && *val <= 'z') {
-			res = res * 36 + 10 + (*val++ - 'a');
-			continue;
-		}
-		if (*val >= 'A' && *val <= 'Z') {
-			res = res * 36 + 10 + (*val++ - 'A');
-			continue;
-		}
-		break;
-	}
-	if (neg) {
-		res *= -1;
-	}
-	//printf("%d\n", res);
-	return res;
-	*/
 }
 
 void printProgress(const size_t current, const size_t max)
@@ -99,35 +58,6 @@ void printProgress(const size_t current, const size_t max)
 	}
 }
 
-bool fileExists(const std::string& strFilename)
-{
-	if (strFilename.empty()) return false;
-	std::ifstream f(strFilename);
-	return f.good();
-
-	/*
-	struct stat stFileInfo;
-	int ret;
-	ret = stat(strFilename, &stFileInfo);
-	if(ret == 0) {
-		return S_ISREG(stFileInfo.st_mode);
-	}
-	return false;
-	*/
-}
-
-//TODO: move to filesystem.cpp
-bool dirExists(const std::string& strFilename)
-{
-	struct stat stFileInfo;
-	int ret;
-	ret = stat(strFilename.c_str(), &stFileInfo);
-	if(ret == 0) {
-		return S_ISDIR(stFileInfo.st_mode);
-	}
-	return false;
-}
-
 bool isNumeric(const std::string& str)
 {
 	return std::regex_match(str, std::regex("[(-|+)|][0-9]+"));
@@ -136,7 +66,7 @@ bool isNumeric(const std::string& str)
 bool isAlphaWorld(const std::string& path)
 {
 	std::string pathToFile = path + "/level.dat";
-	return fileExists(pathToFile);
+	return Dir::fileExists(pathToFile);
 }
 
 bool strEndsWith(std::string const &fullString, std::string const &ending) {
@@ -208,9 +138,6 @@ T swap_endian(T u)
 	return dest.u;
 }
 
-/*
-TODO: read uint64_t value, swap endianes and continue as before
-*/
 size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne) {
 	const size_t maxObj = (arr.size() * numBits<uint64_t>()) / lengthOfOne;
 	if (maxObj <= index)
@@ -219,7 +146,6 @@ size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_
 	size_t startBit = index * lengthOfOne;
 	size_t endBit = (startBit + lengthOfOne) - 1;
 	if ((startBit / numBits<uint64_t>()) != (endBit / numBits<uint64_t>())) {
-		//__debugbreak();
 		uint64_t lowByte = swap_endian(arr[startBit / numBits<uint64_t>()]);
 		uint64_t upByte = swap_endian(arr[endBit / numBits<uint64_t>()]);
 
@@ -229,7 +155,6 @@ size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_
 		upByte &= ~(~0 << bitsUp);
 		upByte = upByte << bitsLow;
 
-		//lowByte &= ~0 << bitsLow;
 		lowByte = lowByte >> (numBits<uint64_t>() - bitsLow);
 
 		assert((upByte|lowByte)==(upByte+lowByte));

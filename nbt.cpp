@@ -2,19 +2,13 @@
  * Tiny OO NBT parser for C++
  * v1.0, 09-2010 by Zahl
  */
-#include <cstdio>
-#include <cstdlib>
 #include <iostream>
-
+#include "nbt.h"
 
 // For MSVC++, get "zlib compiled DLL" from http://www.zlib.net/ and read USAGE.txt
 // gcc from MinGW works with the static library of zlib; however, trying
 // static linking in MSVC++ gave me weird results and crashes (v2008)
 // on linux, static linking works too, of course, but shouldn't be needed
-
-#include <zlib.h>
-
-#include "nbt.h"
 
 /* A few words on this class:
  * It is written in a half-way OO manner. That is, it breaks
@@ -48,15 +42,7 @@
  * Thanks :-)
  */
 
-// I feel like including these just for ntohs/ntohl is unnecessary,
-// especially as you need two targets in the makefile then (unix and windows)
-/*
-#if defined(linux) || defined(unix)
-#include <arpa/inet.h>
-#elif defined(_WIN32)
-#include <winsock2.h>
-#endif
-*/
+
 // Using these two functions instead
 static inline uint16_t _ntohs(uint8_t *val)
 {
@@ -119,155 +105,10 @@ NBT::NBT(const std::vector<uint8_t>& _data)
 	if (pos > _data.size()) __debugbreak(); //something went wrong
 }
 
-/*
-NBT::NBT(const char *file, bool &success)
-{
-	_blob = NULL;
-	_filename = NULL;
-	if (file == NULL || *file == '\0' || !fileExists(file)) {
-		//fprintf(stderr, "File not found: %s\n", file);
-		success = false;
-		return;
-	}
-	_filename = strdup(file);
-	gzFile fh = 0;
-	for (int i = 0; i < 20; ++i) { // Give up eventually if you can't open the file....
-		if ((fh = gzopen(file, "rb")) != 0) {
-			break;
-		}
-		usleep(5000); // sleep 5ms
-	}
-	success = (fh != 0);
-	if (!success) {
-		//fprintf(stderr, "Error opening file %s\n", file);
-		return;
-	}
-	// File is open, read data
-	int length = 150000 * (CHUNKSIZE_Y / 128); // I checked a few chunk files in their decompressed form, I think they can't really get any bigger than 80~90KiB, but just to be sure...
-	_blob = new uint8_t[length];
-	int ret = gzread(fh, _blob, length);
-	gzclose(fh);
-	if (ret == -1 || _blob[0] != 10) { // Has to start with TAG_Compound
-		//fprintf(stderr, "Ret: %d/%d - start: %d\n", ret, length, (int)_blob[0]);
-		success = false;
-		return;
-	}
-	_bloblen = ret;
-	uint8_t *position = _blob + 3, *end = _blob + ret;
-	_type = tagCompound;
-	NBT_Tag::parseData(position, end);
-	if (position == NULL) {
-		//fprintf(stderr, "Error parsing NBT from file\n");
-	}
-	success = (position != NULL);
-}
-
-NBT::NBT(uint8_t * const file, const size_t len, const bool shared, bool &success)
-{
-	_filename = NULL;
-	if (shared) {
-		_blob = NULL;
-	} else {
-		_blob = new uint8_t[len];
-		memcpy(_blob, file, len);
-	}
-	_bloblen = len;
-	uint8_t *position = file + 3, *end = file + len;
-	_type = tagCompound;
-	NBT_Tag::parseData(position, end);
-	if (position == NULL) {
-		//fprintf(stderr, "Error parsing NBT from stream\n");
-	}
-	success = (position != NULL);
-	/*
-	if (success) printf("\x1B[33m success!\x1B[0m\n");
-	if (!success) printf("\x1B[31m fail!\x1B[0m\n");
-	
-}
-*/
-/*
-NBT::~NBT()
-{
-	if (_blob != NULL) {
-		//fprintf(stderr, "DELETE BLOB\n");
-		delete[] _blob;
-	}
-	if (_filename != NULL) {
-		free(_filename);
-	}
-}*/
-
-/*
-bool NBT::save()
-{	// While loading nbt files while the server is running works in most
-	// cases, it is strongly advised that you only save map chunks while
-	// the game/server is not running.
-	if (_filename == NULL) return false;
-	char *tmpfile = new char[strlen(_filename) + 5];
-	strcpy(tmpfile, _filename);
-	strcat(tmpfile, ".bak");
-	int ret = rename(_filename, tmpfile);
-	if (ret != 0) {
-		delete[] tmpfile;
-		return false;
-	}
-	gzFile fh = gzopen(_filename, "w6b");
-	if (fh == 0) {
-		delete[] tmpfile;
-		return false;
-	}
-	ret = gzwrite(fh, _blob, (unsigned int)_bloblen);
-	gzclose(fh);
-	if (ret != _bloblen) {
-		rename(tmpfile, _filename);
-		delete[] tmpfile;
-		return false;
-	}
-	//remove(tmpfile);
-	delete[] tmpfile;
-	//fprintf(stderr, "Saved %s\n", _filename);
-	return true;
-}
-*/
-
 NBT_Tag::NBT_Tag()
 	: _type(tagUnknown)
 {
 }
-
-/*
-NBT_Tag::NBT_Tag(uint8_t* &position, const uint8_t *end, string &name)
-{
-	_list = NULL;
-	_elems = NULL;
-	_data = NULL;
-	_type = tagUnknown;
-	if (*position < 1 || *position > 11 || end - position < 3) {
-		position = NULL;
-		return;
-	}
-	_type = (TagType)*position;
-	uint16_t len = _ntohs(position+1);
-	if (end - position < len) {
-		position = NULL;
-		return;
-	}
-	name = string((char *)position+3, len);
-	position += 3 + len;
-	//fprintf(stderr, "Tag name is %s\n", name.c_str());
-	this->parseData(position, end, &name);
-}
-
-NBT_Tag::NBT_Tag(uint8_t* &position, const uint8_t *end, TagType type)
-{
-	// this contructor is used for TAG_List entries
-	_list = NULL;
-	_elems = NULL;
-	_data = NULL;
-	_type = type;
-	this->parseData(position, end);
-}
-*/
 
 NBT_Tag::NBT_Tag(const std::vector<uint8_t>& data, size_t& pos, TagType type)
 	: _type(type)
@@ -284,133 +125,6 @@ NBT_Tag::NBT_Tag(const std::vector<uint8_t>& data, size_t& pos) {
 		__debugbreak();
 	}
 }
-
-/*
-void NBT_Tag::parseData(uint8_t* &position, const uint8_t *end, string *name)
-{
-	// position should now point to start of data (for named tags, right after the name)
-	//fprintf(stderr, "Have Tag of type %d\n", (int)_type);
-	switch (_type) {
-	case tagCompound:
-		_elems = new tagmap;
-		while (*position != 0 && position < end) { // No end tag, go on...
-			//fprintf(stderr, "Having a child....*plopp*..\n");
-			string thisname;
-			NBT_Tag *tmp = new NBT_Tag(position, end, thisname);
-			if (position == NULL) {
-				//fprintf(stderr, "DELETE tmp in compound because of invalid\n");
-				delete tmp;
-				return;
-			}
-			if (name != NULL) {
-				//fprintf(stderr, " ** Adding %s to %s\n", thisname.c_str(), name->c_str());
-			}
-			(*_elems)[thisname] = tmp;
-		}
-		++position;
-		break;
-	case tagList: {
-	/*
-	just for debugging
-	printf("\x1B[32mList data: \x1B[0m");
-	for (int i = 0;i<100;i++)
-	{
-	printf("%d, ",*(position+i));
-	}
-	//End comment
-
-		if (*position < 0 || *position > 11) {
-			//printf("Invalid list type (%d)!\n", *position );
-			//fprintf(stderr, "Invalid list type!\n");
-			position = NULL;
-			return;
-		}
-		TagType type;
-		if (*position == 0)
-			type = (TagType)1; // ((*position)+1);
-		else
-			type = (TagType)*position;
-		uint32_t count = _ntohl(position+1);
-		position += 5;
-		_list = new list<NBT_Tag *>;
-		//printf("List contains %d elements of type %d\n", (int)count, (int)type);
-		//fprintf(stderr, "List contains %d elements of type %d\n", (int)count, (int)type);
-		while (count-- && position < end) { // No end tag, go on...
-			NBT_Tag *tmp = new NBT_Tag(position, end, type);
-			if (position == NULL) {
-				//fprintf(stderr, "DELETE tmp in list because of invalid\n");
-				delete tmp;
-				return;
-			}
-			_list->push_back(tmp);
-		}
-	}
-	break;
-	case tagByte:
-		_data = position;
-		position += 1;
-		break;
-	case tagShort:
-		_data = position;
-		position += 2;
-		break;
-	case tagInt:
-		_data = position;
-		position += 4;
-		break;
-	case tagLong:
-		_data = position;
-		position += 8;
-		break;
-	case tagFloat:
-		_data = position;
-		position += 4;
-		break;
-	case tagDouble:
-		_data = position;
-		position += 8;
-		break;
-	case tagByteArray:
-		_len = _ntohl(position);
-		//fprintf(stderr, "Array size is %d\n", (int)_len);
-		if (position + _len + 4 >= end) {
-			printf("ByteArray too long by %d bytes!\n", int((position + _len + 4) - end));
-			position = NULL;
-			return;
-		}
-		_data = position + 4;
-		position += 4 + _len;
-		break;
-	case tagString:
-		_len = _ntohs(position);
-		//fprintf(stderr, "Stringlen is %d\n", (int)_len);
-		if (position + _len + 2 >= end) {
-			//fprintf(stderr, "Too long!\n");
-			position = NULL;
-			return;
-		}
-		_data = position;
-		position += 2 + _len;
-		break;
-	case tagIntArray:
-		_len = _ntohl(position) * 4;
-		//fprintf(stderr, "Array size is %d\n", (int)_len);
-		if (position + _len + 4 >= end) {
-			printf("IntArray too long by %d bytes!\n", int((position + _len + 4) - end));
-			position = NULL;
-			return;
-		}
-		_data = position + 4;
-		position += 4 + _len;
-		break;
-	case tagUnknown:
-	default:
-		printf("UNKNOWN TAG_ %d!\n", (int)_type);
-		position = NULL;
-		break;
-	}
-}
-*/
 
 bool NBT_Tag::parseData(const std::vector<uint8_t>& data, size_t& pos, bool parseHeader)
 {
@@ -529,23 +243,6 @@ NBT_Tag::~NBT_Tag()
 			delete dataHolder._list;
 		}
 	}
-
-	/*
-	if (_elems) {
-		for (tagmap::iterator it = _elems->begin(); it != _elems->end(); it++) {
-			////fprintf(stderr, "_elems Deleting %p\n", (it->second));
-			delete (it->second);
-		}
-		delete _elems;
-	}
-	if (_list) {
-		for (list<NBT_Tag *>::iterator it = _list->begin(); it != _list->end(); it++) {
-			////fprintf(stderr, "_list Deleting %p\n", *it);
-			delete *it;
-		}
-		delete _list;
-	}
-	*/
 }
 
 void NBT_Tag::printTags()
@@ -558,19 +255,12 @@ void NBT_Tag::printTags()
 		std::cout << "Have compound '" << val.first << "' of type " << val.second->getType() << '\n';
 	}
 	std::cout << "End list.\n";
-
-	/*
-	for (tagmap::iterator it = _elems->begin(); it != _elems->end(); it++) {
-		printf("Have compound '%s' of type %d\n", it->first.c_str(), (int)it->second->getType());
-	}
-	printf("End list.\n");
-	*/
 }
 
 
 // ----- Data getters -------
 // The return value is always a boolean, telling you if the tag was found and the operation
-// was successful. getByteArray also returns the length of the array in its third parameter.
+// was successful.
 // Protip: Always perform a check if the array really has at least the size you expect it
 // to have, to save you some headache.
 
@@ -586,25 +276,23 @@ bool NBT_Tag::getCompound(const string& name, NBT_Tag* &compound)
 		}
 	}
 
-	//__debugbreak();
 	compound = nullptr;
 	return false;
 }
 
-bool NBT_Tag::getList(const string& name, std::list<NBT_Tag*>* &lst)
+bool NBT_Tag::getList(const string& name, std::list<NBT_Tag*> &lst)
 {
 	if (_type == tagCompound) {
 		auto posVal = dataHolder._compound->find(name);
 		if (posVal != dataHolder._compound->end()) {
 			if (posVal->second->getType() == tagList) {
-				lst = posVal->second->dataHolder._list;
+				lst = *posVal->second->dataHolder._list;
 				return true;
 			}
 		}
 	}
 
-	__debugbreak();
-	lst = nullptr;
+	lst.clear();
 	return false;
 }
 
@@ -619,7 +307,7 @@ bool NBT_Tag::getByte(const string& name, int8_t &value)
 			}
 		}
 	}
-	__debugbreak();
+
 	value = 0;
 	return false;
 }
@@ -635,7 +323,7 @@ bool NBT_Tag::getShort(const string& name, int16_t &value)
 			}
 		}
 	}
-	__debugbreak();
+
 	value = 0;
 	return false;
 }
@@ -666,56 +354,65 @@ bool NBT_Tag::getLong(const string& name, int64_t &value)
 			}
 		}
 	}
-	__debugbreak();
+
 	value = 0;
 	return false;
 }
 
-bool NBT_Tag::getByteArray(const string& name, PrimArray<uint8_t>* &data)
+bool NBT_Tag::getByteArray(const string& name, PrimArray<uint8_t>& data)
 {
 	if (_type == tagCompound) {
 		auto posVal = dataHolder._compound->find(name);
 		if (posVal != dataHolder._compound->end()) {
 			if (posVal->second->getType() == tagByteArray) {
-				data = &dataHolder._compound->at(name)->dataHolder._byteArray;
+				const auto d = dataHolder._compound->at(name);
+				data._data = d->dataHolder._byteArray._data;
+				data._len = d->dataHolder._byteArray._len;
 				return true;
 			}
 		}
 	}
-	//__debugbreak();
-	data = nullptr;
+
+	data._data = nullptr;
+	data._len = 0;
 	return false;
 }
 
-bool NBT_Tag::getIntArray(const string& name, PrimArray<int32_t>*& data)
+bool NBT_Tag::getIntArray(const string& name, PrimArray<int32_t>& data)
 {
 	if (_type == tagCompound) {
 		auto posVal = dataHolder._compound->find(name);
 		if (posVal != dataHolder._compound->end()) {
 			if (posVal->second->getType() == tagIntArray) {
-				data = &dataHolder._compound->at(name)->dataHolder._intArray;
+				const auto d = dataHolder._compound->at(name);
+				data._data = d->dataHolder._intArray._data;
+				data._len = d->dataHolder._intArray._len;
 				return true;
 			}
 		}
 	}
-	__debugbreak();
-	data = nullptr;
+
+	data._data = nullptr;
+	data._len = 0;
 	return false;
 }
 
-bool NBT_Tag::getLongArray(const string& name, PrimArray<int64_t>*& data)
+bool NBT_Tag::getLongArray(const string& name, PrimArray<int64_t>& data)
 {
 	if (_type == tagCompound) {
 		auto posVal = dataHolder._compound->find(name);
 		if (posVal != dataHolder._compound->end()) {
 			if (posVal->second->getType() == tagLongArray) {
-				data = &dataHolder._compound->at(name)->dataHolder._longArray;
+				const auto d = dataHolder._compound->at(name);
+				data._data = d->dataHolder._longArray._data;
+				data._len = d->dataHolder._longArray._len;
 				return true;
 			}
 		}
 	}
-	__debugbreak();
-	data = nullptr;
+
+	data._data = nullptr;
+	data._len = 0;
 	return false;
 }
 

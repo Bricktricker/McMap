@@ -39,7 +39,7 @@ def parseStr(inStr):
 
 def handleSpecialBlocks(model):
     if model == "block/grass_block":
-        return ("top", 0)
+        return ("top", 7)
     if model.endswith("_slab"): #slab bottom
         return ("top", 9)
     if model.endswith("_slab_top"): #slab top
@@ -67,7 +67,7 @@ def getTextureFromModel(model):
     modelData = json.loads(open("{}models/{}.json".format(path, model)).read())
     textures = modelData["textures"]
     texture = ""
-    blockType = 0 #0 = SOLID, 1 = FLAT (Snow/Trapdor/Carpet), 2 = TORCH, 3 = FLOWER/PLANT, 4 = FENCE, 5 = WIRE, 6 = RAIL, 8= FIRE, 9 = SLAP bottom, 10 = SLAP top
+    blockType = 0 #0 = SOLID, 1 = FLAT (Snow/Trapdor/Carpet), 2 = TORCH, 3 = FLOWER/PLANT, 4 = FENCE, 5 = WIRE, 6 = RAIL, 7= GRASS, 8= FIRE, 9 = SLAP bottom, 10 = SLAP top
     special = handleSpecialBlocks(model)
 
     selection = ""

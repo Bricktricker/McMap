@@ -1,17 +1,15 @@
 #ifndef _NBT_H_
 #define _NBT_H_
-#include <cstring>
 #include <map>
 #include <list>
 #include <string>
-#include <memory>
 #include "helper.h"
 
 using std::string;
 
 class NBT_Tag;
 typedef std::map<std::string, NBT_Tag*> tagmap;
-typedef std::list<NBT_Tag*>* NBTlist;
+typedef std::list<NBT_Tag*> NBTlist;
 
 enum TagType {
 	tagUnknown = 0, // Tag_End is not made available, so 0 should never be in any list of available elements
@@ -31,7 +29,7 @@ enum TagType {
 
 template<typename T>
 struct PrimArray {
-	const T* _data;
+	T const * _data;
 	size_t _len; //len in number of T's in _data;
 };
 
@@ -86,15 +84,15 @@ private:
 public:
 	void printTags();
 	bool getCompound(const string& name, NBT_Tag* &compound);
-	bool getList(const string& name, std::list<NBT_Tag*>* &lst);
-	bool getByte(const string& name, int8_t &value);
-	bool getShort(const string& name, int16_t &value);
-	bool getInt(const string& name, int32_t &value);
-	bool getLong(const string& name, int64_t &value);
-	bool getByteArray(const string& name, PrimArray<uint8_t>* &data);
-	bool getIntArray(const string& name, PrimArray<int32_t>* &data);
-	bool getLongArray(const string& name, PrimArray<int64_t>* &data);
-	bool getString(const string& name, std::string &data);
+	bool getList(const string& name, std::list<NBT_Tag*>& lst);
+	bool getByte(const string& name, int8_t& value);
+	bool getShort(const string& name, int16_t& value);
+	bool getInt(const string& name, int32_t& value);
+	bool getLong(const string& name, int64_t& value);
+	bool getByteArray(const string& name, PrimArray<uint8_t>& data);
+	bool getIntArray(const string& name, PrimArray<int32_t>& data);
+	bool getLongArray(const string& name, PrimArray<int64_t>& data);
+	bool getString(const string& name, std::string& data);
 	TagType getType() const noexcept { return _type; }
 	std::string getName() const noexcept { return _name; };
 

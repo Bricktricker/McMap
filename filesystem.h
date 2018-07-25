@@ -15,7 +15,7 @@ typedef DIR *DIRHANDLE;
 struct myFile {
 	std::string name;
 	bool isdir;
-	unsigned long size;
+	size_t size;
 };
 
 namespace Dir
@@ -24,6 +24,8 @@ namespace Dir
 	bool next(DIRHANDLE handle, const std::string& path, myFile &file);
 	void close(DIRHANDLE handle);
 	bool createDir(const std::string& path);
+	bool dirExists(const std::string& strFilename);
+	bool fileExists(const std::string& strFilename);
 }
 
 #endif

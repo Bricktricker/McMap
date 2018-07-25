@@ -3,8 +3,6 @@
 
 #define VERSION "beta 3.0.4"
 
-#include <stdint.h>
-#include <cstdlib>
 #include <vector>
 #include <string>
 

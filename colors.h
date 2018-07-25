@@ -30,7 +30,6 @@ void loadColorMap(const std::string& path);
 
 #define AIR 0
 
-//TODO: check IDs
 #define BLOCKSOLID 0
 #define BLOCKFLAT 1
 #define BLOCKTORCH 2

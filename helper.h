@@ -32,7 +32,6 @@
 // Heightmap array
 #define HEIGHTAT(x,z) Global::heightMap[(z) + ((x) * Global::MapsizeZ)]
 
-
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 //#define RIGHTSTRING(x,y) ((x) + strlen(x) - ((y) > strlen(x) ? strlen(x) : (y)))
@@ -42,44 +41,17 @@
 #include <vector>
 #include <iterator>
 #include <sstream>
-#include <climits>
 
 // Difference between MSVC++ and gcc/others
 #if defined(_WIN32) && !defined(__GNUC__)
-#	include <windows.h>
-#	define usleep(x) Sleep((x) / 1000);
 #else
 #	include <unistd.h>
 #endif
-
-// For fseek
-#if defined(_WIN32) && !defined(__GNUC__)
-// MSVC++
-#	define fseek64 _fseeki64
-#elif defined(__APPLE__)
-#	define fseek64 fseeko
-#elif defined(__FreeBSD__)
-#   define fseek64 fseeko
-#else
-#	define fseek64 fseeko64
-#endif
-
-// Differently named
-#if defined(_WIN32) && !defined(__GNUC__)
-//#define snprintf _snprintf
-#  define mkdir _mkdir
-#endif
-
-
-// If this is missing for you in Visual Studio: See http://en.wikipedia.org/wiki/Stdint.h#External_links
-#include <stdint.h>
 
 std::string base36(int val);
 int base10(const std::string& val);
 uint8_t clamp(int32_t val);
 void printProgress(const size_t current, const size_t max);
-bool fileExists(const std::string& strFilename);
-bool dirExists(const std::string& strFilename);
 bool isNumeric(const std::string& str);
 bool isAlphaWorld(const std::string& path);
 bool strEndsWith(std::string const &fullString, std::string const &ending);

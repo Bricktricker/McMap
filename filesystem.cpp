@@ -1,9 +1,8 @@
 #include "filesystem.h"
 
 #ifdef MSVCP
-#include <direct.h>
-// See http://en.wikipedia.org/wiki/Stdint.h#External_links
-#include <stdint.h>
+#include <sys/stat.h>  
+#include <stdio.h>
 #else
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -15,6 +14,7 @@
 #include <vector>
 #include <locale>
 #include <codecvt>
+#include <fstream>
 
 std::wstring stdStringToWstring(const std::string& str) {
 	const std::ctype<wchar_t>& CType = std::use_facet<std::ctype<wchar_t> >(std::locale());
@@ -119,6 +119,25 @@ namespace Dir
 		const int ret = mkdir(path.c_str(), 0755);
 		return ret == 0;
 #endif
+	}
+
+	bool dirExists(const std::string& strFilename)
+	{
+		struct stat info;
+
+		if (stat(strFilename.c_str(), &info) != 0)
+			return false;
+		else if (info.st_mode & S_IFDIR)
+			return true;
+		else
+			return false;
+	}
+
+	bool fileExists(const std::string& strFilename)
+	{
+		if (strFilename.empty()) return false;
+		std::ifstream f(strFilename);
+		return f.good();
 	}
 
 }

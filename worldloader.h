@@ -1,8 +1,6 @@
 #ifndef _WORLDLOADER_H_
 #define _WORLDLOADER_H_
 
-#include <cstdlib>
-#include <stdint.h>
 #include <string>
 #include <list>
 #include <map>
