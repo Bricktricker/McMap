@@ -41,7 +41,7 @@ namespace {
 template <typename T, typename std::enable_if_t<std::is_integral<T>::value>* = nullptr>
 T ntoh(T u)
 {
-	static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
+	static_assert (std::numeric_limits<unsigned char>::digits == 8, "CHAR_BIT != 8");
 
 	{ //Check for big endiness
 		union {
@@ -69,7 +69,7 @@ T ntoh(T u)
 template <typename T, typename std::enable_if_t<std::is_integral<T>::value>* = nullptr>
 T ntoh(void* u, size_t size)
 {
-	static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
+	static_assert (std::numeric_limits<unsigned char>::digits == 8, "CHAR_BIT != 8");
 	assert(size <= sizeof(T));
 
 	{ //Check for big endiness

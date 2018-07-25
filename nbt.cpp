@@ -61,7 +61,7 @@ static inline uint32_t _ntohl(uint8_t *val)
 template <typename T>
 static inline T ntoh(T u)
 {
-	static_assert (CHAR_BIT == 8, "CHAR_BIT != 8");
+	static_assert (std::numeric_limits<unsigned char>::digits == 8, "CHAR_BIT != 8");
 
 	{ //Check for big endiness
 		union {
