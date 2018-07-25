@@ -3,6 +3,7 @@
  * v1.0, 09-2010 by Zahl
  */
 #include <iostream>
+#include <limits>
 #include "nbt.h"
 
 // For MSVC++, get "zlib compiled DLL" from http://www.zlib.net/ and read USAGE.txt
