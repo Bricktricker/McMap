@@ -116,6 +116,7 @@ bool fileExists(const std::string& strFilename)
 	*/
 }
 
+//TODO: move to filesystem.cpp
 bool dirExists(const std::string& strFilename)
 {
 	struct stat stFileInfo;

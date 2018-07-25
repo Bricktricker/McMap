@@ -31,6 +31,8 @@
 #include "colors.h"
 #include "worldloader.h"
 #include "globals.h"
+#include "filesystem.h"
+#include "json.hpp"
 #include <string>
 #include <vector>
 #include <cstring>
@@ -38,6 +40,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
+#include <fstream>
 #ifdef _DEBUG
 #include <cassert>
 #endif
@@ -45,10 +48,8 @@
 #include <sys/stat.h>
 #endif
 #if defined(_WIN32) && !defined(__GNUC__)
-#include <direct.h>
+//#include <direct.h>
 #endif
-
-using std::string;
 
 namespace
 {
@@ -59,14 +60,13 @@ namespace
 // Macros to make code more readable
 #define BLOCK_AT_MAPEDGE(x,z) (((z)+1 == Global::MapsizeZ-CHUNKSIZE_Z && gAtBottomLeft) || ((x)+1 == Global::MapsizeX-CHUNKSIZE_X && gAtBottomRight))
 
-void optimizeTerrain2(int cropLeft, int cropRight);
-void optimizeTerrain3();
+void optimizeTerrain();
 void undergroundMode(bool explore);
 bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStartY);
 void writeInfoFile(const std::string& file, int xo, int yo, int bitmapx, int bitmapy);
 static const inline int floorChunkX(const int val);
 static const inline int floorChunkZ(const int val);
-void printHelp(char *binary);
+void printHelp(const std::string& binary);
 
 int main(int argc, char **argv)
 {
@@ -76,10 +76,11 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	bool wholeworld = false;
-	std::string filename, outfile, colorfile, texturefile, infoFile, biomepath;
+	std::string filename, outfile, colorfile, blockfile, texturefile, infoFile, biomepath;
 	bool dumpColors = false, infoOnly = false;
 	uint64_t memlimit;
-	if (sizeof(size_t) < 8) { //test for 32Bit
+	const std::string numBits = sizeof(size_t) == 8 ? "64" : "32";
+	if(sizeof(size_t) < 8) { //test for 32Bit
 		memlimit = 1500 * uint64_t(1024 * 1024);
 	} else { //64Bit
 		memlimit = 2000 * uint64_t(1024 * 1024);
@@ -96,14 +97,14 @@ int main(int argc, char **argv)
 			const std::string option = NEXTARG;
 			if (option == "-from") {
 				if (!MOREARGS(2) || !isNumeric(POLLARG(1)) || !isNumeric(POLLARG(2))) {
-					printf("Error: %s needs two integer arguments, ie: %s -10 5\n", option, option);
+					std::cerr << "Error: -from needs two integer arguments, ie: -from -10 5\n";
 					return 1;
 				}
 				Global::FromChunkX = atoi(NEXTARG);
 				Global::FromChunkZ = atoi(NEXTARG);
 			} else if (option == "-to") {
 				if (!MOREARGS(2) || !isNumeric(POLLARG(1)) || !isNumeric(POLLARG(2))) {
-					printf("Error: %s needs two integer arguments, ie: %s -5 20\n", option, option);
+					std::cerr << "Error: -to needs two integer arguments, ie: -to -5 20\n";
 					return 1;
 				}
 				Global::ToChunkX = atoi(NEXTARG) + 1;
@@ -124,18 +125,12 @@ int main(int argc, char **argv)
 				Global::settings.serverHell = true;
 			} else if (option == "-biomes") {
 				std::cerr << "-biomes no longer supported\n";
-				__debugbreak();
 				return 1;
 				//Global::useBiomes = true;
 			} else if (option == "-biomecolors") {
-				if (!MOREARGS(1)) {
-					printf("Error: %s needs path to grasscolor.png and foliagecolor.png, ie: %s ./subdir\n", option, option);
-					return 1;
-				}
 				std::cerr << "-biomecolors no longer supported\n";
-				__debugbreak();
 				return 1;
-				biomepath = NEXTARG;
+				//biomepath = NEXTARG;
 			} else if (option == "-png") {
 				// void ?
 				__debugbreak();
@@ -145,51 +140,52 @@ int main(int argc, char **argv)
 				std::cerr << "-lowmemory no longers supported\n";
 			} else if ((option == "-noise") || (option == "-dither")) {
 				if (!MOREARGS(1) || !isNumeric(POLLARG(1))) {
-					printf("Error: %s needs an integer argument, ie: %s 10\n", option, option);
+					std::cerr << "Error: " << option << " needs an integer argument, ie: " << option << " 10\n";
 					return 1;
 				}
 				Global::settings.noise = atoi(NEXTARG);
 			} else if ((option == "-height") || (option == "-max")) {
 				if (!MOREARGS(1) || !isNumeric(POLLARG(1))) {
-					printf("Error: %s needs an integer argument, ie: %s 100\n", option, option);
+					std::cerr << "Error: " << option << " needs an integer argument, ie: " << option << " 100\n";
 					return 1;
 				}
 				Global::MapsizeY = atoi(NEXTARG);
 				if (option == "-max")  Global::MapsizeY++;
 			} else if (option == "-min") {
 				if (!MOREARGS(1) || !isNumeric(POLLARG(1))) {
-					printf("Error: %s needs an integer argument, ie: %s 50\n", option, option);
+					std::cerr << "Error: " << option << " needs an integer argument, ie: " << option << " 50\n";
 					return 1;
 				}
 				Global::MapminY = atoi(NEXTARG);
 			} else if (option == "-mem") {
 				if (!MOREARGS(1) || !isNumeric(POLLARG(1)) || atoi(POLLARG(1)) <= 0) {
-					printf("Error: %s needs a positive integer argument, ie: %s 1000\n", option, option);
+					std::cerr << "Error: " << option << " needs a positive integer argument, ie: " << option << " 1000\n";
 					return 1;
 				}
 				memlimitSet = true;
 				memlimit = size_t (atoi(NEXTARG)) * size_t (1024 * 1024);
 			} else if (option == "-file") {
 				if (!MOREARGS(1)) {
-					printf("Error: %s needs one argument, ie: %s myworld.png\n", option, option);
+					std::cerr << "Error: -file needs one argument, ie: -file myworld.png\n";
 					return 1;
 				}
 				outfile = NEXTARG;
-			} else if (option == "-colors") {
+			}
+			else if (option == "-colors") {
 				if (!MOREARGS(1)) {
-					printf("Error: %s needs one argument, ie: %s colors.txt\n", option, option);
+					std::cerr << "Error: -colors needs one argument, ie: -colors colors.json\n";
 					return 1;
 				}
 				colorfile = NEXTARG;
-			} else if (option == "-texture") {
+			}else if(option == "-blocks"){
 				if (!MOREARGS(1)) {
-					printf("Error: %s needs one argument, ie: %s terrain.png\n", option, option);
+					std::cerr << "Error: -blocks needs one argument, ie: -blocks BlockIds.json\n";
 					return 1;
 				}
-				texturefile = NEXTARG;
+				blockfile = NEXTARG;
 			} else if (option == "-info") {
 				if (!MOREARGS(1)) {
-					printf("Error: %s needs one argument, ie: %s data.json\n", option, option);
+					std::cerr << "Error: -info needs one argument, ie: -info data.json\n";
 					return 1;
 				}
 				infoFile = NEXTARG;
@@ -205,11 +201,9 @@ int main(int argc, char **argv)
 				Global::settings.orientation = East;
 			} else if (option == "-west") {
 				Global::settings.orientation = West;
-			} else if (option == "-3") {
-				Global::OffsetY = 3;
 			} else if (option == "-split") {
 				if (!MOREARGS(1)) {
-					printf("Error: %s needs a path argument, ie: %s tiles/\n", option, option);
+					std::cerr << "Error: -split needs a path argument, ie: -split tiles/\n";
 					return 1;
 				}
 				Global::tilePath = NEXTARG;
@@ -218,11 +212,11 @@ int main(int argc, char **argv)
 				return 0;
 			} else if (option == "-marker") {
 				if (Global::markers.size() >= MAX_MARKERS) {
-					printf("Too many markers, ignoring additional ones\n");
+					std::cerr << "Too many markers, ignoring additional ones\n";
 					continue;
 				}
 				if (!MOREARGS(3) || !isNumeric(POLLARG(2)) || !isNumeric(POLLARG(3))) {
-					printf("Error: %s needs a char and two integer arguments, ie: %s r -15 240\n", option, option);
+					std::cerr << "Error: -marker needs a char and two integer arguments, ie: -marker r -15 240\n";
 					return 1;
 				}
 				Marker marker;
@@ -248,7 +242,7 @@ int main(int argc, char **argv)
 				Global::markers.push_back(marker);
             } else if (option == "-mystcraftage") {
                 if (!MOREARGS(1)) {
-                    printf("Error: %s needs an integer age number argument", option);
+                    std::cerr << "Error: -mystcraftage needs an integer age number argument";
                     return 1;
                 }
                 Global::mystCraftAge = atoi(NEXTARG);
@@ -262,42 +256,49 @@ int main(int argc, char **argv)
 	//if (Global::settings.hell || Global::settings.serverHell || Global::settings.end) Global::useBiomes = false;
 #pragma endregion
 
-	printf("mcmap " VERSION " %dbit by Zahl & mcmap3 by WRIM & 1.13 support by Philipp\n", (int)(8*sizeof(size_t)));
+	std::cout << "mcmap " << VERSION << ' ' << numBits << "bit by Zahl & mcmap3 by WRIM & 1.13 support by Philipp\n";
 
 	if (sizeof(size_t) < 8 && memlimit > 1800 * uint64_t(1024 * 1024)) {
 		memlimit = 1800 * uint64_t(1024 * 1024);
 	}
 
 	// Load colors TODO: allow change of path
-	loadBlockTree("BlockIDs.json");
-	loadColorMap("colors.json");
+	if (blockfile.empty()) {
+		blockfile = "BlockIDs.json";
+	}
+	loadBlockTree(blockfile);
+
+	if (colorfile.empty()) {
+		colorfile = "colors.json";
+	}
+	loadColorMap(colorfile);
 
 	if (filename.empty()) {
-		printf("Error: No world given. Please add the path to your world to the command line.\n");
+		std::cerr << "Error: No world given. Please add the path to your world to the command line.\n";
 		return 1;
 	}
 	if (!isAlphaWorld(filename)) {
-		printf("Error: Given path does not contain a Minecraft world.\n");
+		std::cerr << "Error: Given path does not contain a Minecraft world.\n";
 		return 1;
 	}
 	if (Global::settings.hell) {
 		std::string tmp = filename + "/DIM-1";
 		if (!dirExists(tmp)) {
-			printf("Error: This world does not have a hell world yet. Build a portal first!\n");
+			std::cerr << "Error: This world does not have a hell world yet. Build a portal first!\n";
 			return 1;
 		}
 		filename = tmp;
 	} else if (Global::settings.end) {
 		std::string tmp = filename + "/DIM1";
 		if (!dirExists(tmp)) {
-			printf("Error: This world does not have an end-world yet. Find an ender portal first!\n");
+			std::cerr << "Error: This world does not have an end-world yet. Find an ender portal first!\n";
 			return 1;
 		}
 		filename = tmp;
 	} else if (Global::mystCraftAge) {
 		std::string tmp = filename + "/DIM_MYST" + std::to_string(Global::mystCraftAge);
 		if (!dirExists(tmp)) {
-			printf("Error: This world does not have Age %d!\n", Global::mystCraftAge);
+			std::cerr << "Error: This world does not have Age " << Global::mystCraftAge  << "!\n";
 			return 1;
 		}
         filename = tmp;
@@ -310,21 +311,21 @@ int main(int argc, char **argv)
 	}
 
 	if (wholeworld && !scanWorldDirectory(filename)) {
-		printf("Error accessing terrain at '%s'\n", filename);
+		std::cerr << "Error accessing terrain at '" << filename << "'\n";
 		return 1;
 	}
 	if (Global::ToChunkX <= Global::FromChunkX || Global::ToChunkZ <= Global::FromChunkZ) {
-		printf("Nothing to render: -from X Z has to be <= -to X Z\n");
+		std::cerr << "Nothing to render: -from X Z has to be <= -to X Z\n";
 		return 1;
 	}
 	if (Global::MapsizeY - Global::MapminY < 1) {
-		printf("Nothing to render: -min Y has to be < -max/-height Y\n");
+		std::cerr << "Nothing to render: -min Y has to be < -max/-height Y\n";
 		return 1;
 	}
 	Global::sectionMin = Global::MapminY >> SECTION_Y_SHIFT;
 	Global::sectionMax = (Global::MapsizeY - 1) >> SECTION_Y_SHIFT;
 	Global::MapsizeY -= Global::MapminY;
-	printf("MinY: %d ... MaxY: %d ... MinSecY: %d ... MaxSecY: %d\n", Global::MapminY, Global::MapsizeY, Global::sectionMin, Global::sectionMax);
+	std::cout << "MinY: " << Global::MapminY << " ... MaxY: " << Global::MapsizeY << " ... MinSecY: " << Global::sectionMin << " ... MaxSecY: " << Global::sectionMax << '\n';
 	// Whole area to be rendered, in chunks
 	// If -mem is omitted or high enough, this won't be needed
 	Global::TotalFromChunkX = Global::FromChunkX;
@@ -333,24 +334,9 @@ int main(int argc, char **argv)
 	Global::TotalToChunkZ = Global::ToChunkZ;
 	// Don't allow ridiculously small values for big maps
 	if (memlimit && memlimit < 200000000 && memlimit < size_t(Global::MapsizeX * Global::MapsizeZ * 150000)) {
-		printf("Need at least %d MiB of RAM to render a map of that size.\n", int(float(Global::MapsizeX) * Global::MapsizeZ * .15f + 1));
+		std::cerr << "Need at least " << int(float(Global::MapsizeX) * Global::MapsizeZ * .15f + 1) << " MiB of RAM to render a map of that size.\n";
 		return 1;
 	}
-
-	// Load biomes (no longer supported)
-	/*
-	if (Global::useBiomes) if (Global::worldFormat != ANVIL) {
-		std::string bpath = filename + "/biomes";
-		if (!dirExists(bpath)) {
-			printf("Error loading biome information. '%s' does not exist.\n", bpath);
-			Global::useBiomes = false;	//user want biomes but world is non-anvil and biome folder is missing
-		}else
-		if (biomepath.empty()) {
-			biomepath = bpath;
-		}
-		if (!loadBiomeColors(biomepath)) return 1;
-		biomepath = bpath;
-	}*/
 
 	// Mem check
 	int bitmapX, bitmapY; //number of Pixels in the final image
@@ -381,13 +367,13 @@ int main(int argc, char **argv)
 		if (memlimit < bitmapBytes + 220 * uint64_t(1024 * 1024)) {
 			// Warn about using incremental rendering if user didn't set limit manually
 			if (!memlimitSet && sizeof(size_t) > 4) {
-				printf(" ***** PLEASE NOTE *****\n"
-				       "mcmap is using disk cached rendering as it has a default memory limit\n"
-				       "of %d MiB. If you want to use more memory to render (=faster) use\n"
-				       "the -mem switch followed by the amount of memory in MiB to use.\n"
-				       "Start mcmap without any arguments to get more help.\n", int(memlimit / (1024 * 1024)));
+				std::cerr << " ***** PLEASE NOTE *****\n"
+				       << "mcmap is using disk cached rendering as it has a default memory limit\n"
+				       << "of " << int(memlimit / (1024 * 1024)) << " MiB. If you want to use more memory to render (=faster) use\n"
+				       << "the -mem switch followed by the amount of memory in MiB to use.\n"
+				       << "Start mcmap without any arguments to get more help.\n";
 			} else {
-				printf("Choosing disk caching strategy...\n");
+				std::cout << "Choosing disk caching strategy...\n";
 			}
 			// ...or even use disk caching
 			splitImage = true;
@@ -420,29 +406,27 @@ int main(int argc, char **argv)
 
 	// open output file only if not doing the tiled output
 	//TODO rewrite to use fstream
-	FILE *fileHandle = NULL;
+	//FILE *fileHandle = NULL;
+	std::fstream fileHandle;
 	if (Global::tilePath.empty()) {
-		fileHandle = fopen(outfile.c_str(), (splitImage ? "w+b" : "wb"));
+		fileHandle.open(outfile, std::ios::in | std::ios::out | std::ios::binary);
+		//fileHandle = fopen(outfile.c_str(), (splitImage ? "w+b" : "wb"));
 
-		if (fileHandle == NULL) {
-			printf("Error opening '%s' for writing.\n", outfile);
+		if (fileHandle.fail()) {
+			std::cerr << "Error opening '" << outfile << "' for writing.\n";
 			return 1;
 		}
 
 		// This writes out the bitmap header and pre-allocates space if disk caching is used
 		if (!createImage(fileHandle, bitmapX, bitmapY, splitImage)) {
-			printf("Error allocating bitmap. Check if you have enough free disk space.\n");
+			std::cerr << "Error allocating bitmap. Check if you have enough free disk space.\n";
 			return 1;
 		}
 	} else {
 		// This would mean tiled output
-#ifdef _WIN32
-		mkdir(Global::tilePath.c_str());
-#else
-		mkdir(Global::tilePath.c_str(), 0755);
-#endif
+		Dir::createDir(Global::tilePath);
 		if (!dirExists(Global::tilePath)) {
-			printf("Error: '%s' does not exist.\n", Global::tilePath);
+			std::cerr << "Error: '" << Global::tilePath << "' does not exist.\n";
 			return 1;
 		}
 		createImageBuffer(bitmapX, bitmapY, splitImage); //gBuffer wird nur erstellt wenn bild nicht aufgesplitet wird
@@ -473,7 +457,7 @@ int main(int argc, char **argv)
 				if (sizex <= 0 || sizey <= 0) continue; // Don't know if this is right, might also be that the size calulation is plain wrong
 				int res = loadImagePart(bitmapStartX - cropLeft, bitmapStartY - cropTop, sizex, sizey);
 				if (res == -1) {
-					printf("Error loading partial image to render to.\n");
+					std::cerr << "Error loading partial image to render to.\n";
 					return 1;
 				} else if (res == 1) continue;
 			}
@@ -482,7 +466,6 @@ int main(int argc, char **argv)
 		// More chunks are needed at the sides to get light and edge detection right at the edges
 		// This makes code below a bit messy, as most of the time the surrounding chunks are ignored
 		// By starting loops at CHUNKSIZE_X instead of 0.
-		// printf("CHUNKS: X: %d %d, Z: %d %d\n",g_FromChunkX,Global::ToChunkX,g_FromChunkZ,Global::ToChunkZ);
 		++Global::ToChunkX;
 		++Global::ToChunkZ;
 		--Global::FromChunkX;
@@ -499,16 +482,16 @@ int main(int argc, char **argv)
 
 		// Load world or part of world
 		if (numSplitsX == 0 && wholeworld && !loadEntireTerrain()) {
-			printf("Error loading terrain from '%s'\n", filename);
+			std::cerr << "Error loading terrain from '" << filename << "'\n";
 			return 1;
 		} else if (numSplitsX != 0 || !wholeworld) {
 			int numberOfChunks;
 			if (!loadTerrain(filename, numberOfChunks)) {
-				printf("Error loading terrain from '%s'\n", filename);
+				std::cerr << "Error loading terrain from '" << filename << "'\n";
 				return 1;
 			}
 			if (splitImage && numberOfChunks == 0) {
-				printf("Section is empty, skipping...\n");
+				std::cout << "Section is empty, skipping...\n";
 				discardImagePart();
 				continue;
 			}
@@ -529,14 +512,10 @@ int main(int argc, char **argv)
 			undergroundMode(false);
 		}
 
-		if (Global::OffsetY == 2) {
-			optimizeTerrain2((numSplitsX == 0 ? cropLeft : 0), (numSplitsX == 0 ? cropRight : 0));
-		} else {
-			optimizeTerrain3();
-		}
+		optimizeTerrain();
 
 		// Finally, render terrain to file
-		printf("Drawing map...\n");
+		std::cout << "Drawing map...\n";
 		for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) { //iterate over all blocks, ignore outer Chunks
 			printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
 			for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
@@ -546,8 +525,8 @@ int main(int argc, char **argv)
 				//
 				const int bmpPosX = int((Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX - cropLeft));
 				int bmpPosY = int(Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY - cropTop)) + 2 - (HEIGHTAT(x, z) & 0xFF) * Global::OffsetY;
-				const int max = (HEIGHTAT(x, z) & 0xFF00) >> 8;
-				for (int y = uint8_t(HEIGHTAT(x, z)); y < max; ++y) {
+				const unsigned int max = (HEIGHTAT(x, z) & 0xFF00) >> 8;
+				for (unsigned int y = uint8_t(HEIGHTAT(x, z)); y < max; ++y) {
 					bmpPosY -= Global::OffsetY;
 					const uint16_t& c = BLOCKAT(x, y, z);
 					if (c == AIR) {
@@ -608,28 +587,26 @@ int main(int argc, char **argv)
 		if (Global::settings.blendUnderground && !Global::settings.underground) {
 			// Load map data again, since block culling removed most of the blocks
 			if (numSplitsX == 0 && wholeworld && !loadEntireTerrain()) {
-				printf("Error loading terrain from '%s'\n", filename);
+				std::cerr << "Error loading terrain from '" << filename <<"'\n";
 				return 1;
 			} else if (numSplitsX != 0 || !wholeworld) {
 				int i;
 				if (!loadTerrain(filename, i)) {
-					printf("Error loading terrain from '%s'\n", filename);
+					std::cerr << "Error loading terrain from '" << filename << "'\n";
 					return 1;
 				}
 			}
+
 			undergroundMode(true);
-			if (Global::OffsetY == 2) {
-				optimizeTerrain2((numSplitsX == 0 ? cropLeft : 0), (numSplitsX == 0 ? cropRight : 0));
-			} else {
-				optimizeTerrain3();
-			}
-			printf("Creating cave overlay...\n");
+			optimizeTerrain();
+
+			std::cout << "Creating cave overlay...\n";
 			for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) {
 				printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
 				for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
 					const size_t bmpPosX = (Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX) - cropLeft;
 					size_t bmpPosY = Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY) - cropTop;
-					for (int y = 0; y < MIN(Global::MapsizeY, 64); ++y) {
+					for (unsigned int y = 0; y < MIN(Global::MapsizeY, 64); ++y) {
 						uint16_t &c = BLOCKAT(x, y, z);
 						if (c != AIR) { // If block is not air (colors[c][3] != 0)
 							blendPixel(bmpPosX, bmpPosY, c, float(y + 30) * .0048f);
@@ -642,7 +619,7 @@ int main(int argc, char **argv)
 		} // End blend-underground
 		// If disk caching is used, save part to disk
 		if (splitImage && !saveImagePart()) {
-			printf("Error saving partially rendered image.\n");
+			std::cerr << "Error saving partially rendered image.\n";
 			return 1;
 		}
 		// No incremental rendering at all, so quit the loop
@@ -656,37 +633,37 @@ int main(int argc, char **argv)
 		saveImage();
 	} else {
 		if (!composeFinalImage()) {
-			printf("Aborted.\n");
+			std::cerr << "Aborted.\n";
 			return 1;
 		}
 	}
-	if (fileHandle != NULL) fclose(fileHandle);
+	fileHandle.close();
 
-	printf("Job complete.\n");
+	std::cerr << "Job complete.\n";
 	return 0;
 }
 
 #ifdef _DEBUG
 static size_t gBlocksRemoved = 0;
 #endif
-void optimizeTerrain2(int cropLeft, int cropRight) //TODO: args not needed
+void optimizeTerrain()
 {
-	printf("Optimizing terrain...\n");
+	std::cout << "Optimizing terrain...\n";
 #ifdef _DEBUG
 	gBlocksRemoved = 0;
 #endif
-	const int maxX = Global::MapsizeX - CHUNKSIZE_X;
-	const int maxZ = Global::MapsizeZ - CHUNKSIZE_Z;
-	const int modZ = maxZ * Global::MapsizeY;
+	const size_t maxX = Global::MapsizeX - CHUNKSIZE_X;
+	const size_t maxZ = Global::MapsizeZ - CHUNKSIZE_Z;
+	const size_t modZ = maxZ * Global::MapsizeY;
 	uint8_t * const blocked = new uint8_t[modZ];
 	int offsetZ = 0, offsetY = 0, offsetGlobal = 0;
 	memset(blocked, 0, modZ);
-	for (int x = maxX - 1; x >= CHUNKSIZE_X; --x) {
+	for (size_t x = maxX - 1; x >= CHUNKSIZE_X; --x) {
 		printProgress(maxX - (x + 1), maxX);
 		offsetZ = offsetGlobal;
-		for (int z = CHUNKSIZE_Z; z < maxZ; ++z) {
-			int highest = 0, lowest = 0xFF; // remember lowest and highest block which are visible to limit the Y-for-loop later
-			for (int y = 0; y < Global::MapsizeY; ++y) { // Go up
+		for (size_t z = CHUNKSIZE_Z; z < maxZ; ++z) {
+			size_t highest = 0, lowest = 0xFF; // remember lowest and highest block which are visible to limit the Y-for-loop later
+			for (size_t y = 0; y < Global::MapsizeY; ++y) { // Go up
 				const uint16_t block = BLOCKAT(x, y, z); // Get the lowest block at that point
 				uint8_t &current = blocked[((y+offsetY) % Global::MapsizeY) + (offsetZ % modZ)];
 				if (current) { // Block is hidden, remove
@@ -710,7 +687,7 @@ void optimizeTerrain2(int cropLeft, int cropRight) //TODO: args not needed
 			blocked[(offsetY % Global::MapsizeY) + (offsetZ % modZ)] = 0;
 			offsetZ += Global::MapsizeY;
 		}
-		for (int y = 0; y < Global::MapsizeY; ++y) {
+		for (size_t y = 0; y < Global::MapsizeY; ++y) {
 			blocked[y + (offsetGlobal % modZ)] = 0;
 		}
 		offsetGlobal += Global::MapsizeY;
@@ -719,98 +696,7 @@ void optimizeTerrain2(int cropLeft, int cropRight) //TODO: args not needed
 	delete[] blocked;
 	printProgress(10, 10);
 #ifdef _DEBUG
-	printf("Removed %lu blocks\n", (unsigned long) gBlocksRemoved);
-#endif
-}
-
-void optimizeTerrain3()
-{
-	// Remove invisible blocks from map (covered by other blocks from isometric pov)
-	// Do so by "raytracing" every block from front to back..
-	printf("Optimizing terrain...\n");
-#ifdef _DEBUG
-	gBlocksRemoved = 0;
-#endif
-	printProgress(0, 10);
-	// Helper arrays to remember which block is blocked from being seen. This allows to traverse the array in a slightly more sequential way, which leads to better usage of the CPU cache
-	uint8_t *blocked = new uint8_t[Global::MapsizeY * 3];
-	const int max = (int)MIN(Global::MapsizeX - CHUNKSIZE_X * 2, Global::MapsizeZ - CHUNKSIZE_Z * 2);
-	const int maxX = int(Global::MapsizeX - CHUNKSIZE_X - 1);
-	const int maxZ = int(Global::MapsizeZ - CHUNKSIZE_Z - 1);
-	const size_t maxProgress = size_t(maxX + maxZ);
-	// The following needs to be done twice, once for the X-Y front plane, once for the Z-Y front plane
-	for (int x = CHUNKSIZE_X; x <= maxX; ++x) {
-		memset(blocked, 0, Global::MapsizeY*3); // Nothing is blocked at first
-		int offset = 0; // The helper array had to be shifted after each run of the inner most loop. As this is expensive, just use an offset that increases instead
-		const int max2 = MIN(max, x - CHUNKSIZE_X + 1); // Block array will be traversed diagonally, determine how many blocks there are
-		for (int i = 0; i < max2; ++i) { // This traverses the block array diagonally, which would be upwards in the image
-			const int blockedOffset = Global::MapsizeY * (i % 3);
-			int highest = 0, lowest = 0xFF;
-			for (int j = 0; j < Global::MapsizeY; ++j) { // Go up
-				const uint16_t block = BLOCKAT(x - i, j, maxZ - i); // Get the lowest block at that point
-				if (blocked[blockedOffset + (j+offset) % Global::MapsizeY]) { // Block is hidden, remove
-#ifdef _DEBUG
-					if (block != AIR) {
-						++gBlocksRemoved;
-					}
-#endif
-				} else {
-					if (block != AIR && lowest == 0xFF) {
-						lowest = j;
-					}
-					if (colorMap[block].a == 255) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration
-						blocked[blockedOffset + (j+offset) % Global::MapsizeY] = 1;
-					}
-					if (block != AIR) highest = j;
-				}
-			}
-			HEIGHTAT(x - i, maxZ - i) = (((uint16_t)highest + 1) << 8) | (uint16_t)lowest;
-			blocked[blockedOffset + ((offset + 1) % Global::MapsizeY)] = 0; // This will be the array index responsible for the top most block in the next itaration. Set it to 0 as it can't be hidden.
-			blocked[blockedOffset + (offset % Global::MapsizeY)] = 0;
-			if (i % 3 == 2) {
-				offset += 2; // Increase offset, as block at height n in current row will hide block at n-1 in next row
-			}
-		}
-		printProgress(size_t(x), maxProgress);
-	}
-	for (int z = CHUNKSIZE_Z; z < maxZ; ++z) {
-		memset(blocked, 0, Global::MapsizeY *3);
-		int offset = 0;
-		const int max2 = MIN(max, z - CHUNKSIZE_Z + 1);
-		for (int i = 0; i < max2; ++i) {
-			const int blockedOffset = Global::MapsizeY * (i % 3);
-			int highest = 0, lowest = 0xFF;
-			for (int j = 0; j < Global::MapsizeY; ++j) {
-				const uint16_t block = BLOCKAT(maxX - i, j, z - i);
-				if (blocked[blockedOffset + (j+offset) % Global::MapsizeY]) {
-#ifdef _DEBUG
-					if (block != AIR) {
-						++gBlocksRemoved;
-					}
-#endif
-				} else {
-					if (block != AIR && lowest == 0xFF) {
-						lowest = j;
-					}
-					if (colorMap[block].a == 255) {
-						blocked[blockedOffset + (j+offset) % Global::MapsizeY] = 1;
-					}
-					if (block != AIR) highest = j;
-				}
-			}
-			HEIGHTAT(maxX - i, z - i) = (((uint16_t)highest + 1) << 8) | (uint16_t)lowest;
-			blocked[blockedOffset + ((offset + 1) % Global::MapsizeY)] = 0;
-			blocked[blockedOffset + (offset % Global::MapsizeY)] = 0;
-			if (i % 3 == 2) {
-				offset += 2;
-			}
-		}
-		printProgress(size_t(z + maxX), maxProgress);
-	}
-	delete[] blocked;
-	printProgress(10, 10);
-#ifdef _DEBUG
-	printf("Removed %lu blocks\n", (unsigned long) gBlocksRemoved);
+	std::cout << "Removed " << gBlocksRemoved << " blocks\n";
 #endif
 }
 
@@ -819,13 +705,13 @@ void undergroundMode(bool explore)
 	// This wipes out all blocks that are not caves/tunnels
 	//int cnt[256];
 	//memset(cnt, 0, sizeof(cnt));
-	printf("Exploring underground...\n");
+	std::cout << "Exploring underground...\n";
 	if (explore) {
 		clearLightmap();
 		for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) {
 			printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
 			for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
-				for (int y = 0; y < MIN(Global::MapsizeY, 64) - 1; y++) {
+				for (size_t y = 0; y < MIN(Global::MapsizeY, 64) - 1; y++) {
 					if (isTorch(BLOCKAT(x, y, z))) {
 						// Torch
 						BLOCKAT(x, y, z) = AIR;
@@ -888,10 +774,6 @@ void undergroundMode(bool explore)
 		}
 	}
 	printProgress(10, 10);
-	//for (int i = 0; i < 256; ++i) {
-	//	if (cnt[i] == 0) continue;
-	//	printf("Block %d: %d\n", i, cnt[i]);
-	//}
 }
 
 bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStartY)
@@ -930,7 +812,7 @@ bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStart
 	if (Global::ToChunkZ > Global::TotalToChunkZ) {
 		Global::ToChunkZ = Global::TotalToChunkZ;
 	}
-	printf("Pass %d of %d...\n", int(currentAreaX + (currentAreaZ * splitX) + 1), int(splitX * splitZ));
+	std::cout << "Pass " << int(currentAreaX + (currentAreaZ * splitX) + 1) << " of " << int(splitX * splitZ)  << "...\n";
 	// Calulate pixel offsets in bitmap. Forgot how this works right after writing it, really.
 	if (Global::settings.orientation == North) {
 		bitmapStartX = (((Global::TotalToChunkZ - Global::TotalFromChunkZ) * CHUNKSIZE_Z) * 2 + 3)   // Center of image..
@@ -966,61 +848,44 @@ bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStart
 
 void writeInfoFile(const std::string& file, int xo, int yo, int bitmapX, int bitmapY)
 {
+	nlohmann::json data;
+
 	std::string direction;
 	if (Global::settings.orientation == North) {
 		xo += (Global::TotalToChunkZ * CHUNKSIZE_Z - Global::FromChunkX * CHUNKSIZE_X) * 2 + 4;
 		yo -= (Global::TotalFromChunkX * CHUNKSIZE_X + Global::TotalFromChunkZ * CHUNKSIZE_Z) - Global::MapsizeY * Global::OffsetY;
 		direction = "North";
-	} else if (Global::settings.orientation == South) {
+	}
+	else if (Global::settings.orientation == South) {
 		xo += (Global::TotalToChunkX * CHUNKSIZE_X - Global::TotalFromChunkZ * CHUNKSIZE_Z) * 2 + 4;
 		yo += ((Global::TotalToChunkX) * CHUNKSIZE_X + (Global::TotalToChunkZ) * CHUNKSIZE_Z) + Global::MapsizeY * Global::OffsetY;
 		direction = "South";
-	} else if (Global::settings.orientation == East) {
+	}
+	else if (Global::settings.orientation == East) {
 		xo -= (Global::TotalFromChunkX * CHUNKSIZE_X + Global::TotalFromChunkZ * CHUNKSIZE_Z) * Global::OffsetY - 6;
 		yo += ((Global::TotalToChunkX) * CHUNKSIZE_X - Global::TotalFromChunkZ * CHUNKSIZE_Z) + Global::MapsizeY * Global::OffsetY;
 		direction = "East";
-	} else {
+	}
+	else {
 		xo += (Global::TotalToChunkX * CHUNKSIZE_X + Global::TotalToChunkZ * CHUNKSIZE_Z) * Global::OffsetY + 2;
 		yo += ((Global::TotalToChunkZ) * CHUNKSIZE_Z - Global::TotalFromChunkX * CHUNKSIZE_X) + Global::MapsizeY * Global::OffsetY;
 		direction = "West";
 	}
-	FILE *fh = fopen(file.c_str(), "w");
-	if (fh == NULL) return;
 	yo += 4;
-	if (strcmp(".json", RIGHTSTRING(file.c_str(), 5)) == 0) {
-		fprintf(fh, "{\n"
-				" \"origin\" : {\n"
-				"  \"x\" : %d,\n"
-				"  \"y\" : %d\n"
-				" },\n"
-				" \"geometry\" : {\n"
-				"  \"scaling\" : %d,\n"
-				"  \"orientation\" : \"%s\"\n"
-				" },\n"
-				" \"image\" : {\n"
-				"  \"x\" : %d,\n"
-				"  \"y\" : %d\n"
-				" },\n"
-				" \"meta\" : {\n"
-				"  \"timestamp\" : %lu\n"
-				" }\n"
-				"}\n", xo, yo, Global::OffsetY, direction, bitmapX, bitmapY, (unsigned long)time(NULL));
-	} else if (strcmp(".xml", RIGHTSTRING(file.c_str(), 4)) == 0) {
-		fprintf(fh, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n"
-				"<map>\n"
-				" <origin x=\"%d\" y=\"%d\" />\n"
-				" <geometry scaling=\"%d\" orientation=\"%s\" />\n"
-				" <image x=\"%d\" y=\"%d\" />\n"
-				" <meta timestamp=\"%lu\" />\n"
-				"</map>\n", xo, yo, Global::OffsetY, direction, bitmapX, bitmapY, (unsigned long)time(NULL));
-	} else {
-		time_t t = time(NULL);
-		fprintf(fh, "Origin at %d, %d\n"
-				"Y-Offset: %d, Orientation: %s\n"
-				"Image resolution: %dx%d\n"
-				"Rendered on: %s\n", xo, yo, Global::OffsetY, direction, bitmapX, bitmapY, asctime(localtime(&t)));
-	}
-	fclose(fh);
+
+	data["origin"]["x"] = xo;
+	data["origin"]["y"] = yo;
+
+	data["geometry"]["scaling"] = Global::OffsetY;
+	data["geometry"]["orientation"] = direction;
+
+	data["image"]["x"] = bitmapX;
+	data["image"]["y"] = bitmapY;
+
+	data["meta"]["timestamp"] = static_cast<unsigned long>(time(nullptr));
+
+	std::ofstream oStream(file);
+	oStream << data;
 }
 
 /**
@@ -1039,64 +904,57 @@ static const inline int floorChunkZ(const int val)
 	return val & ~(CHUNKSIZE_Z - 1);
 }
 
-void printHelp(char *binary)
+void printHelp(const std::string& binary)
 {
-	printf(
-	   ////////////////////////////////////////////////////////////////////////////////
-	   "\nmcmap by Zahl - an isometric minecraft map rendering tool.\n"
-	   "Version " VERSION " %dbit\n\n"
-	   "Usage: %s [-from X Z -to X Z] [-night] [-cave] [-noise VAL] [...] WORLDPATH\n\n"
-	   "  -from X Z     sets the coordinate of the chunk to start rendering at\n"
-	   "  -to X Z       sets the coordinate of the chunk to end rendering at\n"
-	   "                Note: Currently you need both -from and -to to define\n"
-	   "                bounds, otherwise the entire world will be rendered.\n"
-	   "  -cave         renders a map of all caves that have been explored by players\n"
-	   "  -blendcave    overlay caves over normal map; doesn't work with incremental\n"
-	   "                rendering (some parts will be hidden)\n"
-	   "  -night        renders the world at night using blocklight (torches)\n"
-	   "  -skylight     use skylight when rendering map (shadows below trees etc.)\n"
-	   "                hint: using this with -night makes a difference\n"
-	   "  -noise VAL    adds some noise to certain blocks, reasonable values are 0-20\n"
-	   "  -height VAL   maximum height at which blocks will be rendered\n"
-	   "  -min/max VAL  minimum/maximum Y index (height) of blocks to render\n"
-	   "  -file NAME    sets the output filename to 'NAME'; default is output.png\n"
-	   "  -mem VAL      sets the amount of memory (in MiB) used for rendering. mcmap\n"
-	   "                will use incremental rendering or disk caching to stick to\n"
-	   "                this limit. Default is 1800.\n"
-	   "  -lowmemory    uses half less memory but there's limit to 256 blocks types\n"
-	   "  -colors NAME  loads user defined colors from file 'NAME'\n"
-	   "  -dumpcolors   creates a file which contains the default colors being used\n"
-	   "                for rendering. Can be used to modify them and then use -colors\n"
-	   "  -north -east -south -west\n"
-	   "                controls which direction will point to the *top left* corner\n"
-	   "                it only makes sense to pass one of them; East is default\n"
-	   "  -blendall     always use blending mode for blocks\n"
-	   "  -hell         render the hell/nether dimension of the given world\n"
-	   "  -end          render the end dimension of the given world\n"
-	   "  -serverhell   force cropping of blocks at the top (use for nether servers)\n"
-	   "  -texture NAME extract colors from png file 'NAME'; eg. terrain.png\n"
-	   "  -biomes       apply biome colors to grass/leaves; requires that you run\n"
-	   "                Donkey Kong's biome extractor first on your world\n"
-	   "  -biomecolors PATH  load grasscolor.png and foliagecolor.png from 'PATH'\n"
-	   "  -info NAME    Write information about map to file 'NAME' You can choose the\n"
-	   "                format by using file extensions .xml, .json or .txt (default)\n"
-	   "  -split PATH   create tiled output (128x128 to 4096x4096) in given PATH\n"
-	   "  -marker c x z place marker at x z with color c (r g b w)\n"
-	   "\n    WORLDPATH is the path of the desired alpha/beta world.\n\n"
-	   ////////////////////////////////////////////////////////////////////////////////
-	   "Examples:\n\n"
+	const std::string numBits = sizeof(size_t) == 8 ? "64" : "32";
+	std::cout
+		////////////////////////////////////////////////////////////////////////////////
+		<< "\nmcmap by Zahl - an isometric minecraft map rendering tool.\n"
+		<< "Version " << VERSION << ' ' << numBits << "bit\n\n"
+		<< "Usage: " << binary << " [-from X Z -to X Z] [-night] [-cave] [-noise VAL] [...] WORLDPATH\n\n"
+		<< "  -from X Z     sets the coordinate of the chunk to start rendering at\n"
+		<< "  -to X Z       sets the coordinate of the chunk to end rendering at\n"
+		<< "                Note: Currently you need both -from and -to to define\n"
+		<< "                bounds, otherwise the entire world will be rendered.\n"
+		<< "  -cave         renders a map of all caves that have been explored by players\n"
+		<< "  -blendcave    overlay caves over normal map; doesn't work with incremental\n"
+		<< "                rendering (some parts will be hidden)\n"
+		<< "  -night        renders the world at night using blocklight (torches)\n"
+		<< "  -skylight     use skylight when rendering map (shadows below trees etc.)\n"
+		<< "                hint: using this with -night makes a difference\n"
+		<< "  -noise VAL    adds some noise to certain blocks, reasonable values are 0-20\n"
+		<< "  -height VAL   maximum height at which blocks will be rendered\n"
+		<< "  -min/max VAL  minimum/maximum Y index (height) of blocks to render\n"
+		<< "  -file NAME    sets the output filename to 'NAME'; default is output.png\n"
+		<< "  -mem VAL      sets the amount of memory (in MiB) used for rendering. mcmap\n"
+		<< "                will use incremental rendering or disk caching to stick to\n"
+		<< "                this limit. Default is 1800.\n"
+		<< "  -colors NAME  loads user defined colors from file 'NAME'\n"
+		<< "  -north -east -south -west\n"
+		<< "                controls which direction will point to the *top left* corner\n"
+		<< "                it only makes sense to pass one of them; East is default\n"
+		<< "  -blendall     always use blending mode for blocks\n"
+		<< "  -hell         render the hell/nether dimension of the given world\n"
+		<< "  -end          render the end dimension of the given world\n"
+		<< "  -serverhell   force cropping of blocks at the top (use for nether servers)\n"
+		<< "  -texture NAME extract colors from png file 'NAME'; eg. terrain.png\n"
+		<< "  -info NAME    Write information about map to file 'NAME' in JSON format \n"
+		<< "  -split PATH   create tiled output (128x128 to 4096x4096) in given PATH\n"
+		<< "  -marker c x z place marker at x z with color c (r g b w)\n"
+		<< "\n    WORLDPATH is the path of the desired alpha/beta world.\n\n"
+		////////////////////////////////////////////////////////////////////////////////
+		<< "Examples:\n\n"
 #ifdef _WIN32
-	   "%s %%APPDATA%%\\.minecraft\\saves\\World1\n"
-	   "  - This would render your entire singleplayer world in slot 1\n"
-	   "%s -night -from -10 -10 -to 10 10 %%APPDATA%%\\.minecraft\\saves\\World1\n"
-	   "  - This would render the same world but at night, and only\n"
-	   "    from chunk (-10 -10) to chunk (10 10)\n"
+		<< binary << " %%APPDATA%%\\.minecraft\\saves\\World1\n"
+		<< "  - This would render your entire singleplayer world in slot 1\n"
+		<< binary << " -night -from -10 -10 -to 10 10 %%APPDATA%%\\.minecraft\\saves\\World1\n"
+		<< "  - This would render the same world but at night, and only\n"
+		<< "    from chunk (-10 -10) to chunk (10 10)\n";
 #else
-	   "%s ~/.minecraft/saves/World1\n"
-	   "  - This would render your entire singleplayer world in slot 1\n"
-	   "%s -night -from -10 -10 -to 10 10 ~/.minecraft/saves/World1\n"
-	   "  - This would render the same world but at night, and only\n"
-	   "    from chunk (-10 -10) to chunk (10 10)\n"
+		<< binary << " ~/.minecraft/saves/World1\n"
+		<< "  - This would render your entire singleplayer world in slot 1\n"
+		<< binary << " -night -from -10 -10 -to 10 10 ~/.minecraft/saves/World1\n"
+		<< "  - This would render the same world but at night, and only\n"
+		<< "    from chunk (-10 -10) to chunk (10 10)\n";
 #endif
-	   , 8*sizeof(size_t), binary, binary, binary);
 }

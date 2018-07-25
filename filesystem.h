@@ -23,6 +23,7 @@ namespace Dir
 	DIRHANDLE open(const std::string& path, myFile &file);
 	bool next(DIRHANDLE handle, const std::string& path, myFile &file);
 	void close(DIRHANDLE handle);
+	bool createDir(const std::string& path);
 }
 
 #endif

@@ -6,9 +6,9 @@
 #include "helper.h"
 #include "colors.h"
 #include "globals.h"
+#include "filesystem.h"
 #include <png.h>
 #include <list>
-
 #include <string>
 #include <fstream>
 #include <iostream>
@@ -137,7 +137,7 @@ void createImageBuffer(const size_t width, const size_t height, const bool split
 	}
 }
 
-bool createImage(FILE *fh, const size_t width, const size_t height, const bool splitUp)
+bool createImage(std::fstream& fh, const size_t width, const size_t height, const bool splitUp)
 {
 	gPngLocalWidth = gPngWidth = (int)width;
 	gPngLocalHeight = gPngHeight = (int)height;
@@ -147,7 +147,7 @@ bool createImage(FILE *fh, const size_t width, const size_t height, const bool s
 	if (!splitUp) {
 		gImageBuffer.resize(static_cast<size_t>(gPngSize), 0);
 	}
-	fseek64(fh, 0, SEEK_SET);
+	fh.seekg(0);
 	// Write header
 	pngPtrMain = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
@@ -167,7 +167,8 @@ bool createImage(FILE *fh, const size_t width, const size_t height, const bool s
 		return false;
 	}
 
-	png_init_io(pngPtrMain, fh);
+	//png_init_io(pngPtrMain, fh);
+	png_set_write_fn(pngPtrMain, (png_voidp)&fh, userWriteData, NULL); //maybe also reading??
 
 	png_set_IHDR(pngPtrMain, pngInfoPtrMain, (uint32_t)width, (uint32_t)height,
 	             8, PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE,
@@ -314,7 +315,7 @@ bool saveImage()
 			const size_t tileWidth = static_cast<size_t>(pow(2, 12 - tileSize));
 			for (size_t tileIndex = sizeOffset[tileSize]; tileIndex < sizeOffset[tileSize+1]; ++tileIndex) {
 				if (tile[tileIndex].fileHandle.fail() || !tile[tileIndex].fileHandle.is_open()) continue; //.fileHandle == NULL
-				const int imgEnd = (((gPngHeight - 1) / tileWidth) + 1) * tileWidth;
+				const size_t imgEnd = (((gPngHeight - 1) / tileWidth) + 1) * tileWidth;
 				for (int i = gPngHeight; i < imgEnd; ++i) {
 					png_write_row(tile[tileIndex].pngPtr, png_bytep(tempLine.data())); //writes just 0's
 				}
@@ -378,11 +379,8 @@ int loadImagePart(const int startx, const int starty, const int width, const int
 	std::fill(gImageBuffer.begin(), gImageBuffer.end(), 0);
 	// Create temp image
 	// This is done here to detect early if the target is not writable
-#ifdef _WIN32
-	mkdir("cache");
-#else
-	mkdir("cache", 0755);
-#endif
+	Dir::createDir("cache");
+
 	gPngPartialFileHandle = std::fstream(name, std::ios::out | std::ios::binary);
 	if (gPngPartialFileHandle.fail()) {
 		std::cerr << "Could not create temporary image at "<< name <<"; check permissions in current dir.\n";
@@ -633,7 +631,7 @@ bool composeFinalImage()
 			const size_t tileWidth = static_cast<size_t>(pow(2, 12 - tileSize));
 			for (size_t tileIndex = sizeOffset[tileSize]; tileIndex < sizeOffset[tileSize+1]; ++tileIndex) {
 				if (!tile[tileIndex].fileHandle.is_open()) continue;
-				const int imgEnd = (((gPngHeight - 1) / tileWidth) + 1) * tileWidth;
+				const size_t imgEnd = (((gPngHeight - 1) / tileWidth) + 1) * tileWidth;
 				for (int i = gPngHeight; i < imgEnd; ++i) {
 					png_write_row(tile[tileIndex].pngPtr, png_bytep(lineWrite.data()));
 				}

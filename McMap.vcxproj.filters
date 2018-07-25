@@ -21,9 +21,6 @@
     <ClInclude Include="draw_png.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="extractcolors.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="filesystem.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
@@ -57,9 +54,6 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="draw_png.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="extractcolors.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="filesystem.cpp">

@@ -9,7 +9,7 @@
 #include "helper.h"
 
 void createImageBuffer(const size_t width, const size_t height, const bool splitUp);
-bool createImage(FILE *fh, const size_t width, const size_t height, const bool splitUp);
+bool createImage(std::fstream& fh, const size_t width, const size_t height, const bool splitUp);
 bool saveImage();
 int loadImagePart(const int startx, const int starty, const int width, const int height);
 void setPixel(const size_t x, const size_t y, const uint16_t stateID, const float fsub, const uint16_t biome);

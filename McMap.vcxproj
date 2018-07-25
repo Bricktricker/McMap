@@ -161,7 +161,6 @@
   <ItemGroup>
     <ClInclude Include="colors.h" />
     <ClInclude Include="draw_png.h" />
-    <ClInclude Include="extractcolors.h" />
     <ClInclude Include="filesystem.h" />
     <ClInclude Include="globals.h" />
     <ClInclude Include="helper.h" />
@@ -175,7 +174,6 @@
   <ItemGroup>
     <ClCompile Include="colors.cpp" />
     <ClCompile Include="draw_png.cpp" />
-    <ClCompile Include="extractcolors.cpp" />
     <ClCompile Include="filesystem.cpp" />
     <ClCompile Include="globals.cpp" />
     <ClCompile Include="helper.cpp" />
