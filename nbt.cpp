@@ -132,7 +132,6 @@ NBT_Tag::NBT_Tag(const std::vector<uint8_t>& data, size_t& pos) {
 
 bool NBT_Tag::parseData(const std::vector<uint8_t>& data, size_t& pos, bool parseHeader)
 {
-	TagType switchType;
 	if (parseHeader) {
 		_type = (TagType)data[pos];
 		pos++;
@@ -141,10 +140,6 @@ bool NBT_Tag::parseData(const std::vector<uint8_t>& data, size_t& pos, bool pars
 			_name = std::string((char*)&data[pos], strLen);
 			pos += strLen;
 		}
-		switchType = _type;
-	}else{
-		switchType = (TagType)data[pos];
-		//pos++;
 	}
 
 	switch (_type)

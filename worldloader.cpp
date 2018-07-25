@@ -81,7 +81,7 @@ T ntoh(void* u, size_t size)
 
 		if (b.c[0] == 1) {
 			T t{};
-			memcpy(&t, u, size);
+			std::memcpy(&t, u, size);
 			//check, may not working
 			return t;
 		}
@@ -279,8 +279,6 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 
 bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t chunkZ)
 {
-#pragma region CHUNKLOADING
-
 	PrimArray<uint8_t> blockdata, lightdata, skydata, justData, addData;
 	size_t len, yoffset, yoffsetsomething = (Global::MapminY + SECTION_Y * 10000) % SECTION_Y;
 	int8_t yo;
@@ -356,7 +354,7 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 					//if (g_UseBiomes) BIOMEWEST(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
 				}
 				//const int toY = g_MapsizeY + g_MapminY;
-				for (int y = 0; y < SECTION_Y; ++y) {
+				for (size_t y = 0; y < SECTION_Y; ++y) {
 					// In bounds check
 					if (Global::sectionMin == yo && y < yoffsetsomething) continue;
 					if (Global::sectionMax == yo && y + yoffset >= Global::MapsizeY) break;
@@ -385,9 +383,9 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 					// Light
 					if (Global::settings.underground) {
 						if (isTorch(block)) {
-							if (y + yoffset < Global::MapminY) continue;
+							if (y + yoffset < static_cast<size_t>(Global::MapminY)) continue;
 							std::cout << "Torch at " << std::to_string(x + offsetx) << ' ' << std::to_string(yoffset + y) << ' ' << std::to_string(z + offsetz) << '\n';
-							lightCave(x + offsetx, static_cast<int>(yoffset) + y, z + offsetz);
+							lightCave(x + offsetx, static_cast<int>(yoffset + y), z + offsetz);
 						}
 					} else if (Global::settings.skylight && (y & 1) == 0) {
 						const uint8_t highlight = ((lightdata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
@@ -408,7 +406,6 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 		} // for x
 
 	}
-#pragma endregion
 	return true;
 }
 
@@ -547,7 +544,7 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 					// Light
 					if (Global::settings.underground) {
 						if (isTorch(block)) {
-							if (y + yoffset < Global::MapminY) continue;
+							if (y + yoffset < static_cast<size_t>(Global::MapminY)) continue;
 							std::cout << "Torch at " << std::to_string(x + offsetx) << ' ' << std::to_string(yoffset + y) << ' ' << std::to_string(z + offsetz) << '\n';
 							lightCave(x + offsetx, yoffset + static_cast<int>(y), z + offsetz);
 						}
@@ -869,7 +866,7 @@ bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks
 			continue;
 		}
 		if (version == 1 || version == 2) { // zlib/gzip deflate
-			memset(&zlibStream, 0, sizeof(z_stream));
+			std::memset(&zlibStream, 0, sizeof(z_stream));
 			zlibStream.next_out = (Bytef*)decompressedBuffer.data();
 			zlibStream.avail_out = DECOMPRESSED_BUFFER;
 			zlibStream.avail_in = len;
