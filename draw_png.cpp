@@ -13,6 +13,8 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <cmath>
+#include <cstring>
 
 #ifndef _WIN32
 #include <sys/stat.h>
@@ -246,7 +248,7 @@ bool saveImage()
 			if (y % 25 == 0) {
 				printProgress(size_t(y), size_t(gPngHeight));
 			}
-			memcpy(tempLine.data(), &gImageBuffer[srcLine], gPngLineWidthChans);
+			std::memcpy(tempLine.data(), &gImageBuffer[srcLine], gPngLineWidthChans);
 			srcLine += gPngLineWidthChans;
 			// Handle all png files
 			if (y % 128 == 0) {
@@ -485,7 +487,7 @@ bool composeFinalImage()
 			last += ((tempWidth - 1) / static_cast<size_t>(pow(2, 12 - i))) + 1;
 		}
 		tile = new ImageTile[sizeOffset[6]];
-		memset(tile, 0, sizeOffset[6] * sizeof(ImageTile));
+		std::memset(tile, 0, sizeOffset[6] * sizeof(ImageTile));
 	}
 
 	for (int y = 0; y < gPngHeight; ++y) {
@@ -903,7 +905,7 @@ namespace
 	{
 #define PALPHA 3
 		if (destination[PALPHA] == 0 || source[PALPHA] == 255) { //compare alpha
-			memcpy(destination, source, BYTESPERPIXEL);
+			std::memcpy(destination, source, BYTESPERPIXEL);
 			return;
 		}
 #define BLEND(ca,aa,cb) uint8_t(((size_t(ca) * size_t(aa)) + (size_t(255 - aa) * size_t(cb))) / 255)
