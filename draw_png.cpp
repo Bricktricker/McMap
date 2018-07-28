@@ -323,7 +323,7 @@ bool saveImage()
 			for (size_t tileIndex = sizeOffset[tileSize]; tileIndex < sizeOffset[tileSize+1]; ++tileIndex) {
 				if (tile[tileIndex].fileHandle.fail() || !tile[tileIndex].fileHandle.is_open()) continue; //.fileHandle == NULL
 				const size_t imgEnd = (((gPngHeight - 1) / tileWidth) + 1) * tileWidth;
-				for (int i = gPngHeight; i < imgEnd; ++i) {
+				for (size_t i = gPngHeight; i < imgEnd; ++i) {
 					png_write_row(tile[tileIndex].pngPtr, png_bytep(tempLine.data())); //writes just 0's
 				}
 				png_write_end(tile[tileIndex].pngPtr, NULL);
@@ -634,7 +634,7 @@ bool composeFinalImage()
 			for (size_t tileIndex = sizeOffset[tileSize]; tileIndex < sizeOffset[tileSize+1]; ++tileIndex) {
 				if (!tile[tileIndex].fileHandle.is_open()) continue;
 				const size_t imgEnd = (((gPngHeight - 1) / tileWidth) + 1) * tileWidth;
-				for (int i = gPngHeight; i < imgEnd; ++i) {
+				for (size_t i = gPngHeight; i < imgEnd; ++i) {
 					png_write_row(tile[tileIndex].pngPtr, png_bytep(lineWrite.data()));
 				}
 				png_write_end(tile[tileIndex].pngPtr, NULL);
