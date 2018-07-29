@@ -1,0 +1,70 @@
+mcmap3 changelog
+Latest version is available at: http://wrim.pl/mcmap/
+------------------------------------------------------
+beta 3.0.4 (jul 28 2018)
+- added support for Minecraft 1.13
+- removed biom support
+- removed option -lowmemory
+- uses a new color loading system
+- small error fixes
+
+beta 3.0.3 (jul 28 2015)
+-better memory organization
+-improvements with custom colors
+-several minor fixes
+
+beta 3.0.2 (feb 09 2014)
+added:
+-support for biomes in anvil worlds
+-new option - -lowmemory - lets render up to 256 blocks but saves 50% memory during renderring
+
+beta 3.0.1 (feb 04 2014)
+added:
+-really implemented support for all blocks and data values
+-new algorithm for renderring various types of blocks (snow, torches, slabs etc.)
+
+beta 3.0.0 (dec 02 2013)
+added:
+-support for blocks ID's higger than 255 and data values (in theory for now)
+
+mcmap changelog
+Latest version is available at: http://wrim.pl/mcmap/
+------------------------------------------------------
+
+2.4.2d (jan 31 2014) - snapshot 14w05a compatible (MC 1.7.4)
+added:
+-barrier block support (previous recognized as yellow glass pane)
+fixed:
+-sideways oak logs not renderred
+
+2.4.2c (jan 10 2014) - snapshot 14w02a compatible (MC 1.7.4)
+added:
+-slime block
+
+2.4.2b (dec 1 2013) - Minecraft 1.7.2 compatible
+added:
+-Windows 64bit version
+fixed:
+-small fixes in loading colors
+
+2.4.2 (nov 27 2013) - Minecraft 1.7.2 compatible
+fixed:
+-skipping empty lines in colors file
+
+2.4.1 (nov 19 2013) - Minecraft 1.7.2 compatible
+fixed:
+-wooden slabs and stairs
+-sandstone stairs
+-better colours of stained clays
+-little corrections in colors.txt
+
+2.4 (nov 15 2013) - Minecraft 1.7.2 compatible
+added:
+-carrots and potatoes
+-redstone block, coal block, anvil, hopper, emerald block etc.
+-packed ice, red sand, hardened clay, wood and leafs introduced in 1.7.2
+-various colors of flowers
+-carpets, stained clays, stained glass and glass panes with 16 colors
+
+2.3b (long time ago) - Minecraft 1.3.1 compatible
+-last Zahl's version
