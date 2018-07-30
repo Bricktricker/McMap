@@ -71,6 +71,37 @@ constexpr size_t numBits() {
 	return sizeof(T) * 8;
 }
 
+/*
+ Converts big endian values to host-architecture
+*/
+template <typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
+T ntoh(T u)
+{
+	static_assert (std::numeric_limits<unsigned char>::digits == 8, "CHAR_BIT != 8");
+
+	{ //Check for big endiness
+		union {
+			uint32_t i;
+			char c[4];
+		} b = { 0x01020304 };
+
+		if (b.c[0] == 1) return u;
+	}
+
+	union
+	{
+		T u;
+		unsigned char u8[sizeof(T)];
+	} source, dest;
+
+	source.u = u;
+
+	for (size_t k = 0; k < sizeof(T); k++)
+		dest.u8[k] = source.u8[sizeof(T) - k - 1];
+
+	return dest.u;
+}
+
 size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne);
 std::vector<std::string> strSplit(const std::string &s, char delim);
 

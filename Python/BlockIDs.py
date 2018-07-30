@@ -1,6 +1,12 @@
 import json
+import sys
 
-allBlocks = json.loads(open("blocks.json").read())
+if len(sys.argv) > 1:
+    p = sys.argv[1]
+else:
+    p = "blocks.json"
+
+allBlocks = json.loads(open(p).read())
 outData = {}
 
 for blockName, blockVals in allBlocks.items():

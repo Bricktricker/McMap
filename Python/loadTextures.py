@@ -2,10 +2,26 @@ import json
 import re
 import math
 import calcColors
+import sys
 
-path = "C:/Users/Philipp/AppData/Roaming/.minecraft/versions/1.13/minecraft/"
+blockPath = "blocks.json"
+
+if len(sys.argv) == 1:
+    print("usage: python loadTextures.py PATH_TO_UNPACKED_MINECRAFT_JAR")
+    sys.exit(0)
+elif len(sys.argv) > 1:
+    path = sys.argv[1]
+    if not path.endswith('/'):
+        path += '/'
+    if not path.endswith("minecraft/"):
+        print("PATH_TO_UNPACKED_MINECRAFT_JAR has to point to the minecraft/ dir")
+        sys.exit(1)
+    
+if len(sys.argv) > 2:
+    blockPath = sys.argv[2]
+
 csvPath = "specialBlocks.csv"
-allBlocks = json.loads(open("C:/Users/Philipp/AppData/Roaming/.minecraft/versions/1.13/Datengenerator/generated/reports/blocks.json").read()) #grass, blocks
+allBlocks = json.loads(open(blockPath).read())
 
 outData = []
 

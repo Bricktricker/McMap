@@ -1,10 +1,12 @@
 /***
  * Tiny OO NBT parser for C++
  * v1.0, 09-2010 by Zahl
+ * modified by Philipp
  */
 #include <iostream>
 #include <limits>
 #include "nbt.h"
+#include "helper.h"
 
 // For MSVC++, get "zlib compiled DLL" from http://www.zlib.net/ and read USAGE.txt
 // gcc from MinGW works with the static library of zlib; however, trying
@@ -42,50 +44,6 @@
  * And make your tool open source of course.
  * Thanks :-)
  */
-
-
-// Using these two functions instead
-static inline uint16_t _ntohs(uint8_t *val)
-{
-	return (uint16_t(val[0]) << 8)
-	       + (uint16_t(val[1]));
-}
-
-static inline uint32_t _ntohl(uint8_t *val)
-{
-	return (uint32_t(val[0]) << 24)
-	       + (uint32_t(val[1]) << 16)
-	       + (uint32_t(val[2]) << 8)
-	       + (uint32_t(val[3]));
-}
-
-template <typename T>
-static inline T ntoh(T u)
-{
-	static_assert (std::numeric_limits<unsigned char>::digits == 8, "CHAR_BIT != 8");
-
-	{ //Check for big endiness
-		union {
-			uint32_t i;
-			char c[4];
-		} b = { 0x01020304 };
-
-		if (b.c[0] == 1) return u;
-	}
-
-	union
-	{
-		T u;
-		unsigned char u8[sizeof(T)];
-	} source, dest;
-
-	source.u = u;
-
-	for (size_t k = 0; k < sizeof(T); k++)
-		dest.u8[k] = source.u8[sizeof(T) - k - 1];
-
-	return dest.u;
-}
 
 template<typename T>
 T readBuffer(const std::vector<uint8_t>& data, size_t& pos) {

@@ -41,34 +41,6 @@ namespace {
 #include "helper.h"
 
 template <typename T, typename std::enable_if_t<std::is_integral<T>::value>* = nullptr>
-T ntoh(T u)
-{
-	static_assert (std::numeric_limits<unsigned char>::digits == 8, "CHAR_BIT != 8");
-
-	{ //Check for big endiness
-		union {
-			uint32_t i;
-			char c[4];
-		} b = { 0x01020304 };
-
-		if (b.c[0] == 1) return u;
-	}
-
-	union
-	{
-		T u;
-		unsigned char u8[sizeof(T)];
-	} source, dest;
-
-	source.u = u;
-
-	for (size_t k = 0; k < sizeof(T); k++)
-		dest.u8[k] = source.u8[sizeof(T) - k - 1];
-
-	return dest.u;
-}
-
-template <typename T, typename std::enable_if_t<std::is_integral<T>::value>* = nullptr>
 T ntoh(void* u, size_t size)
 {
 	static_assert (std::numeric_limits<unsigned char>::digits == 8, "CHAR_BIT != 8");
