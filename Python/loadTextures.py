@@ -7,7 +7,7 @@ import sys
 blockPath = "blocks.json"
 
 if len(sys.argv) == 1:
-    print("usage: python loadTextures.py PATH_TO_UNPACKED_MINECRAFT_JAR")
+    print("usage: python loadTextures.py PATH_TO_UNPACKED_MINECRAFT_JAR [PATH_TO_block.json]")
     sys.exit(0)
 elif len(sys.argv) > 1:
     path = sys.argv[1]
