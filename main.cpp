@@ -392,7 +392,8 @@ int main(int argc, char **argv)
 	// open output file only if not doing the tiled output
 	std::fstream fileHandle;
 	if (Global::tilePath.empty()) {
-		fileHandle.open(outfile, std::ios::in | std::ios::out | std::ios::binary);
+		//TODO: check if opening for reading is necessary
+		fileHandle.open(outfile, std::fstream::out | std::fstream::binary);
 		//fileHandle = fopen(outfile.c_str(), (splitImage ? "w+b" : "wb"));
 
 		if (fileHandle.fail()) {
