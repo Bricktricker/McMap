@@ -65,3 +65,4 @@ for blockName, blockVals in allBlocks.items():
 
 with open('../BlockIDs.json', 'w') as outfile:
     json.dump(outData, outfile)
+    print("written {} blockstates successfully".format(len(outData)))

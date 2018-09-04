@@ -247,4 +247,5 @@ while pos < len(outData)-1:
             
 with open('../colors.json', 'w') as outfile:
     json.dump(outData, outfile)
+    print("written {} colors successfully".format(len(outData)))
 
