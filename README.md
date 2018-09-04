@@ -1,5 +1,5 @@
 # McMap
-mcmap is a tiny map visualizer for Minecraft 1.13. Maps are drawn from an isometric perspective.
+mcmap is a tiny map visualizer for Minecraft 1.13.1 Maps are drawn from an isometric perspective.
 
 ## About
 This project is a fork of [WRIM/mcmap](https://github.com/WRIM/mcmap) beta version. [Original minecraftforum thread](https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-tools/1260548-mcmap-isometric-renders-ssp-smp-minecraft-1-3-1)
