@@ -675,7 +675,7 @@ void setPixel(const size_t x, const size_t y, const uint16_t stateID, const floa
 	currentColor = modColor(currentColor, sub); //set brightness
 
 	//if (g_UseBiomes && g_WorldFormat == 2) assignBiome(c, biome, color); //dropped biom support
-	uint8_t colortype = currentColor.blockType % BLOCKBIOME;
+	const uint8_t colortype = currentColor.blockType % BLOCKBIOME;
 
 	if (Global::settings.blendAll) {
 		// Then check the block type, as some types will be drawn differently
@@ -843,7 +843,7 @@ void setPixel(const size_t x, const size_t y, const uint16_t stateID, const floa
 			}
 		}
 	}
-	// The above two branches are almost the same, maybe one could just create a function pointer and...
+
 }
 
 void blendPixel(const size_t x, const size_t y, const uint16_t stateID, const float fsub)
