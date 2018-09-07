@@ -6,9 +6,9 @@ This project is a fork of [WRIM/mcmap](https://github.com/WRIM/mcmap) beta versi
 
 ## Basic usage
 
-- To display help: ``` mcmap.exe```
-- A simple reder of your world: ``` mcmap.exe WORLDPATH ```
-- To include skylight: ``` mcmap.exe -skylight WORLDPATH ```
+- To display help run: ``` mcmap.exe```
+- A simple render of your world run: ``` mcmap.exe WORLDPATH ```
+- To include skylight run: ``` mcmap.exe -skylight WORLDPATH ```
 
 ## Update Blockdata
 1. Download the latest server.jar from minecraft.net
@@ -24,3 +24,6 @@ This project is a fork of [WRIM/mcmap](https://github.com/WRIM/mcmap) beta versi
 5. Run the ```loadTexture.py PATH_TO_UNPACKED_MINECRAFT_JAR``` to update the colors.json file
 
 You can also modify the specialBlocks.csv file to preset certain colors for special textures.
+
+## Compatibility
+This software is able to render all minecraft saves, which are in the anvil file format (MC >= 1.2.1), but maybe not all blocks will be rendered correctly. I recommend to update your minecraft save to minecraft version 1.13.1 to ensure optimal rendering.
