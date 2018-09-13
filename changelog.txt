@@ -1,6 +1,9 @@
 mcmap3 changelog
 Latest version is available at: http://wrim.pl/mcmap/
 ------------------------------------------------------
+beta 3.0.5 (sep 7 2018)
+- updated for minecraft 1.13.1
+
 beta 3.0.4 (jul 28 2018)
 - added support for Minecraft 1.13
 - removed biom support

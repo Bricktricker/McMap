@@ -670,46 +670,54 @@ void calcBitmapOverdraw(int &left, int &right, int &top, int &bottom)
 
 void allocateTerrain()
 {
-	Global::terrain.clear();
-	Global::light.clear();
-	Global::heightMap.clear();
-	Global::biomeMap.clear();
-
-	Global::terrain.shrink_to_fit();
-	Global::light.shrink_to_fit();
-	Global::heightMap.shrink_to_fit();
-	Global::biomeMap.shrink_to_fit();
-	/* biomes no longer supported
-	if (Global::useBiomes) //&& worldFormat == 2
-	{
-	    Global::biomeMapSize = Global::MapsizeX * Global::MapsizeZ;
-		Global::biomeMap.resize(Global::biomeMapSize, 0);
-	}*/
-	Global::heightMap.resize(Global::MapsizeX * Global::MapsizeZ, 0xff00); //0xff00
+	const size_t heightMapSize = Global::MapsizeX * Global::MapsizeZ;
 	Global::Terrainsize = Global::MapsizeX * Global::MapsizeY * Global::MapsizeZ;
 
-	std::cout << "Terrain takes up " << std::setprecision(5) << float(Global::Terrainsize*sizeof(uint16_t) / float(1024 * 1024)) << "MiB";
-	Global::terrain.resize(Global::Terrainsize, 0);  // Preset: Air
+	if (Global::heightMap.size() < heightMapSize) {
+		Global::heightMap.clear();
+		Global::heightMap.shrink_to_fit();
+		Global::heightMap.resize(heightMapSize, 0xff00);
+	}
+	else {
+		std::fill_n(Global::heightMap.begin(), heightMapSize, 0xff00);
+	}
+
+	std::cout << "Terrain takes up " << std::setprecision(5) << float(Global::Terrainsize * sizeof(uint16_t) / float(1024 * 1024)) << "MiB";
+	if (Global::terrain.size() < Global::Terrainsize) {
+		Global::terrain.clear();
+		Global::terrain.shrink_to_fit();
+		Global::terrain.resize(Global::Terrainsize, 0); // Preset: Air
+	}
+	else {
+		std::fill_n(Global::terrain.begin(), Global::Terrainsize, 0U);
+	}
 
 	if (Global::settings.nightmode || Global::settings.underground || Global::settings.blendUnderground || Global::settings.skylight) {
 		Global::lightsize = Global::MapsizeZ * Global::MapsizeX * ((Global::MapsizeY + (Global::MapminY % 2 == 0 ? 1 : 2)) / 2);
 		std::cout << ", lightmap " << std::setprecision(5) << float(Global::lightsize / float(1024 * 1024)) << "MiB";
-		Global::light.resize(Global::lightsize);
+		if (Global::light.size() < Global::lightsize) {
+			Global::light.clear();
+			Global::light.shrink_to_fit();
+			Global::light.resize(Global::lightsize);
+		}
+
 		// Preset: all bright / dark depending on night or day
 		if (Global::settings.nightmode) {
-			std::fill(Global::light.begin(), Global::light.end(), 0x11);
-		} else if (Global::settings.underground) {
-			std::fill(Global::light.begin(), Global::light.end(), 0x00);
-		} else {
-			std::fill(Global::light.begin(), Global::light.end(), 0xFF);
+			std::fill_n(Global::light.begin(), Global::lightsize, 0x11);
+		}
+		else if (Global::settings.underground) {
+			std::fill_n(Global::light.begin(), Global::lightsize, 0x00);
+		}
+		else {
+			std::fill_n(Global::light.begin(), Global::lightsize, 0xFF);
 		}
 	}
-	std::cout << "\n";
+	std::cout << '\n';
 }
 
 void clearLightmap()
 {
-	std::fill(Global::light.begin(), Global::light.end(), 0x00);
+	std::fill_n(Global::light.begin(), Global::lightsize, 0x00);
 }
 
 /**

@@ -57,7 +57,7 @@ public:
 	//static bool useBiomes;
 	static uint64_t biomeMapSize;
 	static std::vector<uint8_t> grasscolor, leafcolor, tallGrasscolor;
-	static std::vector<uint16_t> biomeMap;
+	//static std::vector<uint16_t> biomeMap;
 	static int grasscolorDepth, foliageDepth;
 
 	static std::vector<Marker> markers;

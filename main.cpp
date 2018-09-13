@@ -479,6 +479,10 @@ int main(int argc, char **argv)
 				discardImagePart();
 				continue;
 			}
+			else if (numberOfChunks == 0) {
+				std::cout << "Section is empty, skipping...\n";
+				continue;
+			}
 		}
 
 		if (Global::settings.hell || Global::settings.serverHell) {
@@ -510,7 +514,7 @@ int main(int argc, char **argv)
 				const int bmpPosX = int((Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX - cropLeft));
 				int bmpPosY = int(Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY - cropTop)) + 2 - (HEIGHTAT(x, z) & 0xFF) * Global::OffsetY;
 				const unsigned int max = (HEIGHTAT(x, z) & 0xFF00) >> 8;
-				for (unsigned int y = uint8_t(HEIGHTAT(x, z)); y < max; ++y) {
+				for (unsigned int y = int8_t(HEIGHTAT(x, z)); y < max; ++y) {
 					bmpPosY -= Global::OffsetY;
 					const uint16_t& c = BLOCKAT(x, y, z);
 					if (c == AIR) {
@@ -549,15 +553,17 @@ int main(int argc, char **argv)
 							brightnessAdjustment -= (210 - l * 14);
 						}
 					}
-					// Edge detection (this means where terrain goes 'down' and the side of the block is not visible)
-					uint16_t &b = BLOCKAT(x - 1, y - 1, z - 1);
 
-					if ((y && y + 1 < Global::MapsizeY)  // In bounds?
-					      && BLOCKAT(x, y + 1, z) == AIR  // Only if block above is air
-					      && BLOCKAT(x - 1, y + 1, z - 1) == AIR  // and block above and behind is air
-					      && (b == AIR || b == c)   // block behind (from pov) this one is same type or air
-					      && (BLOCKAT(x - 1, y, z) == AIR || BLOCKAT(x, y, z - 1) == AIR)) {   // block TL/TR from this one is air = edge
-						brightnessAdjustment += 13;
+					// Edge detection (this means where terrain goes 'down' and the side of the block is not visible)
+					if (y != 0) {
+						uint16_t &b = BLOCKAT(x - 1, y - 1, z - 1);
+						if ((y + 1 < Global::MapsizeY)  // In bounds?
+							&& BLOCKAT(x, y + 1, z) == AIR  // Only if block above is air
+							&& BLOCKAT(x - 1, y + 1, z - 1) == AIR  // and block above and behind is air
+							&& (b == AIR || b == c)   // block behind (from pov) this one is same type or air
+							&& (BLOCKAT(x - 1, y, z) == AIR || BLOCKAT(x, y, z - 1) == AIR)) {   // block TL/TR from this one is air = edge
+							brightnessAdjustment += 13;
+						}
 					}
 
 					setPixel(bmpPosX, bmpPosY, c, brightnessAdjustment, biome);
@@ -661,7 +667,7 @@ void optimizeTerrain()
 					if (block != AIR && lowest == 0xFF) { // if it's not air, this is the lowest block to draw
 						lowest = y;
 					}
-					if (col.a == 255 && col.blockType != 0) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration
+					if (col.a == 255 && col.blockType != 0) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration (orig. just checking for alpha value, need to remove white spots behind fences)
 						current = 1;
 					}
 					if (block != AIR) highest = y; // if it's not air, it's the new highest block encountered so far

@@ -12,7 +12,7 @@ Settings Global::settings = { East, false, false, false, false, 0, false, false,
 //bool Global::useBiomes = false;
 uint64_t Global::biomeMapSize = 0;
 std::vector<uint8_t> Global::grasscolor, Global::leafcolor, Global::tallGrasscolor;
-std::vector<uint16_t> Global::biomeMap;
+//std::vector<uint16_t> Global::biomeMap;
 int Global::grasscolorDepth = 0, Global::foliageDepth = 0;
 
 std::vector<Marker> Global::markers;
