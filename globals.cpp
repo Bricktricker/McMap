@@ -7,7 +7,7 @@ int Global::MapminY = 0;
 unsigned int Global::MapsizeY = 256;
 int Global::OffsetY = 2;
 WorldFormat Global::worldFormat;
-Settings Global::settings = { East, false, false, false, false, 0, false, false, false, false};
+Settings Global::settings = { East, false, false, false, false, 0, false, false, false, false, false};
 
 //bool Global::useBiomes = false;
 uint64_t Global::biomeMapSize = 0;

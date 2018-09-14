@@ -111,8 +111,11 @@ int main(int argc, char **argv)
 				Global::settings.hell = true;
 			} else if (option == "-end") {
 				Global::settings.end = true;
-			} else if (option == "-serverhell") {
+			}
+			else if (option == "-serverhell") {
 				Global::settings.serverHell = true;
+			}else if(option == "-connGrass") {
+				Global::settings.connGrass = true;
 			} else if (option == "-biomes") {
 				std::cerr << "-biomes no longer supported\n";
 				return 1;
@@ -928,6 +931,7 @@ void printHelp(const std::string& binary)
 		<< "  -hell         render the hell/nether dimension of the given world\n"
 		<< "  -end          render the end dimension of the given world\n"
 		<< "  -serverhell   force cropping of blocks at the top (use for nether servers)\n"
+		<< "  -connGrass    uses connected textures to render grass\n"
 		<< "  -info NAME    Write information about map to file 'NAME' in JSON format\n"
 		<< "                use -infoonly to not render the world"
 		<< "  -split PATH   create tiled output (128x128 to 4096x4096) in given PATH\n"

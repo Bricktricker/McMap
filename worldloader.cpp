@@ -673,7 +673,7 @@ void allocateTerrain()
 	const size_t heightMapSize = Global::MapsizeX * Global::MapsizeZ;
 	Global::Terrainsize = Global::MapsizeX * Global::MapsizeY * Global::MapsizeZ;
 
-	if (Global::heightMap.size() < heightMapSize) {
+	if (Global::heightMap.size() < heightMapSize || Global::heightMap.size() * 0.9f > heightMapSize) {
 		Global::heightMap.clear();
 		Global::heightMap.shrink_to_fit();
 		Global::heightMap.resize(heightMapSize, 0xff00);
@@ -683,7 +683,7 @@ void allocateTerrain()
 	}
 
 	std::cout << "Terrain takes up " << std::setprecision(5) << float(Global::Terrainsize * sizeof(uint16_t) / float(1024 * 1024)) << "MiB";
-	if (Global::terrain.size() < Global::Terrainsize) {
+	if (Global::terrain.size() < Global::Terrainsize || Global::terrain.size() * 0.9f > Global::Terrainsize) {
 		Global::terrain.clear();
 		Global::terrain.shrink_to_fit();
 		Global::terrain.resize(Global::Terrainsize, 0); // Preset: Air
@@ -695,7 +695,7 @@ void allocateTerrain()
 	if (Global::settings.nightmode || Global::settings.underground || Global::settings.blendUnderground || Global::settings.skylight) {
 		Global::lightsize = Global::MapsizeZ * Global::MapsizeX * ((Global::MapsizeY + (Global::MapminY % 2 == 0 ? 1 : 2)) / 2);
 		std::cout << ", lightmap " << std::setprecision(5) << float(Global::lightsize / float(1024 * 1024)) << "MiB";
-		if (Global::light.size() < Global::lightsize) {
+		if (Global::light.size() < Global::lightsize || Global::light.size() * 0.9f > Global::lightsize) {
 			Global::light.clear();
 			Global::light.shrink_to_fit();
 			Global::light.resize(Global::lightsize);

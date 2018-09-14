@@ -709,8 +709,11 @@ void setPixel(const size_t x, const size_t y, const uint16_t stateID, const floa
 		switch (colortype)
 		{
 		case BLOCKGRASS:
-			setGrassBA(x, y, currentColor, L, D, sub);
-			return;
+			if (!Global::settings.connGrass) {
+				setGrassBA(x, y, currentColor, L, D, sub);
+				return;
+			}
+			break;
 		case BLOCKFIRE:
 			setFire(x, y, currentColor, L, D);
 			return;
@@ -752,8 +755,11 @@ void setPixel(const size_t x, const size_t y, const uint16_t stateID, const floa
 		switch (colortype)
 		{
 		case BLOCKGRASS:
-			setGrass(x, y, currentColor, L, D, sub);
-			return;
+			if (!Global::settings.connGrass) {
+				setGrass(x, y, currentColor, L, D, sub);
+				return;
+			}
+			break;
 		case BLOCKFIRE:
 			setFire(x, y, currentColor, L, D);
 			return;
