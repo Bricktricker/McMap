@@ -778,7 +778,6 @@ bool loadTerrain(const std::string& fromPath, int &loadedChunks)
 		return false;
 	}
 	allocateTerrain();
-	std::string path;
 
 	std::cout << "Loading all chunks..\n";
 	//
@@ -786,7 +785,7 @@ bool loadTerrain(const std::string& fromPath, int &loadedChunks)
 	for (int x = floorRegion(Global::FromChunkX); x <= floorRegion(Global::ToChunkX); x += REGIONSIZE) {
 		printProgress(size_t(x + tmpMin), size_t(floorRegion(Global::ToChunkX) + tmpMin));
 		for (int z = floorRegion(Global::FromChunkZ); z <= floorRegion(Global::ToChunkZ); z += REGIONSIZE) {
-			path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".mca";
+			std::string path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".mca";
 			loadRegion(path, false, loadedChunks);
 		}
 	}

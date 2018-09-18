@@ -636,6 +636,9 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+/*
+Funktion geht von vorne nach hinten durch und prüft ob der nach rechts-vorne versetzte block den aktuellen Block verdeckt, dann wird der aktuelle block nicht gezeichnet / übersprungen
+*/
 #ifdef _DEBUG
 static size_t gBlocksRemoved = 0;
 #endif
@@ -648,9 +651,8 @@ void optimizeTerrain()
 	const size_t maxX = Global::MapsizeX - CHUNKSIZE_X;
 	const size_t maxZ = Global::MapsizeZ - CHUNKSIZE_Z;
 	const size_t modZ = maxZ * Global::MapsizeY;
-	uint8_t * const blocked = new uint8_t[modZ];
+	std::vector<bool> blocked(modZ, false);
 	int offsetZ = 0, offsetY = 0, offsetGlobal = 0;
-	memset(blocked, 0, modZ);
 	for (size_t x = maxX - 1; x >= CHUNKSIZE_X; --x) {
 		printProgress(maxX - (x + 1), maxX);
 		offsetZ = offsetGlobal;
@@ -658,7 +660,7 @@ void optimizeTerrain()
 			size_t highest = 0, lowest = 0xFF; // remember lowest and highest block which are visible to limit the Y-for-loop later
 			for (size_t y = 0; y < Global::MapsizeY; ++y) { // Go up
 				const uint16_t block = BLOCKAT(x, y, z); // Get the lowest block at that point
-				uint8_t &current = blocked[((y+offsetY) % Global::MapsizeY) + (offsetZ % modZ)];
+				auto& current = blocked[((y+offsetY) % Global::MapsizeY) + (offsetZ % modZ)];
 				if (current) { // Block is hidden, remove
 #ifdef _DEBUG
 					if (block != AIR) {
@@ -670,23 +672,22 @@ void optimizeTerrain()
 					if (block != AIR && lowest == 0xFF) { // if it's not air, this is the lowest block to draw
 						lowest = y;
 					}
-					if (col.a == 255 && col.blockType != 0) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration (orig. just checking for alpha value, need to remove white spots behind fences)
-						current = 1;
+					if (col.a == 255 && col.blockType == 0) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration (orig. just checking for alpha value, need to remove white spots behind fences)
+						current = true;
 					}
 					if (block != AIR) highest = y; // if it's not air, it's the new highest block encountered so far
 				}
 			}
 			HEIGHTAT(x, z) = (((uint16_t)highest + 1) << 8) | (uint16_t)lowest; // cram them both into a 16bit int
-			blocked[(offsetY % Global::MapsizeY) + (offsetZ % modZ)] = 0;
+			blocked[(offsetY % Global::MapsizeY) + (offsetZ % modZ)] = false;
 			offsetZ += Global::MapsizeY;
 		}
 		for (size_t y = 0; y < Global::MapsizeY; ++y) {
-			blocked[y + (offsetGlobal % modZ)] = 0;
+			blocked[y + (offsetGlobal % modZ)] = false;
 		}
 		offsetGlobal += Global::MapsizeY;
 		++offsetY;
 	}
-	delete[] blocked;
 	printProgress(10, 10);
 #ifdef _DEBUG
 	std::cout << "Removed " << gBlocksRemoved << " blocks\n";
