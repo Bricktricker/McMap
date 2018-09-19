@@ -3,6 +3,7 @@
 #include "nbt.h"
 #include "colors.h"
 #include "globals.h"
+#include "helper.h"
 
 #include <string>
 #include <zlib.h>
@@ -12,6 +13,7 @@
 #include <iomanip>
 #include <limits>
 #include <cstring>
+#include <functional>
 
 /*
 Callstack:
@@ -37,8 +39,6 @@ loadTerrain()
 namespace {
 	static World world;
 }
-
-#include "helper.h"
 
 template <typename T, typename std::enable_if_t<std::is_integral<T>::value>* = nullptr>
 T ntoh(void* u, size_t size)
@@ -74,7 +74,6 @@ T ntoh(void* u, size_t size)
 	return dest.u;
 }
 
-//static bool loadChunk(uint8_t* buffer, const size_t len);
 bool loadChunk(const std::vector<uint8_t>& buffer);
 bool loadAnvilChunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ);
 bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ);
@@ -553,10 +552,7 @@ uint64_t calcTerrainSize(const int chunksX, const int chunksZ)
 	if (Global::settings.nightmode || Global::settings.underground || Global::settings.blendUnderground || Global::settings.skylight) {
 			size += size / 4;
 	}
-	/* biomes no longer supported
-	if (g_UseBiomes) {
-		size += uint64_t(chunksX+2) * CHUNKSIZE_X * uint64_t(chunksZ+2) * CHUNKSIZE_Z * sizeof(uint16_t);
-	}*/
+
 	return size;
 }
 /*
@@ -756,16 +752,36 @@ bool loadEntireTerrain()
 	}
 	allocateTerrain();
 	const size_t max = world.regions.size();
-	size_t count = 0;
 	std::cout << "Loading all chunks..\n";
-	for (regionList::iterator it = world.regions.begin(); it != world.regions.end(); ++it) {
-		Region& region = (*it);
-		printProgress(count++, max);
-		int i;
-		loadRegion(region.filename, true, i);
+
+	if (Global::threadPool) {
+		std::vector<std::function<bool>> results;
+		//multi-thread
+		for (regionList::iterator it = world.regions.begin(); it != world.regions.end(); ++it) {
+			Region& region = (*it);
+			std::future<bool> r = Global::threadPool->enqueue([&](Region reg) {
+				int i = 0;
+				return loadRegion(reg.filename, true, i);
+			}, region);
+		}
+		bool result = false;
+
+
+
+	}else {
+		size_t count = 0;
+		bool result = false;
+
+		for (regionList::iterator it = world.regions.begin(); it != world.regions.end(); ++it) {
+			Region& region = (*it);
+			printProgress(count++, max);
+			int i;
+			result |= loadRegion(region.filename, true, i);
+		}
+		printProgress(10, 10);
+		return result;
 	}
-	printProgress(10, 10);
-	return true;
+
 }
 
 /**
@@ -780,16 +796,17 @@ bool loadTerrain(const std::string& fromPath, int &loadedChunks)
 	allocateTerrain();
 
 	std::cout << "Loading all chunks..\n";
-	//
+	bool result = false;
 	const int tmpMin = -floorRegion(Global::FromChunkX);
 	for (int x = floorRegion(Global::FromChunkX); x <= floorRegion(Global::ToChunkX); x += REGIONSIZE) {
 		printProgress(size_t(x + tmpMin), size_t(floorRegion(Global::ToChunkX) + tmpMin));
 		for (int z = floorRegion(Global::FromChunkZ); z <= floorRegion(Global::ToChunkZ); z += REGIONSIZE) {
 			std::string path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".mca";
-			loadRegion(path, false, loadedChunks);
+			result |= loadRegion(path, false, loadedChunks);
 		}
 	}
-	return true;
+
+	return result;
 }
 
 /*

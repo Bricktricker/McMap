@@ -48,6 +48,9 @@
     <ClInclude Include="Tree.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="ThreadPool.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="colors.cpp">

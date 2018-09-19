@@ -5,6 +5,8 @@
 
 #include <vector>
 #include <string>
+#include <memory>
+#include "ThreadPool.h"
 
 #define UNDEFINED 0x7FFFFFFF
 #define MAX_MARKERS 200
@@ -70,6 +72,7 @@ public:
 	static int8_t sectionMin, sectionMax; //No idea
 	static uint8_t mystCraftAge;
 
+	static std::unique_ptr<ThreadPool> threadPool;
 };
 
 #endif

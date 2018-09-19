@@ -30,3 +30,5 @@ size_t Global::lightsize;
 std::string Global::tilePath;
 int8_t Global::sectionMin, Global::sectionMax;
 uint8_t Global::mystCraftAge = 0U;
+
+std::unique_ptr<ThreadPool> Global::threadPool;

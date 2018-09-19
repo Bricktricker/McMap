@@ -168,12 +168,19 @@ int main(int argc, char **argv)
 					return 1;
 				}
 				colorfile = NEXTARG;
-			}else if(option == "-blocks"){
+			}
+			else if (option == "-blocks") {
 				if (!MOREARGS(1)) {
 					std::cerr << "Error: -blocks needs one argument, ie: -blocks BlockIds.json\n";
 					return 1;
 				}
 				blockfile = NEXTARG;
+			}else if(option == "-threads") {
+				if (!MOREARGS(1) || !isNumeric(POLLARG(1)) || atoi(POLLARG(1)) <= 1) {
+					std::cerr << "Error: " << option << " needs a positive integer argument, ie: " << option << " 4\n";
+					return 1;
+				}
+				Global::threadPool = std::make_unique<ThreadPool>(atoi(NEXTARG));
 			} else if (option == "-info") {
 				if (!MOREARGS(1)) {
 					std::cerr << "Error: -info needs one argument, ie: -info data.json\n";
@@ -925,6 +932,7 @@ void printHelp(const std::string& binary)
 		<< "                this limit. Default is 1800.\n"
 		<< "  -colors NAME  loads user defined colors from file 'NAME'\n"
 		<< "  -blocks NAME  loads user defined block ids from file 'NAME'\n"
+		<< "  -threads VAL  uses VAL number of threads to load and optimize the world\n"
 		<< "  -north -east -south -west\n"
 		<< "                controls which direction will point to the *top left* corner\n"
 		<< "                it only makes sense to pass one of them; East is default\n"
