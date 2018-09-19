@@ -1,8 +1,8 @@
+#include "ThreadPool.h"
 #include "worldloader.h"
 #include "filesystem.h"
 #include "nbt.h"
 #include "colors.h"
-#include "globals.h"
 #include "helper.h"
 
 #include <string>
@@ -13,7 +13,6 @@
 #include <iomanip>
 #include <limits>
 #include <cstring>
-#include <functional>
 
 /*
 Callstack:
@@ -755,19 +754,26 @@ bool loadEntireTerrain()
 	std::cout << "Loading all chunks..\n";
 
 	if (Global::threadPool) {
-		std::vector<std::function<bool>> results;
+		std::vector<std::future<bool>> results;
 		//multi-thread
 		for (regionList::iterator it = world.regions.begin(); it != world.regions.end(); ++it) {
 			Region& region = (*it);
-			std::future<bool> r = Global::threadPool->enqueue([&](Region reg) {
+			results.emplace_back(Global::threadPool->enqueue([] (Region reg) {
 				int i = 0;
 				return loadRegion(reg.filename, true, i);
-			}, region);
+			}, region));
+
 		}
 		bool result = false;
+		size_t count = 0;
 
+		for (auto& r : results) {
+			result |= r.get();
+			printProgress(count++, max);
+		}
 
-
+		printProgress(10, 10);
+		return result;
 	}else {
 		size_t count = 0;
 		bool result = false;
@@ -798,11 +804,41 @@ bool loadTerrain(const std::string& fromPath, int &loadedChunks)
 	std::cout << "Loading all chunks..\n";
 	bool result = false;
 	const int tmpMin = -floorRegion(Global::FromChunkX);
-	for (int x = floorRegion(Global::FromChunkX); x <= floorRegion(Global::ToChunkX); x += REGIONSIZE) {
-		printProgress(size_t(x + tmpMin), size_t(floorRegion(Global::ToChunkX) + tmpMin));
-		for (int z = floorRegion(Global::FromChunkZ); z <= floorRegion(Global::ToChunkZ); z += REGIONSIZE) {
-			std::string path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".mca";
-			result |= loadRegion(path, false, loadedChunks);
+
+	if (Global::threadPool) {
+		std::vector<std::future<bool>> results;
+		std::atomic_int atomicLoadedChunks{0};
+
+		for (int x = floorRegion(Global::FromChunkX); x <= floorRegion(Global::ToChunkX); x += REGIONSIZE) {
+			for (int z = floorRegion(Global::FromChunkZ); z <= floorRegion(Global::ToChunkZ); z += REGIONSIZE) {
+				std::string path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".mca";
+				
+				results.emplace_back(Global::threadPool->enqueue([&atomicLoadedChunks] (const std::string path) {
+					int load = 0;
+					const bool r = loadRegion(path, false, load);
+					atomicLoadedChunks += load;
+					return r;
+				}, path));
+			}
+		}
+
+		for (size_t i = 0; i < results.size(); ++i) {
+			const bool b = results[i].get();
+			result |= b;
+			printProgress(i, results.size());
+		}
+
+		loadedChunks = atomicLoadedChunks;
+		printProgress(10, 10);
+
+	}else{
+		for (int x = floorRegion(Global::FromChunkX); x <= floorRegion(Global::ToChunkX); x += REGIONSIZE) {
+			printProgress(size_t(x + tmpMin), size_t(floorRegion(Global::ToChunkX) + tmpMin));
+			for (int z = floorRegion(Global::FromChunkZ); z <= floorRegion(Global::ToChunkZ); z += REGIONSIZE) {
+				std::string path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".mca";
+				const bool b = loadRegion(path, false, loadedChunks);
+				result |= b;
+			}
 		}
 	}
 

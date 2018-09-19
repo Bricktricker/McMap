@@ -480,10 +480,8 @@ int main(int argc, char **argv)
 			return 1;
 		} else if (numSplitsX != 0 || !wholeworld) {
 			int numberOfChunks;
-			if (!loadTerrain(filename, numberOfChunks)) {
-				std::cerr << "Error loading terrain from '" << filename << "'\n";
-				return 1;
-			}
+			const bool result = loadTerrain(filename, numberOfChunks);
+
 			if (splitImage && numberOfChunks == 0) {
 				std::cout << "Section is empty, skipping...\n";
 				discardImagePart();
@@ -498,12 +496,6 @@ int main(int argc, char **argv)
 		if (Global::settings.hell || Global::settings.serverHell) {
 			uncoverNether();
 		}
-
-		// Load biome data if requested (no longer supported)
-		/*
-		if (Global::useBiomes && Global::worldFormat != ANVIL) {
-			loadBiomeMap(biomepath);
-		}*/
 
 		// If underground mode, remove blocks that don't seem to belong to caves
 		if (Global::settings.underground) {
@@ -646,14 +638,11 @@ int main(int argc, char **argv)
 /*
 Funktion geht von vorne nach hinten durch und prüft ob der nach rechts-vorne versetzte block den aktuellen Block verdeckt, dann wird der aktuelle block nicht gezeichnet / übersprungen
 */
-#ifdef _DEBUG
-static size_t gBlocksRemoved = 0;
-#endif
 void optimizeTerrain()
 {
 	std::cout << "Optimizing terrain...\n";
 #ifdef _DEBUG
-	gBlocksRemoved = 0;
+	size_t gBlocksRemoved = 0;
 #endif
 	const size_t maxX = Global::MapsizeX - CHUNKSIZE_X;
 	const size_t maxZ = Global::MapsizeZ - CHUNKSIZE_Z;
