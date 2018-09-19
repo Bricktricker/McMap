@@ -52,6 +52,7 @@ namespace
 #define BLOCK_AT_MAPEDGE(x,z) (((z)+1 == Global::MapsizeZ-CHUNKSIZE_Z && gAtBottomLeft) || ((x)+1 == Global::MapsizeX-CHUNKSIZE_X && gAtBottomRight))
 
 void optimizeTerrain();
+void optimizeTerrainMulti();
 void undergroundMode(bool explore);
 bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStartY);
 void writeInfoFile(const std::string& file, int xo, int yo, int bitmapx, int bitmapy);
@@ -641,6 +642,12 @@ Funktion geht von vorne nach hinten durch und prüft ob der nach rechts-vorne ver
 void optimizeTerrain()
 {
 	std::cout << "Optimizing terrain...\n";
+
+	if (Global::threadPool) {
+		optimizeTerrainMulti();
+		return;
+	}
+
 #ifdef _DEBUG
 	size_t gBlocksRemoved = 0;
 #endif
@@ -688,6 +695,14 @@ void optimizeTerrain()
 #ifdef _DEBUG
 	std::cout << "Removed " << gBlocksRemoved << " blocks\n";
 #endif
+}
+
+void optimizeTerrainMulti() {
+	const size_t maxX = Global::MapsizeX - CHUNKSIZE_X;
+	const size_t maxZ = Global::MapsizeZ - CHUNKSIZE_Z;
+
+
+
 }
 
 void undergroundMode(bool explore)
