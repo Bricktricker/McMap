@@ -822,6 +822,7 @@ bool loadTerrain(const std::string& fromPath, int &loadedChunks)
 			}
 		}
 
+		printProgress(0, results.size());
 		for (size_t i = 0; i < results.size(); ++i) {
 			const bool b = results[i].get();
 			result |= b;

@@ -52,7 +52,7 @@ namespace
 #define BLOCK_AT_MAPEDGE(x,z) (((z)+1 == Global::MapsizeZ-CHUNKSIZE_Z && gAtBottomLeft) || ((x)+1 == Global::MapsizeX-CHUNKSIZE_X && gAtBottomRight))
 
 void optimizeTerrain();
-void optimizeTerrainMulti();
+size_t optimizeTerrainMulti(const size_t startX, const size_t startZ);
 void undergroundMode(bool explore);
 bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStartY);
 void writeInfoFile(const std::string& file, int xo, int yo, int bitmapx, int bitmapy);
@@ -642,17 +642,38 @@ Funktion geht von vorne nach hinten durch und prüft ob der nach rechts-vorne ver
 void optimizeTerrain()
 {
 	std::cout << "Optimizing terrain...\n";
+	const size_t maxX = Global::MapsizeX - CHUNKSIZE_X;
+	const size_t maxZ = Global::MapsizeZ - CHUNKSIZE_Z;
 
 	if (Global::threadPool) {
-		optimizeTerrainMulti();
+		std::vector<std::future<size_t>> results;
+		size_t blocksRemoved = 0;
+
+		for (size_t z = CHUNKSIZE_Z; z < maxZ; ++z) {
+			results.emplace_back(Global::threadPool->enqueue(optimizeTerrainMulti, maxX - 1, z));
+		}
+		results.emplace_back(Global::threadPool->enqueue(optimizeTerrainMulti, maxX - 1, maxZ - 1));
+
+		for (size_t x = CHUNKSIZE_X; x < maxX; ++x) {
+			results.emplace_back(Global::threadPool->enqueue(optimizeTerrainMulti, x, maxZ-1));
+		}
+
+		printProgress(0, results.size());
+		for (size_t i = 0; i < results.size(); ++i) {
+			blocksRemoved += results[i].get();
+			printProgress(i, results.size());
+		}
+
+		printProgress(10, 10);
+#ifdef _DEBUG
+		std::cout << "Removed " << blocksRemoved << " blocks\n";
+#endif
 		return;
 	}
 
 #ifdef _DEBUG
 	size_t gBlocksRemoved = 0;
 #endif
-	const size_t maxX = Global::MapsizeX - CHUNKSIZE_X;
-	const size_t maxZ = Global::MapsizeZ - CHUNKSIZE_Z;
 	const size_t modZ = maxZ * Global::MapsizeY;
 	std::vector<bool> blocked(modZ, false);
 	int offsetZ = 0, offsetY = 0, offsetGlobal = 0;
@@ -662,7 +683,7 @@ void optimizeTerrain()
 		for (size_t z = CHUNKSIZE_Z; z < maxZ; ++z) {
 			size_t highest = 0, lowest = 0xFF; // remember lowest and highest block which are visible to limit the Y-for-loop later
 			for (size_t y = 0; y < Global::MapsizeY; ++y) { // Go up
-				const uint16_t block = BLOCKAT(x, y, z); // Get the lowest block at that point
+				const uint16_t block = BLOCKAT(x, y, z); // Get the block at that point
 				auto& current = blocked[((y+offsetY) % Global::MapsizeY) + (offsetZ % modZ)];
 				if (current) { // Block is hidden, remove
 #ifdef _DEBUG
@@ -697,11 +718,39 @@ void optimizeTerrain()
 #endif
 }
 
-void optimizeTerrainMulti() {
-	const size_t maxX = Global::MapsizeX - CHUNKSIZE_X;
-	const size_t maxZ = Global::MapsizeZ - CHUNKSIZE_Z;
+size_t optimizeTerrainMulti(const size_t startX, const size_t startZ) {
+	size_t removedBlocks{ 0 };
+	size_t numMoves{ 0 };
+	std::vector<bool> blocked(Global::MapsizeY, false);
+	size_t x = startX;
+	size_t z = startZ;
 
+	while (x >= CHUNKSIZE_X && z >= CHUNKSIZE_Z) {
+		size_t highest = 0, lowest = 0xFF;
+		for (size_t y = 0; y < Global::MapsizeY; ++y) { // Go up
+			const uint16_t block = BLOCKAT(x, y, z);
+			if (!blocked[(y + numMoves) % Global::MapsizeY]) {
+				const auto col = colorMap[block];
+				if (block != AIR && lowest == 0xFF) { // if it's not air, this is the lowest block to draw
+					lowest = y;
+				}
+				if (col.a == 255 && col.blockType == 0) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration (orig. just checking for alpha value, need to remove white spots behind fences)
+					blocked[(y + numMoves) % Global::MapsizeY] = true;
+				}
+				if (block != AIR) highest = y;
+			}
+			else {
+				++removedBlocks;
+			}
+		} //y-loop end
+		HEIGHTAT(x, z) = (((uint16_t)highest + 1) << 8) | (uint16_t)lowest;
+		blocked[numMoves%Global::MapsizeY] = false;
+		numMoves += 1;
+		x -= 1;
+		z -= 1;
+	}
 
+	return removedBlocks;
 
 }
 
