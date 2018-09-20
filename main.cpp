@@ -91,15 +91,15 @@ int main(int argc, char **argv)
 					std::cerr << "Error: -from needs two integer arguments, ie: -from -10 5\n";
 					return 1;
 				}
-				Global::FromChunkX = atoi(NEXTARG);
-				Global::FromChunkZ = atoi(NEXTARG);
+				Global::FromChunkX = std::stoi(NEXTARG);
+				Global::FromChunkZ = std::stoi(NEXTARG);
 			} else if (option == "-to") {
 				if (!MOREARGS(2) || !isNumeric(POLLARG(1)) || !isNumeric(POLLARG(2))) {
 					std::cerr << "Error: -to needs two integer arguments, ie: -to -5 20\n";
 					return 1;
 				}
-				Global::ToChunkX = atoi(NEXTARG) + 1;
-				Global::ToChunkZ = atoi(NEXTARG) + 1;
+				Global::ToChunkX = std::stoi(NEXTARG) + 1;
+				Global::ToChunkZ = std::stoi(NEXTARG) + 1;
 			} else if (option == "-night") {
 				Global::settings.nightmode = true;
 			} else if ((option == "-cave") || (option == "-caves") || (option == "-underground") ) {
@@ -119,43 +119,38 @@ int main(int argc, char **argv)
 				Global::settings.connGrass = true;
 			} else if (option == "-biomes") {
 				std::cerr << "-biomes no longer supported\n";
-				return 1;
-				//Global::useBiomes = true;
 			} else if (option == "-biomecolors") {
 				std::cerr << "-biomecolors no longer supported\n";
-				return 1;
-				//biomepath = NEXTARG;
 			} else if (option == "-blendall") {
 				Global::settings.blendAll = true;
 			} else if (option == "-lowmemory") {
 				std::cerr << "-lowmemory no longers supported\n";
-				return 1;
 			} else if ((option == "-noise") || (option == "-dither")) {
 				if (!MOREARGS(1) || !isNumeric(POLLARG(1))) {
 					std::cerr << "Error: " << option << " needs an integer argument, ie: " << option << " 10\n";
 					return 1;
 				}
-				Global::settings.noise = atoi(NEXTARG);
+				Global::settings.noise = std::stoi(NEXTARG);
 			} else if ((option == "-height") || (option == "-max")) {
 				if (!MOREARGS(1) || !isNumeric(POLLARG(1))) {
 					std::cerr << "Error: " << option << " needs an integer argument, ie: " << option << " 100\n";
 					return 1;
 				}
-				Global::MapsizeY = atoi(NEXTARG);
+				Global::MapsizeY = std::stoi(NEXTARG);
 				if (option == "-max")  Global::MapsizeY++;
 			} else if (option == "-min") {
 				if (!MOREARGS(1) || !isNumeric(POLLARG(1))) {
 					std::cerr << "Error: " << option << " needs an integer argument, ie: " << option << " 50\n";
 					return 1;
 				}
-				Global::MapminY = atoi(NEXTARG);
+				Global::MapminY = std::stoi(NEXTARG);
 			} else if (option == "-mem") {
 				if (!MOREARGS(1) || !isNumeric(POLLARG(1)) || atoi(POLLARG(1)) <= 0) {
 					std::cerr << "Error: " << option << " needs a positive integer argument, ie: " << option << " 1000\n";
 					return 1;
 				}
 				memlimitSet = true;
-				memlimit = size_t (atoi(NEXTARG)) * size_t (1024 * 1024);
+				memlimit = size_t (std::stoi(NEXTARG)) * size_t (1024 * 1024);
 			} else if (option == "-file") {
 				if (!MOREARGS(1)) {
 					std::cerr << "Error: -file needs one argument, ie: -file myworld.png\n";
@@ -510,10 +505,6 @@ int main(int argc, char **argv)
 		for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) { //iterate over all blocks, ignore outer Chunks
 			printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
 			for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
-				// Biome colors
-				uint16_t biome = 0; //wrim - should be 8bit, fix it
-				//biome = BIOMEAT(x, z);
-				//
 				const int bmpPosX = int((Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX - cropLeft));
 				int bmpPosY = int(Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY - cropTop)) + 2 - (HEIGHTAT(x, z) & 0xFF) * Global::OffsetY;
 				const unsigned int max = (HEIGHTAT(x, z) & 0xFF00) >> 8;
@@ -569,7 +560,7 @@ int main(int argc, char **argv)
 						}
 					}
 
-					setPixel(bmpPosX, bmpPosY, c, brightnessAdjustment, biome);
+					setPixel(bmpPosX, bmpPosY, c, brightnessAdjustment, 0U);
 				}
 			}
 		}
@@ -621,6 +612,7 @@ int main(int argc, char **argv)
 		}
 	}
 	// Drawing complete, now either just save the image or compose it if disk caching was used
+	deallocateTerrain();
 	// Saving
 	if (!splitImage) {
 		saveImage();
@@ -665,15 +657,14 @@ void optimizeTerrain()
 		}
 
 		printProgress(10, 10);
-#ifdef _DEBUG
+
 		std::cout << "Removed " << blocksRemoved << " blocks\n";
-#endif
+
 		return;
 	}
 
-#ifdef _DEBUG
+
 	size_t gBlocksRemoved = 0;
-#endif
 	const size_t modZ = maxZ * Global::MapsizeY;
 	std::vector<bool> blocked(modZ, false);
 	int offsetZ = 0, offsetY = 0, offsetGlobal = 0;
@@ -686,11 +677,9 @@ void optimizeTerrain()
 				const uint16_t block = BLOCKAT(x, y, z); // Get the block at that point
 				auto& current = blocked[((y+offsetY) % Global::MapsizeY) + (offsetZ % modZ)];
 				if (current) { // Block is hidden, remove
-#ifdef _DEBUG
 					if (block != AIR) {
 						++gBlocksRemoved;
 					}
-#endif
 				} else { // block is not hidden by another block
 					const auto col = colorMap[block];
 					if (block != AIR && lowest == 0xFF) { // if it's not air, this is the lowest block to draw
@@ -740,7 +729,9 @@ size_t optimizeTerrainMulti(const size_t startX, const size_t startZ) {
 				if (block != AIR) highest = y;
 			}
 			else {
-				++removedBlocks;
+				if (block != AIR) {
+					++removedBlocks;
+				}
 			}
 		} //y-loop end
 		HEIGHTAT(x, z) = (((uint16_t)highest + 1) << 8) | (uint16_t)lowest;
@@ -986,6 +977,7 @@ void printHelp(const std::string& binary)
 		<< "  -colors NAME  loads user defined colors from file 'NAME'\n"
 		<< "  -blocks NAME  loads user defined block ids from file 'NAME'\n"
 		<< "  -threads VAL  uses VAL number of threads to load and optimize the world\n"
+		<< "                uses this with a high mem limit for best performance\n"
 		<< "  -north -east -south -west\n"
 		<< "                controls which direction will point to the *top left* corner\n"
 		<< "                it only makes sense to pass one of them; East is default\n"

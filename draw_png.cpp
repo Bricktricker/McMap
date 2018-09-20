@@ -486,7 +486,7 @@ bool composeFinalImage()
 			sizeOffset[i] = last;
 			last += ((tempWidth - 1) / static_cast<size_t>(pow(2, 12 - i))) + 1;
 		}
-		tile = new ImageTile[sizeOffset[6]];
+		tile = new ImageTile[sizeOffset[6]]; //memory leak
 		std::memset(tile, 0, sizeOffset[6] * sizeof(ImageTile));
 	}
 

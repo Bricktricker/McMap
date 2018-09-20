@@ -688,31 +688,41 @@ void allocateTerrain()
 	}
 
 	if (Global::settings.nightmode || Global::settings.underground || Global::settings.blendUnderground || Global::settings.skylight) {
-		Global::lightsize = Global::MapsizeZ * Global::MapsizeX * ((Global::MapsizeY + (Global::MapminY % 2 == 0 ? 1 : 2)) / 2);
-		std::cout << ", lightmap " << std::setprecision(5) << float(Global::lightsize / float(1024 * 1024)) << "MiB";
-		if (Global::light.size() < Global::lightsize || Global::light.size() * 0.9f > Global::lightsize) {
+		const size_t lightsize = Global::MapsizeZ * Global::MapsizeX * ((Global::MapsizeY + (Global::MapminY % 2 == 0 ? 1 : 2)) / 2);
+		std::cout << ", lightmap " << std::setprecision(5) << float(lightsize / float(1024 * 1024)) << "MiB";
+		if (Global::light.size() < lightsize || Global::light.size() * 0.9f > lightsize) {
 			Global::light.clear();
 			Global::light.shrink_to_fit();
-			Global::light.resize(Global::lightsize);
+			Global::light.resize(lightsize);
 		}
 
 		// Preset: all bright / dark depending on night or day
 		if (Global::settings.nightmode) {
-			std::fill_n(Global::light.begin(), Global::lightsize, 0x11);
+			std::fill_n(Global::light.begin(), lightsize, 0x11);
 		}
 		else if (Global::settings.underground) {
-			std::fill_n(Global::light.begin(), Global::lightsize, 0x00);
+			std::fill_n(Global::light.begin(), lightsize, 0x00);
 		}
 		else {
-			std::fill_n(Global::light.begin(), Global::lightsize, 0xFF);
+			std::fill_n(Global::light.begin(), lightsize, 0xFF);
 		}
 	}
 	std::cout << '\n';
 }
 
+void deallocateTerrain()
+{
+	Global::heightMap.clear();
+	Global::heightMap.shrink_to_fit();
+	Global::terrain.clear();
+	Global::terrain.shrink_to_fit();
+	Global::light.clear();
+	Global::light.shrink_to_fit();
+}
+
 void clearLightmap()
 {
-	std::fill_n(Global::light.begin(), Global::lightsize, 0x00);
+	std::fill(Global::light.begin(), Global::light.end(), 0x00);
 }
 
 /**
