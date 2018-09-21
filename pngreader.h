@@ -37,13 +37,13 @@ public:
 	PngReader();
 	void open(const std::string& filename);
 	virtual ~PngReader() = default;
-	uint32_t getWidth() const { return _width; }
-	uint32_t getHeight() const { return _height; }
-	PngColorType getColorType() const { return _chans; }
-	int getBitsPerChannel() const { return _bitDepth; }
-	bool isValidImage() const { return _status == 0; }
-	const std::vector<uint8_t>& getImageData() const { return _imageData; }
-	int getBytesPerPixel() const { return _bytesPerPixel; }
+	uint32_t getWidth() const noexcept { return _width; }
+	uint32_t getHeight() const noexcept { return _height; }
+	PngColorType getColorType() const noexcept { return _chans; }
+	int getBitsPerChannel() const noexcept { return _bitDepth; }
+	bool isValidImage() const noexcept { return _status == 0; }
+	const std::vector<uint8_t>& getImageData() const noexcept { return _imageData; }
+	int getBytesPerPixel() const noexcept { return _bytesPerPixel; }
 };
 
 #endif

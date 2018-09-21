@@ -1,12 +1,12 @@
 #ifndef DRAW_PNG_H_
 #define DRAW_PNG_H_
 
+#include "helper.h"
+
 // Separate them in case I ever implement 16bit rendering
 #define CHANSPERPIXEL 4
 #define BYTESPERCHAN 1
 #define BYTESPERPIXEL 4
-
-#include "helper.h"
 
 void createImageBuffer(const size_t width, const size_t height, const bool splitUp);
 bool createImage(std::fstream& fh, const size_t width, const size_t height, const bool splitUp);
