@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 	// ########## command line parsing ##########
 	if (argc < 2) {
 		printHelp(argv[0]);
-		return 1;
+		return 0;
 	}
 	bool wholeworld = false;
 	std::string filename, outfile, colorfile, blockfile, texturefile, infoFile, biomepath;
@@ -203,6 +203,7 @@ int main(int argc, char **argv)
 				printHelp(argv[0]);
 				return 0;
 			} else if (option == "-marker") {
+				std::cerr << "Markers currently do not work!\n";
 				if (Global::markers.size() >= MAX_MARKERS) {
 					std::cerr << "Too many markers, ignoring additional ones\n";
 					continue;

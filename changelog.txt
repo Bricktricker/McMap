@@ -1,6 +1,11 @@
 mcmap3 changelog
-Latest version is available at: http://wrim.pl/mcmap/
+Latest version is available at: https://github.com/Bricktricker/McMap/
 ------------------------------------------------------
+beta 3.0.6
+- added -connGrass option
+- added multithreading support for terrain loading and optimization
+- code cleanup
+
 beta 3.0.5 (sep 7 2018)
 - updated for minecraft 1.13.1
 
@@ -8,6 +13,7 @@ beta 3.0.4 (jul 28 2018)
 - added support for Minecraft 1.13
 - removed biom support
 - removed option -lowmemory
+- removed option -3
 - uses a new color loading system
 - small error fixes
 
