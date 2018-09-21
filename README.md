@@ -29,5 +29,5 @@ This software is able to render all minecraft saves, which are in the anvil file
 
 ## Dependencies
  - [zlib](https://zlib.net/)
- - [libPng](www.libpng.org)
+ - [libPng](http://www.libpng.org)
  - [nlohman/json](https://github.com/nlohmann/json) (Already included in project)
