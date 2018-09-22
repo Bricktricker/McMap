@@ -27,7 +27,7 @@ void buildTree(std::vector<std::string>& strVec, const json jState, Tree<std::st
 	}
 }
 
-void loadBlockTree(const std::string& path)
+bool loadBlockTree(const std::string& path)
 {
 	json jData;
 	try {
@@ -37,7 +37,7 @@ void loadBlockTree(const std::string& path)
 	}
 	catch (nlohmann::json::parse_error e) {
 		std::cerr << e.what() << std::endl;
-		return;
+		return false;
 	}
 
 	for (auto block = jData.begin(); block != jData.end(); ++block) {
@@ -57,9 +57,11 @@ void loadBlockTree(const std::string& path)
 
 		blockTree[name] = tree;
 	}
+
+	return true;
 }
 
-void loadColorMap(const std::string& path)
+bool loadColorMap(const std::string& path)
 {
 	json jData;
 	try {
@@ -69,7 +71,7 @@ void loadColorMap(const std::string& path)
 	}
 	catch (nlohmann::json::parse_error e) {
 		std::cerr << e.what() << std::endl;
-		return;
+		return false;
 	}
 
 	for (const auto& col : jData) {
@@ -90,4 +92,6 @@ void loadColorMap(const std::string& path)
 	}
 
 	colorMap.balance();
+
+	return true;
 }

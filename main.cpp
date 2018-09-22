@@ -258,12 +258,16 @@ int main(int argc, char **argv)
 	if (blockfile.empty()) {
 		blockfile = "BlockIDs.json";
 	}
-	loadBlockTree(blockfile);
+	if (!loadBlockTree(blockfile)) {
+		return 1;
+	}
 
 	if (colorfile.empty()) {
 		colorfile = "colors.json";
 	}
-	loadColorMap(colorfile);
+	if (!loadColorMap(colorfile)) {
+		return 1;
+	}
 
 	if (filename.empty()) {
 		std::cerr << "Error: No world given. Please add the path to your world to the command line.\n";
