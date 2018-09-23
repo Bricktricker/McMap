@@ -690,7 +690,7 @@ void optimizeTerrain()
 					if (block != AIR && lowest == 0xFF) { // if it's not air, this is the lowest block to draw
 						lowest = y;
 					}
-					if (col.a == 255 && col.blockType == 0) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration (orig. just checking for alpha value, need to remove white spots behind fences)
+					if (col.a == 255 && (col.blockType == 0 || col.blockType == 7)) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration (orig. just checking for alpha value, need to remove white spots behind fences)
 						current = true;
 					}
 					if (block != AIR) highest = y; // if it's not air, it's the new highest block encountered so far
@@ -728,7 +728,7 @@ size_t optimizeTerrainMulti(const size_t startX, const size_t startZ) {
 				if (block != AIR && lowest == 0xFF) { // if it's not air, this is the lowest block to draw
 					lowest = y;
 				}
-				if (col.a == 255 && col.blockType == 0) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration (orig. just checking for alpha value, need to remove white spots behind fences)
+				if (col.a == 255 && (col.blockType == 0 || col.blockType == 7)) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration (orig. just checking for alpha value, need to remove white spots behind fences)
 					blocked[(y + numMoves) % Global::MapsizeY] = true;
 				}
 				if (block != AIR) highest = y;
