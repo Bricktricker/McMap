@@ -565,7 +565,7 @@ int main(int argc, char **argv)
 						}
 					}
 
-					setPixel(bmpPosX, bmpPosY, c, brightnessAdjustment, 0U);
+					setPixel(bmpPosX, bmpPosY, c, brightnessAdjustment);
 				}
 			}
 		}

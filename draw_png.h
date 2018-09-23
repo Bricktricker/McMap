@@ -12,7 +12,7 @@ void createImageBuffer(const size_t width, const size_t height, const bool split
 bool createImage(std::fstream& fh, const size_t width, const size_t height, const bool splitUp);
 bool saveImage();
 int loadImagePart(const int startx, const int starty, const int width, const int height);
-void setPixel(const size_t x, const size_t y, const uint16_t stateID, const float fsub, const uint16_t biome);
+void setPixel(const size_t x, const size_t y, const uint16_t stateID, const float fsub);
 void blendPixel(const size_t x, const size_t y, const uint16_t stateID, const float fsub);
 bool saveImagePart();
 bool discardImagePart();

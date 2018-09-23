@@ -657,7 +657,7 @@ uint64_t calcImageSize(const int mapChunksX, const int mapChunksZ, const size_t 
 fsub: brightnessAdjustment
 biom parameter not used
 */
-void setPixel(const size_t x, const size_t y, const uint16_t stateID, const float fsub, const uint16_t biome)
+void setPixel(const size_t x, const size_t y, const uint16_t stateID, const float fsub)
 {
 	// Sets pixels around x,y where A is the anchor
 	// T = given color, D = darker, L = lighter
