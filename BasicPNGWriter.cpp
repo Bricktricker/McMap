@@ -17,6 +17,8 @@ void userWriteData(png_structp pngPtr, png_bytep data, png_size_t length)
 
 BasicPNGWriter::~BasicPNGWriter()
 {
+	if (m_width != 0 || m_height != 0 || m_buffer.size() != 0)
+		std::cerr << "BasicPNGWriter closes without writing image\n";
 }
 
 bool BasicPNGWriter::open(const size_t width, const size_t height)
@@ -84,6 +86,11 @@ bool BasicPNGWriter::write(const std::string& path)
 		png_write_end(pngStruct, NULL);
 		png_destroy_write_struct(&pngStruct, &pngInfo);
 	}
+
+	m_buffer.clear();
+	m_buffer.shrink_to_fit();
+	m_width = 0;
+	m_height = 0;
 
 	return true;
 }

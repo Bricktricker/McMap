@@ -114,7 +114,8 @@ namespace Dir
 	bool createDir(const std::string& path)
 	{
 #ifdef MSVCP //or _WIN32
-		return (CreateDirectory(stdStringToWstring(path).c_str(), NULL) != 0);
+		const auto ret = CreateDirectory(stdStringToWstring(path).c_str(), NULL);
+		return (ret != 0) || (GetLastError() == ERROR_ALREADY_EXISTS);
 #else
 		const int ret = mkdir(path.c_str(), 0755);
 		return ret == 0;

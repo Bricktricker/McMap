@@ -57,6 +57,9 @@
     <ClInclude Include="BasicPNGWriter.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="TiledPNGWriter.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="colors.cpp">
@@ -87,6 +90,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="BasicPNGWriter.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="TiledPNGWriter.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
