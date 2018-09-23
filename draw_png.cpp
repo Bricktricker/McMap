@@ -458,7 +458,6 @@ bool discardImagePart()
 
 bool composeFinalImage()
 {
-	std::string tmpString;
 	if (Global::tilePath.empty()) {
 		std::cout << "Composing final png file...\n";
 		if (setjmp(png_jmpbuf(pngPtrMain))) {
@@ -576,7 +575,7 @@ bool composeFinalImage()
 						}
 						if (tileWidth * (tileIndex - sizeOffset[tileSize]) < size_t(gPngWidth)) {
 							// Open new tile file for a while
-							tmpString = Global::tilePath + "/x" + std::to_string(int(tileIndex - sizeOffset[tileSize])) + 'y' + std::to_string(int((y / pow(2, 12 - tileSize)))) + 'z' + std::to_string(int(tileSize)) + ".png";
+							std::string tmpString = Global::tilePath + "/x" + std::to_string(int(tileIndex - sizeOffset[tileSize])) + 'y' + std::to_string(int((y / pow(2, 12 - tileSize)))) + 'z' + std::to_string(int(tileSize)) + ".png";
 #ifdef _DEBUG
 							std::cout << "Starting tile " << tmpString << " of size " << (int)pow(2, 12 - tileSize) << "...\n";
 #endif

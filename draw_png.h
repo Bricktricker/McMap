@@ -1,7 +1,7 @@
 #ifndef DRAW_PNG_H_
 #define DRAW_PNG_H_
 
-#include "helper.h"
+#include <fstream>
 
 // Separate them in case I ever implement 16bit rendering
 #define CHANSPERPIXEL 4
