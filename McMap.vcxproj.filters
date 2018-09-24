@@ -60,6 +60,12 @@
     <ClInclude Include="TiledPNGWriter.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="BasicSplitPNGWriter.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="TiledSplitPNGWriter.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="colors.cpp">
@@ -93,6 +99,12 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="TiledPNGWriter.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="BasicSplitPNGWriter.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="TiledSplitPNGWriter.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

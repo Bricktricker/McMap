@@ -179,7 +179,7 @@ bool TiledPNGWriter::compose(const std::string& path)
 
 	// Prepare an array of png structs that will output simultaneously to the various tiles
 	//size_t sizeOffset[7]; //TODO: change to std::array
-	ImageTile *tile = NULL;
+	//ImageTile *tile = NULL;
 
 	for (int y = 0; y < m_origH; ++y) {
 		if (y % 100 == 0) {

@@ -10,7 +10,7 @@ public:
 	bool open(const size_t width, const size_t height) override;
 	virtual bool write(const std::string& path) override;
 	uint8_t* getPixel(const size_t x, const size_t y) override;
-private:
+protected:
 	std::vector<uint8_t> m_buffer;
 	size_t m_width;
 	size_t m_height;

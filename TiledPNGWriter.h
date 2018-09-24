@@ -12,13 +12,14 @@ public:
 	bool addPart(const int startx, const int starty, const int width, const int height);
 	virtual bool write(const std::string& path) override;
 	uint8_t* getPixel(const size_t x, const size_t y) override;
-	bool compose(const std::string& path );
-private:
+	virtual bool compose(const std::string& path );
+protected:
 	struct ImagePart {
 		std::string filename;
 		int x, y, width, height;
 	};
 
+	/*
 	struct ImageTile {
 		std::fstream fileHandle;
 		png_structp pngPtr;
@@ -27,7 +28,7 @@ private:
 		ImageTile()
 			: pngPtr(nullptr), pngInfo(nullptr) {}
 
-	};
+	};*/
 
 	size_t m_currWidth;
 	size_t m_currHeight;
