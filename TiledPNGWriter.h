@@ -17,6 +17,21 @@ protected:
 	struct ImagePart {
 		std::string filename;
 		int x, y, width, height;
+
+		ImagePart(const std::string& _file, const int _x, const int _y, const int _w, const int _h)
+			: x(_x), y(_y), width(_w), height(_h), filename(_file) {}
+
+		ImagePart(const ImagePart& part)
+			: x(part.x), y(part.y), width(part.width), height(part.height), filename(part.filename) {}
+
+		ImagePart& operator=(const ImagePart& part) {
+			this->x = part.x;
+			this->y = part.y;
+			this->width = part.width;
+			this->height = part.height;
+			this->filename = part.filename;
+			return *this;
+		}
 	};
 
 	/*

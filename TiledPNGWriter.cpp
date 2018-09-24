@@ -75,17 +75,19 @@ bool TiledPNGWriter::addPart(const int startx, const int starty, const int width
 		localY = 0;
 	}
 
-	if (localX + localWidth > width) {
+	if (localX + localWidth > m_origW) {
 		localWidth = width - localX;
 	}
-	if (localY + localHeight > height) {
+	if (localY + localHeight > m_origH) {
 		localHeight = height - localY;
 	}
 	if (localWidth < 1 || localHeight < 1) return false;
 
-	const std::string name = "cache/" + std::to_string(localX) + '.' + std::to_string(localY) + '.' + std::to_string(localWidth) + '.' + std::to_string(localHeight) + '.' + std::to_string((int)time(NULL)) + ".png";
+	std::string name = "cache/" + std::to_string(localX) + '.' + std::to_string(localY) + '.' + std::to_string(localWidth) + '.' + std::to_string(localHeight) + '.' + std::to_string((int)time(NULL)) + ".png";
 	ImagePart img{ name, localX, localY, localWidth, localHeight };
-	m_partList.push_back(img);
+	//m_partList.push_back(img);
+
+	m_partList.emplace_back(name, localX, localY, localWidth, localHeight);
 
 	if (!open(localWidth, localHeight))
 		return false;
@@ -129,11 +131,16 @@ bool TiledPNGWriter::write(const std::string& path)
 	size_t line = 0;
 	for (int y = 0; y < part.height; ++y) {
 		png_write_row(pngStruct, (png_bytep)&m_buffer.at(line)); //out of bounds??
-		line += part.width * CHANSPERPIXEL * part.height;
+		line += m_currWidth * CHANSPERPIXEL;
 	}
 
 	png_write_end(pngStruct, NULL);
 	png_destroy_write_struct(&pngStruct, &pngInfo);
+
+	m_buffer.clear();
+	m_buffer.shrink_to_fit();
+	m_currHeight = 0;
+	m_currWidth = 0;
 
 	return true;
 }
@@ -143,7 +150,7 @@ uint8_t* TiledPNGWriter::getPixel(const size_t x, const size_t y)
 	if (x >= m_currWidth || y >= m_currHeight || x < 0 || y < 0)
 		throw std::out_of_range("getPixel out of range\n");
 
-	return &m_buffer.at((x+offsetX) * CHANSPERPIXEL + (y + offsetY) * (m_origW * CHANSPERPIXEL)); //check index calculation
+	return &m_buffer.at((x+offsetX) * CHANSPERPIXEL + (y + offsetY) * (m_currWidth * CHANSPERPIXEL)); //check index calculation
 }
 
 bool TiledPNGWriter::compose(const std::string& path)

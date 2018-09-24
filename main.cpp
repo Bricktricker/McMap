@@ -33,11 +33,16 @@
 #include "filesystem.h"
 #include "json.hpp"
 
+//PNGWriter
+#include "BasicSplitPNGWriter.h"
+#include "TiledSplitPNGWriter.h"
+
 #include <string>
 #include <vector>
 #include <ctime>
 #include <iostream>
 #include <fstream>
+#include <memory>
 #ifndef _WIN32
 #include <sys/stat.h>
 #endif
@@ -401,23 +406,45 @@ int main(int argc, char **argv)
 	}
 
 	// open output file only if not doing the tiled output
-	std::fstream fileHandle;
+	//std::fstream fileHandle;
+	std::unique_ptr<PNGWriter> pngWriter;
 	if (Global::tilePath.empty()) {
 		//TODO: check if opening for reading is necessary
-		fileHandle.open(outfile, std::fstream::out | std::fstream::binary);
+		
+		/*fileHandle.open(outfile, std::fstream::out | std::fstream::binary);
 		//fileHandle = fopen(outfile.c_str(), (splitImage ? "w+b" : "wb"));
 
 		if (fileHandle.fail()) {
 			std::cerr << "Error opening '" << outfile << "' for writing.\n";
 			return 1;
 		}
+		*/
 
+		if (!splitImage) {
+			pngWriter = std::make_unique<BasicPNGWriter>();
+			pngWriter->open(bitmapX, bitmapY);
+		}
+		else {
+			pngWriter = std::make_unique<TiledPNGWriter>(bitmapX, bitmapY);
+		}
+
+		/*
 		// This writes out the bitmap header and pre-allocates space if disk caching is used
 		if (!createImage(fileHandle, bitmapX, bitmapY, splitImage)) {
 			std::cerr << "Error allocating bitmap. Check if you have enough free disk space.\n";
 			return 1;
 		}
+		*/
 	} else {
+		if (!splitImage) {
+			pngWriter = std::make_unique<BasicSplitPNGWriter>();
+			pngWriter->open(bitmapX, bitmapY);
+		}
+		else {
+			pngWriter = std::make_unique<TiledSplitPNGWriter>(bitmapX, bitmapY);
+		}
+
+		/*
 		// This would mean tiled output
 		Dir::createDir(Global::tilePath);
 		if (!Dir::dirExists(Global::tilePath)) {
@@ -425,6 +452,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 		createImageBuffer(bitmapX, bitmapY, splitImage); //gBuffer wird nur erstellt wenn bild nicht aufgesplitet wird
+		*/
 	}
 
 	// Precompute brightness adjustment factor
@@ -450,11 +478,13 @@ int main(int argc, char **argv)
 				const int sizex = (Global::ToChunkX - Global::FromChunkX) * CHUNKSIZE_X * 2 + (Global::ToChunkZ - Global::FromChunkZ) * CHUNKSIZE_Z * 2;
 				const int sizey = (int)Global::MapsizeY * Global::OffsetY + (Global::ToChunkX - Global::FromChunkX) * CHUNKSIZE_X + (Global::ToChunkZ - Global::FromChunkZ) * CHUNKSIZE_Z + 3;
 				if (sizex <= 0 || sizey <= 0) continue; // Don't know if this is right, might also be that the size calulation is plain wrong
-				int res = loadImagePart(bitmapStartX - cropLeft, bitmapStartY - cropTop, sizex, sizey);
-				if (res == -1) {
+				
+				TiledPNGWriter* tpngw = dynamic_cast<TiledPNGWriter*>(pngWriter.get());
+				if (!tpngw->addPart(bitmapStartX - cropLeft, bitmapStartY - cropTop, sizex, sizey)) {
+					__debugbreak(); //sometimes return fals is ok
 					std::cerr << "Error loading partial image to render to.\n";
 					return 1;
-				} else if (res == 1) continue;
+				}
 			}
 		}
 
@@ -565,7 +595,7 @@ int main(int argc, char **argv)
 						}
 					}
 
-					setPixel(bmpPosX, bmpPosY, c, brightnessAdjustment);
+					setPixel(bmpPosX, bmpPosY, c, brightnessAdjustment, pngWriter.get());
 				}
 			}
 		}
@@ -598,7 +628,7 @@ int main(int argc, char **argv)
 					for (unsigned int y = 0; y < MIN(Global::MapsizeY, 64); ++y) {
 						uint16_t &c = BLOCKAT(x, y, z);
 						if (c != AIR) { // If block is not air (colors[c][3] != 0)
-							blendPixel(bmpPosX, bmpPosY, c, float(y + 30) * .0048f);
+							blendPixel(bmpPosX, bmpPosY, c, float(y + 30) * .0048f, pngWriter.get());
 						}
 						bmpPosY -= Global::OffsetY;
 					}
@@ -607,9 +637,11 @@ int main(int argc, char **argv)
 			printProgress(10, 10);
 		} // End blend-underground
 		// If disk caching is used, save part to disk
-		if (splitImage && !saveImagePart()) {
-			std::cerr << "Error saving partially rendered image.\n";
-			return 1;
+		if (splitImage) {
+			if (!pngWriter->write("")) {
+				std::cerr << "Error saving partially rendered image.\n";
+				return 1;
+			}
 		}
 		// No incremental rendering at all, so quit the loop
 		if (numSplitsX == 0) {
@@ -620,14 +652,17 @@ int main(int argc, char **argv)
 	deallocateTerrain();
 	// Saving
 	if (!splitImage) {
-		saveImage();
+		if (!pngWriter->write(outfile)) {
+			return 1;
+		}
 	} else {
-		if (!composeFinalImage()) {
+		TiledPNGWriter* tpngw = static_cast<TiledPNGWriter*>(pngWriter.get());
+		if (!tpngw->compose(outfile)) {
 			std::cerr << "Aborted.\n";
 			return 1;
 		}
 	}
-	fileHandle.close();
+	//fileHandle.close();
 
 	std::cerr << "Job complete.\n";
 	return 0;
