@@ -85,7 +85,7 @@ namespace
 
 	inline void assignBiome(uint8_t* const color, const uint8_t biome, const uint16_t block);
 	inline void blend(uint8_t* const destination, const Color_t& source); //Blend color to pixel
-	inline void blend(uint8_t* const destination, const uint8_t* const source); //Blend to pixel
+	//inline void blend(uint8_t* const destination, const uint8_t* const source); //Blend to pixel
 	Color_t modColor(const Color_t& color, const int mod);
 	inline void modColor(uint8_t* const pos, const int mod);
 	inline void addColor(uint8_t * const color, const int16_t * const add);
@@ -136,6 +136,7 @@ namespace
 
 }
 
+//Used for -split param
 void createImageBuffer(const size_t width, const size_t height, const bool splitUp)
 {
 	gPngLocalWidth = gPngWidth = (int)width;
@@ -148,6 +149,7 @@ void createImageBuffer(const size_t width, const size_t height, const bool split
 	}
 }
 
+//used for one output image
 bool createImage(std::fstream& fh, const size_t width, const size_t height, const bool splitUp)
 {
 	gPngLocalWidth = gPngWidth = (int)width;
@@ -893,6 +895,20 @@ void blendPixel(const size_t x, const size_t y, const uint16_t stateID, const fl
 	}
 }
 
+void blend(uint8_t* const destination, const uint8_t* const source)
+{
+#define PALPHA 3
+	if (destination[PALPHA] == 0 || source[PALPHA] == 255) { //compare alpha
+		std::memcpy(destination, source, BYTESPERPIXEL);
+		return;
+	}
+#define BLEND(ca,aa,cb) uint8_t(((size_t(ca) * size_t(aa)) + (size_t(255 - aa) * size_t(cb))) / 255)
+	destination[0] = BLEND(source[0], source[PALPHA], destination[0]);
+	destination[1] = BLEND(source[1], source[PALPHA], destination[1]);
+	destination[2] = BLEND(source[2], source[PALPHA], destination[2]);
+	destination[PALPHA] += (size_t(source[PALPHA]) * size_t(255 - destination[PALPHA])) / 255;
+}
+
 namespace
 {
 
@@ -904,20 +920,6 @@ namespace
 		//if (colorMap[block].blockType / BLOCKBIOME)
 			//addColor(color, biomes[biome]);
 		//dropped biom support
-	}
-
-	inline void blend(uint8_t* const destination, const uint8_t* const source)
-	{
-#define PALPHA 3
-		if (destination[PALPHA] == 0 || source[PALPHA] == 255) { //compare alpha
-			std::memcpy(destination, source, BYTESPERPIXEL);
-			return;
-		}
-#define BLEND(ca,aa,cb) uint8_t(((size_t(ca) * size_t(aa)) + (size_t(255 - aa) * size_t(cb))) / 255)
-		destination[0] = BLEND(source[0], source[PALPHA], destination[0]);
-		destination[1] = BLEND(source[1], source[PALPHA], destination[1]);
-		destination[2] = BLEND(source[2], source[PALPHA], destination[2]);
-		destination[PALPHA] += (size_t(source[PALPHA]) * size_t(255 - destination[PALPHA])) / 255;
 	}
 
 	inline void blend(uint8_t* const destination, const Color_t& source)

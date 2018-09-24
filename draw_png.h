@@ -19,4 +19,5 @@ bool discardImagePart();
 bool composeFinalImage();
 uint64_t calcImageSize(const int mapChunksX, const int mapChunksZ, const size_t mapHeight, int &pixelsX, int &pixelsY, const bool tight = false);
 
+void blend(uint8_t* const destination, const uint8_t* const source);
 #endif
