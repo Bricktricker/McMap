@@ -305,8 +305,8 @@ int main(int argc, char **argv)
         filename = tmp;
     }
 	// Figure out whether this is the old save format or McRegion or Anvil
-	Global::worldFormat = getWorldFormat(filename);
-	if (!(Global::worldFormat == ANVIL || Global::worldFormat == ANVIL13)) {
+	WorldFormat worldFormat = getWorldFormat(filename);
+	if (!(worldFormat == ANVIL || worldFormat == ANVIL13)) {
 		std::cerr << "World in old format, please convert to new anvil format first\n";
 		return 1;
 	}
@@ -444,6 +444,8 @@ int main(int argc, char **argv)
 			pngWriter = std::make_unique<TiledSplitPNGWriter>(bitmapX, bitmapY);
 		}
 
+		outfile = Global::tilePath;
+
 		/*
 		// This would mean tiled output
 		Dir::createDir(Global::tilePath);
@@ -481,7 +483,7 @@ int main(int argc, char **argv)
 				
 				TiledPNGWriter* tpngw = dynamic_cast<TiledPNGWriter*>(pngWriter.get());
 				if (!tpngw->addPart(bitmapStartX - cropLeft, bitmapStartY - cropTop, sizex, sizey)) {
-					__debugbreak(); //sometimes return fals is ok
+					__debugbreak(); //sometimes return false is ok
 					std::cerr << "Error loading partial image to render to.\n";
 					return 1;
 				}
@@ -515,7 +517,8 @@ int main(int argc, char **argv)
 
 			if (splitImage && numberOfChunks == 0) {
 				std::cout << "Section is empty, skipping...\n";
-				discardImagePart();
+				TiledPNGWriter* tpngw = dynamic_cast<TiledPNGWriter*>(pngWriter.get());
+				tpngw->discardPart();
 				continue;
 			}
 			else if (numberOfChunks == 0) {
@@ -655,6 +658,18 @@ int main(int argc, char **argv)
 		if (!pngWriter->write(outfile)) {
 			return 1;
 		}
+		/*
+		if (Global::tilePath.empty()) {
+			if (!pngWriter->write(outfile)) {
+				return 1;
+			}
+		}
+		else {
+			if (!pngWriter->write(Global::tilePath)) {
+				return 1;
+			}
+		}*/
+
 	} else {
 		TiledPNGWriter* tpngw = dynamic_cast<TiledPNGWriter*>(pngWriter.get());
 		if (!tpngw->compose(outfile)) {

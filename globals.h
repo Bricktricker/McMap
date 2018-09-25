@@ -52,7 +52,7 @@ public:
 	static int MapminY; //minimum height to render from
 	static unsigned int MapsizeY; //maximum height to rendrer (max CHUNKSIZE_Y (256))
 	static int OffsetY; // y pixel offset in the final image for one y step in 3d array (2 or 3)
-	static WorldFormat worldFormat; //Format of the world
+	//static WorldFormat worldFormat; //Format of the world Needed???
 	static Settings settings; //Used settings
 
 	static std::vector<Marker> markers;
@@ -60,7 +60,7 @@ public:
 	static std::vector<uint8_t>	light; // 3D arrays holding terrain/lightmap
 	static std::vector<uint16_t> heightMap; // 2D array to store min and max block height per X/Z - it's 2 bytes per index, upper for highest, lower for lowest (don't ask!)
 
-	static std::string tilePath; // If output is to be split up (for google maps etc) this contains the path to output to, "" otherwise
+	static std::string tilePath; //TODO: move to main! If output is to be split up (for google maps etc) this contains the path to output to, "" otherwise
 	static int8_t sectionMin, sectionMax; //No idea
 	static uint8_t mystCraftAge;
 

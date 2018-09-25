@@ -43,10 +43,6 @@ TiledPNGWriter::TiledPNGWriter(const size_t origW, const size_t origH)
 	}
 }
 
-TiledPNGWriter::~TiledPNGWriter()
-{
-}
-
 bool TiledPNGWriter::open(const size_t width, const size_t height)
 {
 	const size_t pixSize = width * height * CHANSPERPIXEL;
@@ -148,6 +144,13 @@ uint8_t* TiledPNGWriter::getPixel(const size_t x, const size_t y)
 		throw std::out_of_range("getPixel out of range\n");
 
 	return &m_buffer.at((x+offsetX) * CHANSPERPIXEL + (y + offsetY) * (m_currWidth * CHANSPERPIXEL)); //check index calculation
+}
+
+void TiledPNGWriter::discardPart()
+{
+	m_partList.pop_back();
+	m_currHeight = 0;
+	m_currWidth = 0;
 }
 
 bool TiledPNGWriter::compose(const std::string& path)

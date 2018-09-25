@@ -10,12 +10,14 @@ class TiledPNGWriter : public PNGWriter
 {
 public:
 	TiledPNGWriter(const size_t origW, const size_t origH);
-	virtual ~TiledPNGWriter();
+	virtual ~TiledPNGWriter() = default;
 	bool open(const size_t width, const size_t height) override; //creats imageBuffer
 	bool addPart(const int startx, const int starty, const int width, const int height);
 	virtual bool write(const std::string& path) override;
 	uint8_t* getPixel(const size_t x, const size_t y) override;
+	void discardPart();
 	virtual bool compose(const std::string& path );
+
 protected:
 
 	struct ImagePart {
