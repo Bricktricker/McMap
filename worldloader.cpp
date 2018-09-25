@@ -843,13 +843,14 @@ bool loadTerrain(const std::string& fromPath, int &loadedChunks)
 		printProgress(10, 10);
 
 	}else{
+		printProgress(0, size_t(floorRegion(Global::ToChunkX) + tmpMin));
 		for (int x = floorRegion(Global::FromChunkX); x <= floorRegion(Global::ToChunkX); x += REGIONSIZE) {
-			printProgress(size_t(x + tmpMin), size_t(floorRegion(Global::ToChunkX) + tmpMin));
 			for (int z = floorRegion(Global::FromChunkZ); z <= floorRegion(Global::ToChunkZ); z += REGIONSIZE) {
 				std::string path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".mca";
 				const bool b = loadRegion(path, false, loadedChunks);
 				result |= b;
 			}
+			printProgress(size_t(x + tmpMin), size_t(floorRegion(Global::ToChunkX) + tmpMin));
 		}
 	}
 

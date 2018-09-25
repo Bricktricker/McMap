@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <ctime>
 #include <fstream>
+#include <cassert>
 //My-Header
 #include <png.h>
 #include "TiledPNGWriter.h"
@@ -35,7 +36,7 @@ void userReadData(png_structp pngPtr, png_bytep data, png_size_t length)
 }
 
 TiledPNGWriter::TiledPNGWriter(const size_t origW, const size_t origH)
-	: m_origW(origW), m_origH(origH)
+	: m_currWidth(0), m_currHeight(0), m_origW(origW), m_origH(origH), offsetX(0), offsetY(0)
 {
 	if (!Dir::createDir("cache")) {
 		std::cerr << "Could not create cache directory\n";
@@ -50,7 +51,8 @@ bool TiledPNGWriter::open(const size_t width, const size_t height)
 {
 	const size_t pixSize = width * height * CHANSPERPIXEL;
 	std::cout << "Creating temporary image: " << width << 'x' << height << ", 32bpp, " << float(pixSize / float(1024 * 1024)) << "MiB\n";
-	m_buffer.resize(pixSize, 0U);
+	m_buffer.resize(pixSize);
+	std::fill(m_buffer.begin(), m_buffer.end(), 0);
 
 	m_currWidth = width;
 	m_currHeight = height;
@@ -83,13 +85,10 @@ bool TiledPNGWriter::addPart(const int startx, const int starty, const int width
 	}
 	if (localWidth < 1 || localHeight < 1) return false;
 
-	std::string name = "cache/" + std::to_string(localX) + '.' + std::to_string(localY) + '.' + std::to_string(localWidth) + '.' + std::to_string(localHeight) + '.' + std::to_string((int)time(NULL)) + ".png";
-	ImagePart img{ name, localX, localY, localWidth, localHeight };
-	//m_partList.push_back(img);
-
+	const std::string name = "cache/" + std::to_string(localX) + '.' + std::to_string(localY) + '.' + std::to_string(localWidth) + '.' + std::to_string(localHeight) + '.' + std::to_string((int)time(NULL)) + ".png";
 	m_partList.emplace_back(name, localX, localY, localWidth, localHeight);
 
-	if (!open(localWidth, localHeight))
+	if (!this->open(localWidth, localHeight))
 		return false;
 
 	return true;
@@ -137,8 +136,6 @@ bool TiledPNGWriter::write(const std::string& path)
 	png_write_end(pngStruct, NULL);
 	png_destroy_write_struct(&pngStruct, &pngInfo);
 
-	m_buffer.clear();
-	m_buffer.shrink_to_fit();
 	m_currHeight = 0;
 	m_currWidth = 0;
 
@@ -147,7 +144,7 @@ bool TiledPNGWriter::write(const std::string& path)
 
 uint8_t* TiledPNGWriter::getPixel(const size_t x, const size_t y)
 {
-	if (x >= m_currWidth || y >= m_currHeight || x < 0 || y < 0)
+	if (x >= m_currWidth || y >= m_currHeight)
 		throw std::out_of_range("getPixel out of range\n");
 
 	return &m_buffer.at((x+offsetX) * CHANSPERPIXEL + (y + offsetY) * (m_currWidth * CHANSPERPIXEL)); //check index calculation
@@ -155,6 +152,7 @@ uint8_t* TiledPNGWriter::getPixel(const size_t x, const size_t y)
 
 bool TiledPNGWriter::compose(const std::string& path)
 {
+	std::cout << "Composing final png file...\n";
 	std::fstream outHandle(path, std::ios::out | std::ios::binary);
 	if (outHandle.fail()) {
 		std::cerr << "Error opening '" << path << "' for writing.\n";
@@ -167,8 +165,7 @@ bool TiledPNGWriter::compose(const std::string& path)
 	}
 
 	png_infop pngInfo = png_create_info_struct(pngStruct);
-
-	if (pngInfo == NULL) {
+	if (pngInfo == nullptr) {
 		png_destroy_write_struct(&pngStruct, NULL);
 		return false;
 	}
@@ -178,6 +175,20 @@ bool TiledPNGWriter::compose(const std::string& path)
 		return false;
 	}
 
+	png_set_write_fn(pngStruct, (png_voidp)&outHandle, userWriteData, NULL);
+
+	png_set_IHDR(pngStruct, pngInfo, (uint32_t)m_origW, (uint32_t)m_origH,
+		8, PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE,
+		PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+
+	png_text title_text;
+	title_text.compression = PNG_TEXT_COMPRESSION_NONE;
+	title_text.key = (png_charp)"Software";
+	title_text.text = (png_charp)"mcmap";
+	png_set_text(pngStruct, pngInfo, &title_text, 1);
+
+	png_write_info(pngStruct, pngInfo);
+
 	const size_t tempWidth = m_origW * CHANSPERPIXEL;
 	const size_t tempWidthChans = tempWidth * CHANSPERPIXEL;
 
@@ -185,9 +196,6 @@ bool TiledPNGWriter::compose(const std::string& path)
 	std::vector<uint8_t> lineRead(tempWidth, 0);
 
 	// Prepare an array of png structs that will output simultaneously to the various tiles
-	//size_t sizeOffset[7]; //TODO: change to std::array
-	//ImageTile *tile = NULL;
-
 	for (int y = 0; y < m_origH; ++y) {
 		if (y % 100 == 0) {
 			printProgress(size_t(y), size_t(m_origH));
@@ -198,41 +206,46 @@ bool TiledPNGWriter::compose(const std::string& path)
 		for (auto it = m_partList.begin(); it != m_partList.end(); ++it) {
 			ImagePart& img = *it;
 			// do we have to open this image?
-			if (img.y != y) {
+			if (img.y != y && img.pngPtr == nullptr) {
 				continue;   // Not your turn, image!
 			}
 
-			std::fstream pngFileHandle(img.filename, std::ios::in | std::ios::binary);
-			if (pngFileHandle.fail()) {
-				std::cerr << "Error opening temporary image " << img.filename << '\n';
-				return false;
-			}
+			if (img.pngPtr == nullptr) {
+				assert(img.pngInfo == nullptr);
+				assert(!img.file.is_open());
 
-			png_structp pngPtr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-			if (pngPtr == NULL) {
-				std::cerr << "Error creating read struct for temporary image " << img.filename << '\n';
-				return false; // Not really cleaning up here, but program will terminate anyways, so why bother
-			}
-			png_infop pngInfo = png_create_info_struct(pngPtr);
-			if (pngInfo == NULL || setjmp(png_jmpbuf(pngPtr))) {
-				std::cerr << "Error reading data from temporary image " << img.filename << '\n';
-				return false; // Same here
-			}
+				img.file.open(img.filename, std::ios::in | std::ios::binary);
+				if (img.file.fail()) {
+					std::cerr << "Error opening temporary image " << img.filename << '\n';
+					return false;
+				}
 
-			png_set_read_fn(pngPtr, (png_voidp)&pngFileHandle, userReadData);
-			png_read_info(pngPtr, pngInfo);
-			// Check if image dimensions match what is expected
-			int type, interlace, comp, filter, bitDepth;
-			png_uint_32 width, height;
-			png_uint_32 ret = png_get_IHDR(pngPtr, pngInfo, &width, &height, &bitDepth, &type, &interlace, &comp, &filter);
-			if (ret == 0 || width != (png_uint_32)img.width || height != (png_uint_32)img.height) {
-				std::cerr << "Temp image " << img.filename << " has wrong dimensions; expected " << img.width << 'x' << img.height << ", got " << width << 'x' << height << '\n';
-				return false;
+				img.pngPtr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+				if (img.pngPtr == nullptr) {
+					std::cerr << "Error creating read struct for temporary image " << img.filename << '\n';
+					return false; // Not really cleaning up here, but program will terminate anyways, so why bother
+				}
+				 img.pngInfo = png_create_info_struct(img.pngPtr);
+				if (img.pngInfo == nullptr || setjmp(png_jmpbuf(img.pngPtr))) {
+					std::cerr << "Error reading data from temporary image " << img.filename << '\n';
+					return false; // Same here
+				}
+
+				png_set_read_fn(img.pngPtr, (png_voidp)&img.file, userReadData);
+				png_read_info(img.pngPtr, img.pngInfo);
+				// Check if image dimensions match what is expected
+				int type, interlace, comp, filter, bitDepth;
+				png_uint_32 width, height;
+				png_uint_32 ret = png_get_IHDR(img.pngPtr, img.pngInfo, &width, &height, &bitDepth, &type, &interlace, &comp, &filter);
+				if (ret == 0 || width != (png_uint_32)img.width || height != (png_uint_32)img.height) {
+					std::cerr << "Temp image " << img.filename << " has wrong dimensions; expected " << img.width << 'x' << img.height << ", got " << width << 'x' << height << '\n';
+					return false;
+				}
+
 			}
-			// Here, the image is either open and ready for reading another line, or its not open when it doesn't have to be copied/blended here, or is already finished
 
 			// Read next line from current image chunk
-			png_read_row(pngPtr, (png_bytep)lineRead.data(), NULL);
+			png_read_row(img.pngPtr, (png_bytep)lineRead.data(), nullptr);
 			// Now this puts all the pixels in the right spot of the current line of the final image
 			const size_t end = (img.x + img.width) * CHANSPERPIXEL;
 			size_t read = 0;
@@ -242,9 +255,9 @@ bool TiledPNGWriter::compose(const std::string& path)
 			}
 			// Now check if we're done with this image chunk
 			if (--(img.height) == 0) { // if so, close and discard
-				png_destroy_read_struct(&(pngPtr), &(pngInfo), NULL);
-				pngFileHandle.close();
-				pngPtr = NULL;
+				png_destroy_read_struct(&(img.pngPtr), &(img.pngInfo), NULL);
+				img.file.close();
+				img.pngPtr = nullptr;
 				remove(img.filename.c_str());
 			}
 		}
@@ -254,7 +267,7 @@ bool TiledPNGWriter::compose(const std::string& path)
 
 	}// Y-Loop
 
-	png_write_end(pngStruct, NULL);
+	png_write_end(pngStruct, nullptr);
 	png_destroy_write_struct(&pngStruct, &pngInfo);
 	printProgress(10, 10);
 	return true;

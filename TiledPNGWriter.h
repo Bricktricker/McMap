@@ -1,7 +1,10 @@
 #pragma once
-
-#include "PNGWriter.h"
+//C++ Header
 #include <vector>
+#include <fstream>
+//My-Header
+#include "PNGWriter.h"
+#include "png.h"
 
 class TiledPNGWriter : public PNGWriter
 {
@@ -14,36 +17,34 @@ public:
 	uint8_t* getPixel(const size_t x, const size_t y) override;
 	virtual bool compose(const std::string& path );
 protected:
+
 	struct ImagePart {
-		std::string filename;
 		int x, y, width, height;
+		std::string filename;
+		std::fstream file;
+		png_structp pngPtr;
+		png_infop pngInfo;
 
 		ImagePart(const std::string& _file, const int _x, const int _y, const int _w, const int _h)
-			: x(_x), y(_y), width(_w), height(_h), filename(_file) {}
+			: x(_x), y(_y), width(_w), height(_h), filename(_file), file{}, pngPtr(nullptr), pngInfo(nullptr) {}
 
 		ImagePart(const ImagePart& part)
-			: x(part.x), y(part.y), width(part.width), height(part.height), filename(part.filename) {}
+			: x(part.x), y(part.y), width(part.width), height(part.height), filename(part.filename), file{}, pngPtr(nullptr), pngInfo(nullptr) {}
 
+		//Not needed
 		ImagePart& operator=(const ImagePart& part) {
 			this->x = part.x;
 			this->y = part.y;
 			this->width = part.width;
 			this->height = part.height;
 			this->filename = part.filename;
+			if (part.file.is_open())
+				file.open(filename);
+			pngPtr = nullptr;
+			pngInfo = nullptr;
 			return *this;
 		}
 	};
-
-	/*
-	struct ImageTile {
-		std::fstream fileHandle;
-		png_structp pngPtr;
-		png_infop pngInfo;
-
-		ImageTile()
-			: pngPtr(nullptr), pngInfo(nullptr) {}
-
-	};*/
 
 	size_t m_currWidth;
 	size_t m_currHeight;

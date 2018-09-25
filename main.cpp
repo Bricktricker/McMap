@@ -656,15 +656,14 @@ int main(int argc, char **argv)
 			return 1;
 		}
 	} else {
-		TiledPNGWriter* tpngw = static_cast<TiledPNGWriter*>(pngWriter.get());
+		TiledPNGWriter* tpngw = dynamic_cast<TiledPNGWriter*>(pngWriter.get());
 		if (!tpngw->compose(outfile)) {
 			std::cerr << "Aborted.\n";
 			return 1;
 		}
 	}
-	//fileHandle.close();
 
-	std::cerr << "Job complete.\n";
+	std::cout << "Job complete.\n";
 	return 0;
 }
 

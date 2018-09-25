@@ -97,7 +97,7 @@ bool BasicPNGWriter::write(const std::string& path)
 
 uint8_t* BasicPNGWriter::getPixel(const size_t x, const size_t y)
 {
-	if (x >= m_width || y >= m_height || x < 0 || y < 0)
+	if (x >= m_width || y >= m_height)
 		throw std::out_of_range("getPixel out of range\n");
 
 	return &m_buffer.at(x*CHANSPERPIXEL + y * (m_width * CHANSPERPIXEL)); //check index calculation

@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <sys/param.h>
 #include <unistd.h>
+#include <cerrno>
 #endif
 
 #include <string>
@@ -118,7 +119,7 @@ namespace Dir
 		return (ret != 0) || (GetLastError() == ERROR_ALREADY_EXISTS);
 #else
 		const int ret = mkdir(path.c_str(), 0755);
-		return ret == 0;
+		return ret == 0 || errno == EEXIST;
 #endif
 	}
 
