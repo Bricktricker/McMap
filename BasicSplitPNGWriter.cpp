@@ -1,6 +1,7 @@
 //C++ Header
 #include <iostream>
 #include <fstream>
+#include <array>
 //My-Header
 #include "BasicSplitPNGWriter.h"
 #include "helper.h"
@@ -39,7 +40,7 @@ bool BasicSplitPNGWriter::write(const std::string& path)
 	// Source pointer
 	size_t srcLine = 0;
 	// Prepare an array of png structs that will output simultaneously to the various tiles
-	size_t sizeOffset[7];
+	std::array<size_t, 7> sizeOffset;
 	size_t last = 0;
 	for (size_t i = 0; i < 7; ++i) {
 		sizeOffset[i] = last;
@@ -82,7 +83,7 @@ bool BasicSplitPNGWriter::write(const std::string& path)
 							return false;
 						}
 						t.pngPtr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-						if (t.pngPtr == NULL) {
+						if (t.pngPtr == nullptr) {
 							std::cerr << "Error creating png write struct!\n";
 							return false;
 						}
@@ -91,7 +92,7 @@ bool BasicSplitPNGWriter::write(const std::string& path)
 							return false;
 						}
 						t.pngInfo = png_create_info_struct(t.pngPtr);
-						if (t.pngInfo == NULL) {
+						if (t.pngInfo == nullptr) {
 							std::cerr << "Error creating png info struct!\n";
 							png_destroy_write_struct(&(t.pngPtr), NULL);
 							return false;
@@ -123,7 +124,7 @@ bool BasicSplitPNGWriter::write(const std::string& path)
 	for (size_t tileSize = 0; tileSize < 6; ++tileSize) {
 		const size_t tileWidth = static_cast<size_t>(pow(2, 12 - tileSize));
 		for (size_t tileIndex = sizeOffset[tileSize]; tileIndex < sizeOffset[tileSize + 1]; ++tileIndex) {
-			if (tile[tileIndex].fileHandle.fail() || !tile[tileIndex].fileHandle.is_open()) continue; //.fileHandle == NULL
+			if (tile[tileIndex].fileHandle.fail() || !tile[tileIndex].fileHandle.is_open()) continue;
 			const size_t imgEnd = (((m_height - 1) / tileWidth) + 1) * tileWidth;
 			for (size_t i = m_height; i < imgEnd; ++i) {
 				png_write_row(tile[tileIndex].pngPtr, png_bytep(tempLine.data())); //writes just 0's

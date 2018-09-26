@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <cassert>
+#include <array>
 //My-Header
 #include "TiledSplitPNGWriter.h"
 #include "helper.h"
@@ -48,7 +49,7 @@ bool TiledSplitPNGWriter::compose(const std::string & path)
 	std::vector<uint8_t> lineWrite(tempWidthChans, 0);
 	std::vector<uint8_t> lineRead(tempWidth, 0);
 
-	size_t sizeOffset[7];
+	std::array<size_t, 7> sizeOffset;
 	size_t last = 0;
 	for (size_t i = 0; i < 7; ++i) {
 		sizeOffset[i] = last;
@@ -56,7 +57,7 @@ bool TiledSplitPNGWriter::compose(const std::string & path)
 	}
 	std::vector<ImageTile> tile(sizeOffset[6]);
 
-	//Inti tiles
+	//Init tiles
 	for (auto& t : tile) {
 		t.pngPtr = nullptr;
 		t.pngInfo = nullptr;
@@ -96,8 +97,8 @@ bool TiledSplitPNGWriter::compose(const std::string & path)
 				}
 
 				png_set_read_fn(img.pngPtr, (png_voidp)&img.file, userReadData);
-				//png_init_io(img->pngPtr, img->pngFileHandle);
 				png_read_info(img.pngPtr, img.pngInfo);
+
 				// Check if image dimensions match what is expected
 				int type, interlace, comp, filter, bitDepth;
 				png_uint_32 width, height;
@@ -108,7 +109,7 @@ bool TiledSplitPNGWriter::compose(const std::string & path)
 				}
 			}
 			// Here, the image is either open and ready for reading another line, or its not open when it doesn't have to be copied/blended here, or is already finished
-			if (img.pngPtr == NULL) {
+			if (img.pngPtr == nullptr) {
 				continue;   // Not your turn, image!
 			}
 			// Read next line from current image chunk
@@ -160,7 +161,7 @@ bool TiledSplitPNGWriter::compose(const std::string & path)
 							return false;
 						}
 						t.pngPtr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-						if (t.pngPtr == NULL) {
+						if (t.pngPtr == nullptr) {
 							std::cerr << "Error creating png write struct!\n";
 							return false;
 						}
@@ -170,13 +171,12 @@ bool TiledSplitPNGWriter::compose(const std::string & path)
 							return false;
 						}
 						t.pngInfo = png_create_info_struct(t.pngPtr);
-						if (t.pngInfo == NULL) {
+						if (t.pngInfo == nullptr) {
 							std::cerr << "Error creating png info struct!\n";
 							png_destroy_write_struct(&(t.pngPtr), NULL);
 							return false;
 						}
 						png_set_write_fn(t.pngPtr, (png_voidp)&t.fileHandle, userWriteData, NULL);
-						//png_init_io(t.pngPtr, t.fileHandle);
 						png_set_IHDR(t.pngPtr, t.pngInfo,
 							uint32_t(pow(2, 12 - tileSize)), uint32_t(pow(2, 12 - tileSize)),
 							8, PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE,
@@ -194,7 +194,7 @@ bool TiledSplitPNGWriter::compose(const std::string & path)
 				png_write_row(tile[tileIndex].pngPtr, png_bytep(&lineWrite[tileWidth * (tileIndex - sizeOffset[tileSize]) * CHANSPERPIXEL]));
 			}
 		} // done writing line
-		  //
+
 	}
 	// Y-Loop
 

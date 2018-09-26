@@ -125,7 +125,7 @@ bool TiledPNGWriter::write(const std::string& path)
 
 	size_t line = 0;
 	for (int y = 0; y < part.height; ++y) {
-		png_write_row(pngStruct, (png_bytep)&m_buffer.at(line)); //out of bounds??
+		png_write_row(pngStruct, (png_bytep)&m_buffer.at(line));
 		line += m_currWidth * CHANSPERPIXEL;
 	}
 
