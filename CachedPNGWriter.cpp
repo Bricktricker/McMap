@@ -6,7 +6,7 @@
 #include <cassert>
 //My-Header
 #include <png.h>
-#include "TiledPNGWriter.h"
+#include "CachedPNGWriter.h"
 #define NOMINMAX
 #include "filesystem.h"
 #include "helper.h"
@@ -35,7 +35,7 @@ void userReadData(png_structp pngPtr, png_bytep data, png_size_t length)
 }
 }
 
-TiledPNGWriter::TiledPNGWriter(const size_t origW, const size_t origH)
+CachedPNGWriter::CachedPNGWriter(const size_t origW, const size_t origH)
 	: m_currWidth(0), m_currHeight(0), m_origW(origW), m_origH(origH), offsetX(0), offsetY(0)
 {
 	if (!Dir::createDir("cache")) {
@@ -43,7 +43,7 @@ TiledPNGWriter::TiledPNGWriter(const size_t origW, const size_t origH)
 	}
 }
 
-bool TiledPNGWriter::open(const size_t width, const size_t height)
+bool CachedPNGWriter::open(const size_t width, const size_t height)
 {
 	const size_t pixSize = width * height * CHANSPERPIXEL;
 	std::cout << "Creating temporary image: " << width << 'x' << height << ", 32bpp, " << float(pixSize / float(1024 * 1024)) << "MiB\n";
@@ -55,7 +55,7 @@ bool TiledPNGWriter::open(const size_t width, const size_t height)
 	return true;
 }
 
-bool TiledPNGWriter::addPart(const int startx, const int starty, const int width, const int height)
+bool CachedPNGWriter::addPart(const int startx, const int starty, const int width, const int height)
 {
 	offsetX = std::min(startx, 0);
 	offsetY = std::min(starty, 0);
@@ -90,7 +90,7 @@ bool TiledPNGWriter::addPart(const int startx, const int starty, const int width
 	return true;
 }
 
-bool TiledPNGWriter::write(const std::string& path)
+bool CachedPNGWriter::write(const std::string& path)
 {
 	const auto& part = m_partList.back();
 	std::fstream fileHandle(part.filename, std::ios::out | std::ios::binary);
@@ -138,7 +138,7 @@ bool TiledPNGWriter::write(const std::string& path)
 	return true;
 }
 
-uint8_t* TiledPNGWriter::getPixel(const size_t x, const size_t y)
+uint8_t* CachedPNGWriter::getPixel(const size_t x, const size_t y)
 {
 	if (x >= m_currWidth || y >= m_currHeight)
 		throw std::out_of_range("getPixel out of range\n");
@@ -146,14 +146,14 @@ uint8_t* TiledPNGWriter::getPixel(const size_t x, const size_t y)
 	return &m_buffer.at((x+offsetX) * CHANSPERPIXEL + (y + offsetY) * (m_currWidth * CHANSPERPIXEL)); //check index calculation
 }
 
-void TiledPNGWriter::discardPart()
+void CachedPNGWriter::discardPart()
 {
 	m_partList.pop_back();
 	m_currHeight = 0;
 	m_currWidth = 0;
 }
 
-bool TiledPNGWriter::compose(const std::string& path)
+bool CachedPNGWriter::compose(const std::string& path)
 {
 	std::cout << "Composing final png file...\n";
 	std::fstream outHandle(path, std::ios::out | std::ios::binary);

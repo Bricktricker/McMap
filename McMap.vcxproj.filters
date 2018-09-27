@@ -57,13 +57,13 @@
     <ClInclude Include="BasicPNGWriter.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="TiledPNGWriter.h">
+    <ClInclude Include="CachedPNGWriter.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="BasicSplitPNGWriter.h">
+    <ClInclude Include="BasicTiledPNGWriter.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="TiledSplitPNGWriter.h">
+    <ClInclude Include="CachedTiledPNGWriter.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
@@ -98,13 +98,13 @@
     <ClCompile Include="BasicPNGWriter.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="TiledPNGWriter.cpp">
+    <ClCompile Include="CachedPNGWriter.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="BasicSplitPNGWriter.cpp">
+    <ClCompile Include="BasicTiledPNGWriter.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="TiledSplitPNGWriter.cpp">
+    <ClCompile Include="CachedTiledPNGWriter.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

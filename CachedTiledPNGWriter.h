@@ -1,11 +1,11 @@
 #pragma once
 
-#include "TiledPNGWriter.h"
+#include "CachedPNGWriter.h"
 
-class TiledSplitPNGWriter : public TiledPNGWriter
+class CachedTiledPNGWriter : public CachedPNGWriter
 {
 public:
-	TiledSplitPNGWriter(const size_t origW, const size_t origH);
+	CachedTiledPNGWriter(const size_t origW, const size_t origH);
 	bool compose(const std::string& path) override;
 private:
 

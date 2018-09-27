@@ -5,7 +5,7 @@
 #include "png.h"
 #include "BasicPNGWriter.h"
 
-class BasicSplitPNGWriter : public BasicPNGWriter
+class BasicTiledPNGWriter : public BasicPNGWriter
 {
 public:
 	bool write(const std::string& path) override;

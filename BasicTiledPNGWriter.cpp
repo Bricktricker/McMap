@@ -3,7 +3,7 @@
 #include <fstream>
 #include <array>
 //My-Header
-#include "BasicSplitPNGWriter.h"
+#include "BasicTiledPNGWriter.h"
 #include "helper.h"
 #include "filesystem.h"
 
@@ -18,7 +18,7 @@ void userWriteData(png_structp pngPtr, png_bytep data, png_size_t length)
 }
 }
 // Tiled output, suitable for google maps
-bool BasicSplitPNGWriter::write(const std::string& path)
+bool BasicTiledPNGWriter::write(const std::string& path)
 {
 	std::cout << "Writing to files...\n";
 

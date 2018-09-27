@@ -6,11 +6,11 @@
 #include "PNGWriter.h"
 #include "png.h"
 
-class TiledPNGWriter : public PNGWriter
+class CachedPNGWriter : public PNGWriter
 {
 public:
-	TiledPNGWriter(const size_t origW, const size_t origH);
-	virtual ~TiledPNGWriter() = default;
+	CachedPNGWriter(const size_t origW, const size_t origH);
+	virtual ~CachedPNGWriter() = default;
 	bool open(const size_t width, const size_t height) override; //creats imageBuffer
 	bool addPart(const int startx, const int starty, const int width, const int height);
 	virtual bool write(const std::string& path) override;

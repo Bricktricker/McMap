@@ -4,7 +4,7 @@
 #include <cassert>
 #include <array>
 //My-Header
-#include "TiledSplitPNGWriter.h"
+#include "CachedTiledPNGWriter.h"
 #include "helper.h"
 #include "draw_png.h"
 #include "filesystem.h"
@@ -28,12 +28,12 @@ namespace {
 	}
 }
 
-TiledSplitPNGWriter::TiledSplitPNGWriter(const size_t origW, const size_t origH)
-	: TiledPNGWriter(origW, origH)
+CachedTiledPNGWriter::CachedTiledPNGWriter(const size_t origW, const size_t origH)
+	: CachedPNGWriter(origW, origH)
 {
 }
 
-bool TiledSplitPNGWriter::compose(const std::string & path)
+bool CachedTiledPNGWriter::compose(const std::string & path)
 {
 	// Tiled output, suitable for google maps
 	std::cout << "Composing final png files...\n";

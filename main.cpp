@@ -34,8 +34,8 @@
 #include "json.hpp"
 
 //PNGWriter
-#include "BasicSplitPNGWriter.h"
-#include "TiledSplitPNGWriter.h"
+#include "BasicTiledPNGWriter.h"
+#include "CachedTiledPNGWriter.h"
 
 #include <string>
 #include <vector>
@@ -425,7 +425,7 @@ int main(int argc, char **argv)
 			pngWriter->open(bitmapX, bitmapY);
 		}
 		else {
-			pngWriter = std::make_unique<TiledPNGWriter>(bitmapX, bitmapY);
+			pngWriter = std::make_unique<CachedPNGWriter>(bitmapX, bitmapY);
 		}
 
 		/*
@@ -437,11 +437,11 @@ int main(int argc, char **argv)
 		*/
 	} else {
 		if (!splitImage) {
-			pngWriter = std::make_unique<BasicSplitPNGWriter>();
+			pngWriter = std::make_unique<BasicTiledPNGWriter>();
 			pngWriter->open(bitmapX, bitmapY);
 		}
 		else {
-			pngWriter = std::make_unique<TiledSplitPNGWriter>(bitmapX, bitmapY);
+			pngWriter = std::make_unique<CachedTiledPNGWriter>(bitmapX, bitmapY);
 		}
 
 		outfile = Global::tilePath;
@@ -481,8 +481,8 @@ int main(int argc, char **argv)
 				const int sizey = (int)Global::MapsizeY * Global::OffsetY + (Global::ToChunkX - Global::FromChunkX) * CHUNKSIZE_X + (Global::ToChunkZ - Global::FromChunkZ) * CHUNKSIZE_Z + 3;
 				if (sizex <= 0 || sizey <= 0) continue; // Don't know if this is right, might also be that the size calulation is plain wrong
 				
-				TiledPNGWriter* tpngw = dynamic_cast<TiledPNGWriter*>(pngWriter.get());
-				if (!tpngw->addPart(bitmapStartX - cropLeft, bitmapStartY - cropTop, sizex, sizey)) {
+				CachedPNGWriter* cpngw = dynamic_cast<CachedPNGWriter*>(pngWriter.get());
+				if (!cpngw->addPart(bitmapStartX - cropLeft, bitmapStartY - cropTop, sizex, sizey)) {
 					__debugbreak(); //sometimes return false is ok
 					std::cerr << "Error loading partial image to render to.\n";
 					return 1;
@@ -517,8 +517,8 @@ int main(int argc, char **argv)
 
 			if (splitImage && numberOfChunks == 0) {
 				std::cout << "Section is empty, skipping...\n";
-				TiledPNGWriter* tpngw = dynamic_cast<TiledPNGWriter*>(pngWriter.get());
-				tpngw->discardPart();
+				CachedPNGWriter* cpngw = dynamic_cast<CachedPNGWriter*>(pngWriter.get());
+				cpngw->discardPart();
 				continue;
 			}
 			else if (numberOfChunks == 0) {
@@ -671,8 +671,8 @@ int main(int argc, char **argv)
 		}*/
 
 	} else {
-		TiledPNGWriter* tpngw = dynamic_cast<TiledPNGWriter*>(pngWriter.get());
-		if (!tpngw->compose(outfile)) {
+		CachedPNGWriter* cpngw = dynamic_cast<CachedPNGWriter*>(pngWriter.get());
+		if (!cpngw->compose(outfile)) {
 			std::cerr << "Aborted.\n";
 			return 1;
 		}
