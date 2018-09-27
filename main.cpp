@@ -73,7 +73,7 @@ int main(int argc, char **argv)
 		return 0;
 	}
 	bool wholeworld = false;
-	std::string filename, outfile, colorfile, blockfile, texturefile, infoFile, biomepath;
+	std::string filename, outfile, tilePath, colorfile, blockfile, texturefile, infoFile;
 	bool infoOnly = false;
 	uint64_t memlimit;
 	const std::string numBits = sizeof(size_t) == 8 ? "64" : "32";
@@ -203,7 +203,7 @@ int main(int argc, char **argv)
 					std::cerr << "Error: -split needs a path argument, ie: -split tiles/\n";
 					return 1;
 				}
-				Global::tilePath = NEXTARG;
+				tilePath = NEXTARG;
 			} else if ((option == "-help") || (option == "-h") || (option == "-?")) {
 				printHelp(argv[0]);
 				return 0;
@@ -304,6 +304,7 @@ int main(int argc, char **argv)
 		}
         filename = tmp;
     }
+
 	// Figure out whether this is the old save format or McRegion or Anvil
 	WorldFormat worldFormat = getWorldFormat(filename);
 	if (!(worldFormat == ANVIL || worldFormat == ANVIL13)) {
@@ -408,18 +409,7 @@ int main(int argc, char **argv)
 	// open output file only if not doing the tiled output
 	//std::fstream fileHandle;
 	std::unique_ptr<PNGWriter> pngWriter;
-	if (Global::tilePath.empty()) {
-		//TODO: check if opening for reading is necessary
-		
-		/*fileHandle.open(outfile, std::fstream::out | std::fstream::binary);
-		//fileHandle = fopen(outfile.c_str(), (splitImage ? "w+b" : "wb"));
-
-		if (fileHandle.fail()) {
-			std::cerr << "Error opening '" << outfile << "' for writing.\n";
-			return 1;
-		}
-		*/
-
+	if (tilePath.empty()) {
 		if (!splitImage) {
 			pngWriter = std::make_unique<BasicPNGWriter>();
 			pngWriter->open(bitmapX, bitmapY);
@@ -427,14 +417,6 @@ int main(int argc, char **argv)
 		else {
 			pngWriter = std::make_unique<CachedPNGWriter>(bitmapX, bitmapY);
 		}
-
-		/*
-		// This writes out the bitmap header and pre-allocates space if disk caching is used
-		if (!createImage(fileHandle, bitmapX, bitmapY, splitImage)) {
-			std::cerr << "Error allocating bitmap. Check if you have enough free disk space.\n";
-			return 1;
-		}
-		*/
 	} else {
 		if (!splitImage) {
 			pngWriter = std::make_unique<BasicTiledPNGWriter>();
@@ -444,17 +426,7 @@ int main(int argc, char **argv)
 			pngWriter = std::make_unique<CachedTiledPNGWriter>(bitmapX, bitmapY);
 		}
 
-		outfile = Global::tilePath;
-
-		/*
-		// This would mean tiled output
-		Dir::createDir(Global::tilePath);
-		if (!Dir::dirExists(Global::tilePath)) {
-			std::cerr << "Error: '" << Global::tilePath << "' does not exist.\n";
-			return 1;
-		}
-		createImageBuffer(bitmapX, bitmapY, splitImage); //gBuffer wird nur erstellt wenn bild nicht aufgesplitet wird
-		*/
+		outfile = tilePath;
 	}
 
 	// Precompute brightness adjustment factor
@@ -483,8 +455,7 @@ int main(int argc, char **argv)
 				
 				CachedPNGWriter* cpngw = dynamic_cast<CachedPNGWriter*>(pngWriter.get());
 				if (!cpngw->addPart(bitmapStartX - cropLeft, bitmapStartY - cropTop, sizex, sizey)) {
-					__debugbreak(); //sometimes return false is ok
-					std::cerr << "Error loading partial image to render to.\n";
+					std::cerr << "Error creating partial image to render.\n";
 					return 1;
 				}
 			}
@@ -658,18 +629,6 @@ int main(int argc, char **argv)
 		if (!pngWriter->write(outfile)) {
 			return 1;
 		}
-		/*
-		if (Global::tilePath.empty()) {
-			if (!pngWriter->write(outfile)) {
-				return 1;
-			}
-		}
-		else {
-			if (!pngWriter->write(Global::tilePath)) {
-				return 1;
-			}
-		}*/
-
 	} else {
 		CachedPNGWriter* cpngw = dynamic_cast<CachedPNGWriter*>(pngWriter.get());
 		if (!cpngw->compose(outfile)) {

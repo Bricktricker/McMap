@@ -79,7 +79,10 @@ bool CachedPNGWriter::addPart(const int startx, const int starty, const int widt
 	if (localY + localHeight > m_origH) {
 		localHeight = height - localY;
 	}
-	if (localWidth < 1 || localHeight < 1) return false;
+	if (localWidth < 1 || localHeight < 1) {
+		std::cerr << "ImagePart has Zero/Negative size\n";
+		return false;
+	}
 
 	const std::string name = "cache/" + std::to_string(localX) + '.' + std::to_string(localY) + '.' + std::to_string(localWidth) + '.' + std::to_string(localHeight) + '.' + std::to_string((int)time(NULL)) + ".png";
 	m_partList.emplace_back(name, localX, localY, localWidth, localHeight);

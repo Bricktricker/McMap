@@ -13,7 +13,6 @@ std::vector<uint16_t> Global::terrain;
 std::vector<uint8_t> Global::light;
 std::vector<uint16_t> Global::heightMap;
 
-std::string Global::tilePath;
 int8_t Global::sectionMin, Global::sectionMax;
 uint8_t Global::mystCraftAge = 0U;
 
