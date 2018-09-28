@@ -3,6 +3,7 @@
 #include <fstream>
 #include <cassert>
 #include <array>
+#include <cmath> //pow (for g++)
 //My-Header
 #include "CachedTiledPNGWriter.h"
 #include "helper.h"
@@ -63,7 +64,7 @@ bool CachedTiledPNGWriter::compose(const std::string & path)
 		t.pngInfo = nullptr;
 	}
 
-	for (int y = 0; y < m_origH; ++y) {
+	for (size_t y = 0; y < m_origH; ++y) {
 		if (y % 100 == 0) {
 			printProgress(size_t(y), size_t(m_origH));
 		}

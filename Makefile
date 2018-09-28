@@ -1,6 +1,6 @@
 CC=g++
 CFLAGS=-O3 -std=c++14 -c -Wall -fomit-frame-pointer -pedantic -DWITHPNG -I/usr/local/include
-LDFLAGS=-O3 -std=c++14 -lz -lpng -fomit-frame-pointer -L/usr/local/lib
+LDFLAGS=-O3 -std=c++14 -lz -lpng -fomit-frame-pointer -pthread -L/usr/local/lib
 DCFLAGS=-g -std=c++14 -O0 -c -Wall -D_DEBUG -DWITHPNG -I/usr/local/include
 DLDFLAGS=-g -std=c++14 -O0 -lz -lpng -L/usr/local/lib
 SOURCES=main.cpp helper.cpp nbt.cpp colors.cpp worldloader.cpp filesystem.cpp globals.cpp draw_png.cpp pngreader.cpp BasicPNGWriter.cpp BasicTiledPNGWriter.cpp CachedPNGWriter.cpp CachedTiledPNGWriter.cpp

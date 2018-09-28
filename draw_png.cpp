@@ -1,6 +1,7 @@
 /**
  * This file contains functions to draw the world in to an image buffer
  */
+#include <cstring> //memcpy (for g++)
 
 #include "draw_png.h"
 #include "colors.h"

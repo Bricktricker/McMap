@@ -73,10 +73,10 @@ bool CachedPNGWriter::addPart(const int startx, const int starty, const int widt
 		localY = 0;
 	}
 
-	if (localX + localWidth > m_origW) {
+	if (localX + localWidth > static_cast<int>(m_origW)) {
 		localWidth = width - localX;
 	}
-	if (localY + localHeight > m_origH) {
+	if (localY + localHeight > static_cast<int>(m_origH)) {
 		localHeight = height - localY;
 	}
 	if (localWidth < 1 || localHeight < 1) {
@@ -202,7 +202,7 @@ bool CachedPNGWriter::compose(const std::string& path)
 	std::vector<uint8_t> lineRead(tempWidth, 0);
 
 	// Prepare an array of png structs that will output simultaneously to the various tiles
-	for (int y = 0; y < m_origH; ++y) {
+	for (size_t y = 0; y < m_origH; ++y) {
 		if (y % 100 == 0) {
 			printProgress(size_t(y), size_t(m_origH));
 		}

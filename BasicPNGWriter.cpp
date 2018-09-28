@@ -75,9 +75,9 @@ bool BasicPNGWriter::write(const std::string& path)
 	//saving actual image
 	{
 		size_t srcLine = 0;
-		for (int y = 0; y < m_height; ++y) {
+		for (size_t y = 0; y < m_height; ++y) {
 			if (y % 25 == 0) {
-				printProgress(size_t(y), size_t(m_height));
+				printProgress(y, m_height);
 			}
 			png_write_row(pngStruct, (png_bytep)&m_buffer[srcLine]);
 			srcLine += m_width * CHANSPERPIXEL;

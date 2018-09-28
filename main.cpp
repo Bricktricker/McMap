@@ -73,7 +73,7 @@ int main(int argc, char **argv)
 		return 0;
 	}
 	bool wholeworld = false;
-	std::string filename, outfile, tilePath, colorfile, blockfile, texturefile, infoFile;
+	std::string filename, outfile, tilePath, colorfile, blockfile, infoFile;
 	bool infoOnly = false;
 	uint64_t memlimit;
 	const std::string numBits = sizeof(size_t) == 8 ? "64" : "32";
@@ -688,7 +688,7 @@ void optimizeTerrain()
 			size_t highest = 0, lowest = 0xFF; // remember lowest and highest block which are visible to limit the Y-for-loop later
 			for (size_t y = 0; y < Global::MapsizeY; ++y) { // Go up
 				const uint16_t block = BLOCKAT(x, y, z); // Get the block at that point
-				auto& current = blocked[((y+offsetY) % Global::MapsizeY) + (offsetZ % modZ)];
+				auto&& current = blocked[((y+offsetY) % Global::MapsizeY) + (offsetZ % modZ)];
 				if (current) { // Block is hidden, remove
 					if (block != AIR) {
 						++gBlocksRemoved;

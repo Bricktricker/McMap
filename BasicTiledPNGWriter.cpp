@@ -2,6 +2,8 @@
 #include <iostream>
 #include <fstream>
 #include <array>
+#include <cmath> //pow (for g++)
+#include <cstring> //memcpy (for g++)
 //My-Header
 #include "BasicTiledPNGWriter.h"
 #include "helper.h"
@@ -47,9 +49,9 @@ bool BasicTiledPNGWriter::write(const std::string& path)
 		last += ((tempWidth - 1) / static_cast<size_t>(pow(2, 12 - i))) + 1;
 	}
 	std::vector<ImageTile> tile(sizeOffset[6]);
-	for (int y = 0; y < m_height; ++y) {
+	for (size_t y = 0; y < m_height; ++y) {
 		if (y % 25 == 0) {
-			printProgress(size_t(y), size_t(m_height));
+			printProgress(y, m_height);
 		}
 		std::memcpy(tempLine.data(), &m_buffer[srcLine], LineWidthChans);
 		srcLine += LineWidthChans;
