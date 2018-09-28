@@ -140,9 +140,11 @@ T swap_endian(T u)
 }
 
 size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne) {
+#ifdef _DEBUG
 	const size_t maxObj = (arr.size() * numBits<uint64_t>()) / lengthOfOne;
 	if (maxObj <= index)
 		throw std::out_of_range("out of range");
+#endif
 
 	size_t startBit = index * lengthOfOne;
 	size_t endBit = (startBit + lengthOfOne) - 1;
@@ -158,7 +160,6 @@ size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_
 
 		lowByte = lowByte >> (numBits<uint64_t>() - bitsLow);
 
-		assert((upByte|lowByte)==(upByte+lowByte));
 		return static_cast<size_t>(upByte | lowByte);
 	}
 	else {
@@ -166,7 +167,8 @@ size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_
 		const uint64_t norm = arr[startBit / numBits<uint64_t>()];
 		uint64_t val = swap_endian(norm);
 		const auto m = ((startBit / numBits<uint64_t>()) * numBits<uint64_t>());
-		val = val >> (startBit - m);
+
+		val >>= (startBit - m);
 		val &= ~(~0 << lengthOfOne);
 		return static_cast<size_t>(val);
 	}

@@ -90,6 +90,7 @@ NBT_Tag::NBT_Tag(const std::vector<uint8_t>& data, size_t& pos) {
 
 bool NBT_Tag::parseData(const std::vector<uint8_t>& data, size_t& pos, bool parseHeader)
 {
+
 	if (parseHeader) {
 		_type = (TagType)data[pos];
 		pos++;
@@ -137,21 +138,20 @@ bool NBT_Tag::parseData(const std::vector<uint8_t>& data, size_t& pos, bool pars
 	case tagList: {
 		TagType t = (TagType)readBuffer<uint8_t>(data, pos);
 		uint32_t len = readBuffer<uint32_t>(data, pos);
+		new(&dataHolder._list)(NBTlist);
 		if (len > 0) {
-			dataHolder._list = new std::list<NBT_Tag*>{};
 			for (uint32_t i = 0; i < len; i++) {
-				dataHolder._list->push_back(new NBT_Tag(data, pos, t));
+				dataHolder._list.push_back(new NBT_Tag(data, pos, t));
 			}
-		}else{
-			dataHolder._list = nullptr;
 		}
 		break;
 	}
 	case tagCompound: {
-		dataHolder._compound = new tagmap;
+		new(&dataHolder._compound)(tagmap);
+		//dataHolder._compound = tmp;
 		while (pos < data.size() && data[pos] != 0){
 			NBT_Tag* tag = new NBT_Tag(data, pos);
-			dataHolder._compound->insert(std::pair<std::string, NBT_Tag*>(tag->getName(), tag));
+			dataHolder._compound.insert(std::pair<std::string, NBT_Tag*>(tag->getName(), tag));
 		}
 		if (data[pos] == 0) pos++;
 		break;
@@ -187,18 +187,18 @@ bool NBT_Tag::parseData(const std::vector<uint8_t>& data, size_t& pos, bool pars
 NBT_Tag::~NBT_Tag()
 {
 	if (_type == tagCompound) {
-		for (auto val : *dataHolder._compound)
+		for (auto val : dataHolder._compound)
 			delete val.second;
 
-		delete dataHolder._compound;
+		dataHolder._compound.~tagmap();
 	}
 	else if (_type == tagList) {
-		if (dataHolder._list != nullptr) {
-			for (auto val : *dataHolder._list) {
+		if (!dataHolder._list.empty()) {
+			for (auto val : dataHolder._list) {
 				delete val;
 			}
-			delete dataHolder._list;
 		}
+		dataHolder._list.~NBTlist();
 	}
 }
 
@@ -208,7 +208,7 @@ void NBT_Tag::printTags() const
 		std::cerr << "Not a tagCompound\n";
 		return;
 	}
-	for (auto val : *dataHolder._compound) {
+	for (auto val : dataHolder._compound) {
 		std::cout << "Have compound '" << val.first << "' of type " << val.second->getType() << '\n';
 	}
 	std::cout << "End list.\n";
@@ -224,8 +224,8 @@ void NBT_Tag::printTags() const
 bool NBT_Tag::getCompound(const string& name, NBT_Tag* &compound)
 {
 	if (_type == tagCompound) {
-		auto posVal = dataHolder._compound->find(name);
-		if (posVal != dataHolder._compound->end()) {
+		auto posVal = dataHolder._compound.find(name);
+		if (posVal != dataHolder._compound.end()) {
 			if (posVal->second->getType() == tagCompound) {
 				compound = posVal->second;
 				return true;
@@ -240,10 +240,10 @@ bool NBT_Tag::getCompound(const string& name, NBT_Tag* &compound)
 bool NBT_Tag::getList(const string& name, std::list<NBT_Tag*> &lst)
 {
 	if (_type == tagCompound) {
-		auto posVal = dataHolder._compound->find(name);
-		if (posVal != dataHolder._compound->end()) {
+		auto posVal = dataHolder._compound.find(name);
+		if (posVal != dataHolder._compound.end()) {
 			if (posVal->second->getType() == tagList) {
-				lst = *posVal->second->dataHolder._list;
+				lst = posVal->second->dataHolder._list;
 				return true;
 			}
 		}
@@ -256,8 +256,8 @@ bool NBT_Tag::getList(const string& name, std::list<NBT_Tag*> &lst)
 bool NBT_Tag::getByte(const string& name, int8_t &value)
 {
 	if (_type == tagCompound) {
-		auto posVal = dataHolder._compound->find(name);
-		if (posVal != dataHolder._compound->end()) {
+		auto posVal = dataHolder._compound.find(name);
+		if (posVal != dataHolder._compound.end()) {
 			if (posVal->second->getType() == tagByte) {
 				value = posVal->second->dataHolder._primDataType._byte;
 				return true;
@@ -272,8 +272,8 @@ bool NBT_Tag::getByte(const string& name, int8_t &value)
 bool NBT_Tag::getShort(const string& name, int16_t &value)
 {
 	if (_type == tagCompound) {
-		auto posVal = dataHolder._compound->find(name);
-		if (posVal != dataHolder._compound->end()) {
+		auto posVal = dataHolder._compound.find(name);
+		if (posVal != dataHolder._compound.end()) {
 			if (posVal->second->getType() == tagShort) {
 				value = posVal->second->dataHolder._primDataType._short;
 				return true;
@@ -288,8 +288,8 @@ bool NBT_Tag::getShort(const string& name, int16_t &value)
 bool NBT_Tag::getInt(const string& name, int32_t &value)
 {
 	if (_type == tagCompound) {
-		auto posVal = dataHolder._compound->find(name);
-		if (posVal != dataHolder._compound->end()) {
+		auto posVal = dataHolder._compound.find(name);
+		if (posVal != dataHolder._compound.end()) {
 			if (posVal->second->getType() == tagInt) {
 				value = posVal->second->dataHolder._primDataType._int;
 				return true;
@@ -303,8 +303,8 @@ bool NBT_Tag::getInt(const string& name, int32_t &value)
 bool NBT_Tag::getLong(const string& name, int64_t &value)
 {
 	if (_type == tagCompound) {
-		auto posVal = dataHolder._compound->find(name);
-		if (posVal != dataHolder._compound->end()) {
+		auto posVal = dataHolder._compound.find(name);
+		if (posVal != dataHolder._compound.end()) {
 			if (posVal->second->getType() == tagLong) {
 				value = posVal->second->dataHolder._primDataType._long;
 				return true;
@@ -319,10 +319,10 @@ bool NBT_Tag::getLong(const string& name, int64_t &value)
 bool NBT_Tag::getByteArray(const string& name, PrimArray<uint8_t>& data)
 {
 	if (_type == tagCompound) {
-		auto posVal = dataHolder._compound->find(name);
-		if (posVal != dataHolder._compound->end()) {
+		auto posVal = dataHolder._compound.find(name);
+		if (posVal != dataHolder._compound.end()) {
 			if (posVal->second->getType() == tagByteArray) {
-				const auto d = dataHolder._compound->at(name);
+				const auto d = dataHolder._compound.at(name);
 				data._data = d->dataHolder._byteArray._data;
 				data._len = d->dataHolder._byteArray._len;
 				return true;
@@ -338,10 +338,10 @@ bool NBT_Tag::getByteArray(const string& name, PrimArray<uint8_t>& data)
 bool NBT_Tag::getIntArray(const string& name, PrimArray<int32_t>& data)
 {
 	if (_type == tagCompound) {
-		auto posVal = dataHolder._compound->find(name);
-		if (posVal != dataHolder._compound->end()) {
+		auto posVal = dataHolder._compound.find(name);
+		if (posVal != dataHolder._compound.end()) {
 			if (posVal->second->getType() == tagIntArray) {
-				const auto d = dataHolder._compound->at(name);
+				const auto d = dataHolder._compound.at(name);
 				data._data = d->dataHolder._intArray._data;
 				data._len = d->dataHolder._intArray._len;
 				return true;
@@ -357,10 +357,10 @@ bool NBT_Tag::getIntArray(const string& name, PrimArray<int32_t>& data)
 bool NBT_Tag::getLongArray(const string& name, PrimArray<int64_t>& data)
 {
 	if (_type == tagCompound) {
-		auto posVal = dataHolder._compound->find(name);
-		if (posVal != dataHolder._compound->end()) {
+		auto posVal = dataHolder._compound.find(name);
+		if (posVal != dataHolder._compound.end()) {
 			if (posVal->second->getType() == tagLongArray) {
-				const auto d = dataHolder._compound->at(name);
+				const auto d = dataHolder._compound.at(name);
 				data._data = d->dataHolder._longArray._data;
 				data._len = d->dataHolder._longArray._len;
 				return true;
@@ -376,10 +376,10 @@ bool NBT_Tag::getLongArray(const string& name, PrimArray<int64_t>& data)
 bool NBT_Tag::getString(const string& name, std::string& data)
 {
 	if (_type == tagCompound) {
-		auto posVal = dataHolder._compound->find(name);
-		if (posVal != dataHolder._compound->end()) {
+		auto posVal = dataHolder._compound.find(name);
+		if (posVal != dataHolder._compound.end()) {
 			if (posVal->second->getType() == tagString) {
-				const auto tmp = dataHolder._compound->at(name)->dataHolder._string;
+				const auto tmp = dataHolder._compound.at(name)->dataHolder._string;
 				data = std::string(tmp._data, tmp._len);
 				return true;
 			}

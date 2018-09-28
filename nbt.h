@@ -53,8 +53,8 @@ private:
 		DataHolder() {};
 		~DataHolder() {};
 
-		tagmap* _compound;
-		std::list<NBT_Tag*>* _list;
+		tagmap _compound;
+		std::list<NBT_Tag*> _list;
 		PrimDataType _primDataType;
 		PrimArray<char> _string;
 		PrimArray<uint8_t> _byteArray;
@@ -66,19 +66,9 @@ private:
 	TagType _type;
 	std::string _name;
 
-	/*
-	tagmap *_elems;
-	list<NBT_Tag *> *_list;
-	uint8_t *_data;
-	uint32_t _len;
-	*/
-
-	//explicit NBT_Tag(uint8_t* &position, const uint8_t *end, string &name);
-	//explicit NBT_Tag(uint8_t* &position, const uint8_t *end, TagType type);
 	explicit NBT_Tag();
 	explicit NBT_Tag(const std::vector<uint8_t>& data, size_t& pos);
 	explicit NBT_Tag(const std::vector<uint8_t>& data, size_t& pos, TagType type); //Construct NBT_Tag from list
-	//void parseData(uint8_t* &position, const uint8_t *end, string *name = NULL);
 	bool parseData(const std::vector<uint8_t>& data, size_t& pos, bool parseHeader = true);
 
 public:

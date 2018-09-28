@@ -48,7 +48,7 @@ uint64_t calcImageSize(const int mapChunksX, const int mapChunksZ, const size_t 
 {
 	pixelsX = (mapChunksX * CHUNKSIZE_X + mapChunksZ * CHUNKSIZE_Z) * 2 + (tight ? 3 : 10);
 	pixelsY = (mapChunksX * CHUNKSIZE_X + mapChunksZ * CHUNKSIZE_Z + int(mapHeight) * Global::OffsetY) + (tight ? 3 : 10);
-	return uint64_t(pixelsX) * BYTESPERPIXEL * uint64_t(pixelsY);
+	return uint64_t(pixelsX) * PNGWriter::BYTESPERPIXEL * uint64_t(pixelsY);
 }
 
 /*
@@ -295,7 +295,7 @@ void blend(uint8_t* const destination, const uint8_t* const source)
 {
 #define PALPHA 3
 	if (destination[PALPHA] == 0 || source[PALPHA] == 255) { //compare alpha
-		std::memcpy(destination, source, BYTESPERPIXEL);
+		std::memcpy(destination, source, PNGWriter::BYTESPERPIXEL);
 		return;
 	}
 #define BLEND(ca,aa,cb) uint8_t(((size_t(ca) * size_t(aa)) + (size_t(255 - aa) * size_t(cb))) / 255)

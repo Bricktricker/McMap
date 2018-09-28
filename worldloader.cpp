@@ -210,7 +210,7 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 
 	int32_t dataVersion = 0;
 	if (!chunk.getInt("DataVersion", dataVersion)) {
-		std::cerr << "No DataVersion in Chunk";
+		std::cerr << "No DataVersion in Chunk\n";
 		return false;
 	}
 
@@ -671,21 +671,19 @@ void allocateTerrain()
 	if (Global::heightMap.size() < heightMapSize || Global::heightMap.size() * 0.9f > heightMapSize) {
 		Global::heightMap.clear();
 		Global::heightMap.shrink_to_fit();
-		Global::heightMap.resize(heightMapSize, 0xff00);
+		Global::heightMap.resize(heightMapSize);
 	}
-	else {
-		std::fill_n(Global::heightMap.begin(), heightMapSize, 0xff00);
-	}
+	std::fill_n(Global::heightMap.begin(), heightMapSize, 0xff00);
 
 	std::cout << "Terrain takes up " << std::setprecision(5) << float(Global::Terrainsize * sizeof(uint16_t) / float(1024 * 1024)) << "MiB";
 	if (Global::terrain.size() < Global::Terrainsize || Global::terrain.size() * 0.9f > Global::Terrainsize) {
 		Global::terrain.clear();
 		Global::terrain.shrink_to_fit();
-		Global::terrain.resize(Global::Terrainsize, 0); // Preset: Air
+		Global::terrain.resize(Global::Terrainsize);
 	}
-	else {
-		std::fill_n(Global::terrain.begin(), Global::Terrainsize, 0U);
-	}
+
+	std::fill_n(Global::terrain.begin(), Global::Terrainsize, 0U);// Preset: Air
+
 
 	if (Global::settings.nightmode || Global::settings.underground || Global::settings.blendUnderground || Global::settings.skylight) {
 		const size_t lightsize = Global::MapsizeZ * Global::MapsizeX * ((Global::MapsizeY + (Global::MapminY % 2 == 0 ? 1 : 2)) / 2);

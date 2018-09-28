@@ -368,7 +368,7 @@ int main(int argc, char **argv)
 		calcBitmapOverdraw(cropLeft, cropRight, cropTop, cropBottom);
 		bitmapX -= (cropLeft + cropRight);
 		bitmapY -= (cropTop + cropBottom);
-		bitmapBytes = uint64_t(bitmapX) * BYTESPERPIXEL * uint64_t(bitmapY);
+		bitmapBytes = uint64_t(bitmapX) * PNGWriter::BYTESPERPIXEL * uint64_t(bitmapY);
 	}
 
 	if (!infoFile.empty()) {
@@ -707,7 +707,12 @@ void optimizeTerrain()
 			size_t highest = 0, lowest = 0xFF; // remember lowest and highest block which are visible to limit the Y-for-loop later
 			for (size_t y = 0; y < Global::MapsizeY; ++y) { // Go up
 				const uint16_t block = BLOCKAT(x, y, z); // Get the block at that point
-				auto&& current = blocked[((y+offsetY) % Global::MapsizeY) + (offsetZ % modZ)];
+
+				//const int oldIndex = ((y + offsetY) % Global::MapsizeY) + (offsetZ % modZ);
+				const int newIndex = -static_cast<int>(Global::MapsizeY)*((y + offsetY) / Global::MapsizeY) + offsetY - modZ*(offsetZ / modZ) + offsetZ + y;
+				//newIndex should be faster, but not sure
+
+				auto&& current = blocked[static_cast<const size_t>(newIndex)];
 				if (current) { // Block is hidden, remove
 					if (block != AIR) {
 						++gBlocksRemoved;

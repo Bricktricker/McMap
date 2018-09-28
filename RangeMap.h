@@ -109,10 +109,10 @@ template<typename keyT,
 			MapNode* current = root.get();
 			while (current) {
 				if (compare(key, current->lowerBound)){
-					// key < current->lowerBound, weiter nach links
+					// key < current->lowerBound, go to left
 					current = current->leftTree.get();
 				}else if (compare(current->upperBound, key)) {
-					//current->upperBound < key, weiter nach links
+					//current->upperBound < key, go to right
 					current = current->rightTree.get();
 				}else {
 					return current->value;
@@ -127,11 +127,11 @@ template<typename keyT,
 			MapNode* current = root.get();
 			while (current) {
 				if (compare(key, current->lowerBound)) {
-					// key < current->lowerBound, weiter nach links
+					// key < current->lowerBound, go to left
 					current = current->leftTree.get();
 				}
 				else if (compare(current->upperBound, key)) {
-					//current->upperBound < key, weiter nach rechts
+					//current->upperBound < key, go to right
 					current = current->rightTree.get();
 				}
 				else {
