@@ -47,6 +47,23 @@
 #include <sys/stat.h>
 #endif
 
+//determinate 64Bit or 32Bit
+#if defined(_WIN32) || defined(_WIN64)
+	#if defined(_WIN64)
+		#define NUM_BITS 64
+	#else
+		#define NUM_BITS 32
+	#endif
+#elif defined __GNUC__
+	#if defined(__x86_64__) || defined(__ppc64__)
+		#define NUM_BITS 64
+	#else
+		#define NUM_BITS 32
+	#endif
+#else
+	#error "Missing feature-test macro for 32/64-bit on this compiler."
+#endif
+
 namespace
 {
 	// For bright edge
@@ -75,13 +92,13 @@ int main(int argc, char **argv)
 	bool wholeworld = false;
 	std::string filename, outfile, tilePath, colorfile, blockfile, infoFile;
 	bool infoOnly = false;
-	uint64_t memlimit;
-	const std::string numBits = sizeof(size_t) == 8 ? "64" : "32";
-	if(sizeof(size_t) < 8) { //test for 32Bit
-		memlimit = 1500 * uint64_t(1024 * 1024);
-	} else { //64Bit
-		memlimit = 2000 * uint64_t(1024 * 1024);
-	}
+
+#if NUM_BITS == 32
+	uint64_t memlimit = 1500 * uint64_t(1024 * 1024);
+#else
+	uint64_t memlimit = 2000 * uint64_t(1024 * 1024);
+#endif
+
 	bool memlimitSet = false;
 
 	{ // -- New command line parsing --
@@ -253,11 +270,13 @@ int main(int argc, char **argv)
 	// ########## end of command line parsing ##########
 	//if (Global::settings.hell || Global::settings.serverHell || Global::settings.end) Global::useBiomes = false;
 
-	std::cout << "mcmap " << VERSION << ' ' << numBits << "bit by Zahl & mcmap3 by WRIM & 1.13 support by Philipp\n";
+	std::cout << "mcmap " << VERSION << ' ' << NUM_BITS << "bit by Zahl & mcmap3 by WRIM & 1.13 support by Philipp\n";
 
-	if (sizeof(size_t) < 8 && memlimit > 1800 * uint64_t(1024 * 1024)) {
+#if NUM_BITS == 32
+	if (memlimit > 1800 * uint64_t(1024 * 1024)) {
 		memlimit = 1800 * uint64_t(1024 * 1024);
 	}
+#endif
 
 	// Load colors
 	if (blockfile.empty()) {
