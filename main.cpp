@@ -92,6 +92,7 @@ int main(int argc, char **argv)
 	bool wholeworld = false;
 	std::string filename, outfile, tilePath, colorfile, blockfile, infoFile;
 	bool infoOnly = false;
+	double scaleImage = 1.0;
 
 #if NUM_BITS == 32
 	uint64_t memlimit = 1500 * uint64_t(1024 * 1024);
@@ -255,12 +256,22 @@ int main(int argc, char **argv)
 				marker.offsetX = x - (marker.chunkX * CHUNKSIZE_X);
 				marker.offsetZ = z - (marker.chunkZ * CHUNKSIZE_Z);
 				Global::markers.push_back(marker);
-            } else if (option == "-mystcraftage") {
-                if (!MOREARGS(1)) {
-                    std::cerr << "Error: -mystcraftage needs an integer age number argument";
-                    return 1;
-                }
-                Global::mystCraftAge = atoi(NEXTARG);
+			}
+			else if (option == "-mystcraftage") {
+				if (!MOREARGS(1)) {
+					std::cerr << "Error: -mystcraftage needs an integer age number argument";
+					return 1;
+				}
+				Global::mystCraftAge = atoi(NEXTARG);
+			}else if(option == "-scale"){
+				if (!MOREARGS(1) || !isNumeric(POLLARG(1))) {
+					std::cerr << "Error: -scale needs a scale argument. eg. 0.5";
+					return 1;
+				}
+				scaleImage = std::stod(NEXTARG);
+				if (scaleImage > 1.0) {
+					std::cerr << "Warning: you try to upscale the resulting image!\n";
+				}
 			} else {
 				filename = option;
 			}
@@ -645,6 +656,11 @@ int main(int argc, char **argv)
 	deallocateTerrain();
 	// Saving
 	if (!splitImage) {
+		if (tilePath.empty() && scaleImage != 1.0) {
+			BasicPNGWriter* bpngw = dynamic_cast<BasicPNGWriter*>(pngWriter.get());
+			bpngw->resize(0.5);
+		}
+
 		if (!pngWriter->write(outfile)) {
 			return 1;
 		}

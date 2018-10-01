@@ -61,7 +61,7 @@ void printProgress(const size_t current, const size_t max)
 
 bool isNumeric(const std::string& str)
 {
-	return std::regex_match(str, std::regex("(\\+|\\-)*\\d+")); //old: "[(-|+)|][0-9]+"
+	return std::regex_match(str, std::regex("(\\+|\\-)?\d+(\\.\\d+)?")); //old: "[(-|+)|][0-9]+"
 }
 
 bool isAlphaWorld(const std::string& path)

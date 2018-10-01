@@ -102,3 +102,131 @@ uint8_t* BasicPNGWriter::getPixel(const size_t x, const size_t y)
 
 	return &m_buffer.at(x*CHANSPERPIXEL + y * (m_width * CHANSPERPIXEL)); //check index calculation
 }
+
+uint8_t* BasicPNGWriter::getPixelClamped(int x, int y)
+{
+	if (x < 0) x = 0;
+	if (y < 0) y = 0;
+	if (x > m_width - 1) x = static_cast<int>(m_width - 1);
+	if (y > m_height - 1) y = static_cast<int>(m_height - 1);
+
+	return &m_buffer[x*CHANSPERPIXEL + y * (m_width * CHANSPERPIXEL)];
+}
+
+inline uint8_t saturate(const float x)
+{
+	return x > 255.0f ? 255
+		: x < 0.0f ? 0
+		: uint8_t(x);
+}
+
+// t is a value that goes from 0 to 1 to interpolate in a C1 continuous way across uniformly sampled data points.
+// when t is 0, this will return B.  When t is 1, this will return C.  Inbetween values will return an interpolation
+// between B and C.  A and B are used to calculate slopes at the edges.
+inline float CubicHermite(const float A, const float B, const float C, const float D, const float t)
+{
+	const float a = -A / 2.0f + (3.0f*B) / 2.0f - (3.0f*C) / 2.0f + D / 2.0f;
+	const float b = A - (5.0f*B) / 2.0f + 2.0f*C - D / 2.0f;
+	const float c = -A / 2.0f + C / 2.0f;
+	const float d = B;
+
+	return a*t*t*t + b*t*t + c*t + d;
+}
+
+void BasicPNGWriter::resize(const double scaleFac)
+{
+	resize(static_cast<size_t>(m_width*scaleFac), static_cast<size_t>(m_height*scaleFac));
+}
+
+//https://blog.demofox.org/2015/08/15/resizing-images-with-bicubic-interpolation/
+void BasicPNGWriter::resize(const size_t newWidth, const size_t newHeight)
+{
+	std::cout << "Resizing image...\n";
+	std::vector<uint8_t> out(newWidth * newHeight * CHANSPERPIXEL);
+
+	for (size_t y = 0; y < newHeight; ++y) {
+		if (y % 25 == 0) {
+			printProgress(y, newHeight);
+		}
+
+		const float v = float(y) / float(newHeight - 1);
+		for (size_t x = 0; x < newWidth; ++x) {
+			uint8_t* destPixel = &out.at(x*CHANSPERPIXEL + y * (newWidth * CHANSPERPIXEL));
+			const float u = float(x) / float(newWidth - 1);
+			const auto sample = SampleBicubic(u,v);
+
+			destPixel[0] = sample[0];
+			destPixel[1] = sample[1];
+			destPixel[2] = sample[2];
+			destPixel[3] = sample[3];
+		}
+	}
+	printProgress(10, 10);
+
+	m_buffer = out;
+	m_width = newWidth;
+	m_height = newHeight;
+}
+
+std::array<uint8_t, PNGWriter::CHANSPERPIXEL> BasicPNGWriter::SampleBicubic(const float u, const float v)
+{
+	// calculate coordinates -> also need to offset by half a pixel to keep image from shifting down and left half a pixel
+	const float x = (u * m_width) - 0.5f;
+	const int xint = int(x);
+	const float xfract = x - floor(x);
+
+	const float y = (v * m_height) - 0.5f;
+	const int yint = int(y);
+	const float yfract = y - floor(y);
+
+	// 1st row
+	auto p00 = getPixelClamped(xint - 1, yint - 1);
+	auto p10 = getPixelClamped(xint + 0, yint - 1);
+	auto p20 = getPixelClamped(xint + 1, yint - 1);
+	auto p30 = getPixelClamped(xint + 2, yint - 1);
+
+	// 2nd row
+	auto p01 = getPixelClamped(xint - 1, yint + 0);
+	auto p11 = getPixelClamped(xint + 0, yint + 0);
+	auto p21 = getPixelClamped(xint + 1, yint + 0);
+	auto p31 = getPixelClamped(xint + 2, yint + 0);
+
+	// 3rd row
+	auto p02 = getPixelClamped(xint - 1, yint + 1);
+	auto p12 = getPixelClamped(xint + 0, yint + 1);
+	auto p22 = getPixelClamped(xint + 1, yint + 1);
+	auto p32 = getPixelClamped(xint + 2, yint + 1);
+
+	// 4th row
+	auto p03 = getPixelClamped(xint - 1, yint + 2);
+	auto p13 = getPixelClamped(xint + 0, yint + 2);
+	auto p23 = getPixelClamped(xint + 1, yint + 2);
+	auto p33 = getPixelClamped(xint + 2, yint + 2);
+
+	// interpolate bi-cubically!
+	// Clamp the values since the curve can put the value below 0 or above 255
+	std::array<uint8_t, PNGWriter::CHANSPERPIXEL> ret;
+	for (int i = 0; i < PNGWriter::CHANSPERPIXEL; ++i)
+	{
+		const float col0 = CubicHermite(p00[i], p10[i], p20[i], p30[i], xfract);
+		const float col1 = CubicHermite(p01[i], p11[i], p21[i], p31[i], xfract);
+		const float col2 = CubicHermite(p02[i], p12[i], p22[i], p32[i], xfract);
+		const float col3 = CubicHermite(p03[i], p13[i], p23[i], p33[i], xfract);
+		const float value = CubicHermite(col0, col1, col2, col3, yfract);
+		ret[i] = saturate(value);
+	}
+
+	return ret;
+}
+
+/*
+uint8_t BasicPNGWriter::get_subpixel(int x, int y, const size_t channel)
+{
+	if (x < 0) x = 0;
+	if (y < 0) y = 0;
+	if (x >= m_width) x = m_width - 1;
+	if (y >= m_height) y = m_height - 1;
+
+	return m_buffer.at((x*CHANSPERPIXEL + y * (m_width * CHANSPERPIXEL))+channel);
+}
+*/
