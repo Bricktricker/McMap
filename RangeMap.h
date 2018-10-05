@@ -4,10 +4,13 @@
 #include <memory>
 #include <stdexcept>
 #include <vector>
+#include <array>
+#include <cassert>
 
 template<typename keyT,
 	typename valT,
-	typename compT = std::less<keyT>>
+	typename compT = std::less<keyT>,
+	size_t cacheSize = 5>
 	class RangeMap {
 	struct MapNode;
 	typedef std::unique_ptr<MapNode> PtrType;
@@ -46,11 +49,18 @@ template<typename keyT,
 		{}
 	};
 
+	struct CacheNode {
+		keyT m_key;
+		valT* m_value; //Not owned by object
+	};
+
 	compT compare;
 	PtrType root;
 	size_t treeSize;
+	std::array<CacheNode, cacheSize> m_cache;
 
 	public:
+
 		explicit RangeMap(compT tmpCmp = compT{})
 			: compare(tmpCmp), root{ nullptr }, treeSize(0)
 		{};
@@ -102,6 +112,11 @@ template<typename keyT,
 			treeSize++;
 		}
 
+		void addToCache(const size_t index, const keyT& key) {
+			assert(index < cacheSize);
+			m_cache[index] = CacheNode{key, &get(key)};
+		}
+
 		valT& get(const keyT& key) {
 			if (!root) {
 				throw std::out_of_range("Map is empty");
@@ -120,10 +135,25 @@ template<typename keyT,
 			}
 			throw std::out_of_range("key not in map");
 		}
-		valT operator[](const keyT& key) const {
-			if (!root) {
-				throw std::out_of_range("Map is empty");
+		valT operator[](const keyT& key) {
+			assert(root);
+
+			//Cache lookup
+			size_t idx = cacheSize / 2;
+			for (size_t i = 0; i <= cacheSize / 2; ++i) {
+				const auto cacheKey = m_cache[idx].m_key;
+				if (cacheKey == key) {
+					assert(m_cache[idx].m_value != nullptr);
+					return *m_cache[idx].m_value;
+				}
+				else if (cacheKey > key) {
+					--idx;
+				}
+				else {
+					++idx;
+				}
 			}
+
 			MapNode* current = root.get();
 			while (current) {
 				if (compare(key, current->lowerBound)) {

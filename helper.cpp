@@ -61,7 +61,7 @@ void printProgress(const size_t current, const size_t max)
 
 bool isNumeric(const std::string& str)
 {
-	return std::regex_match(str, std::regex("(\\+|\\-)?\d+(\\.\\d+)?")); //old: "[(-|+)|][0-9]+"
+	return std::regex_match(str, std::regex("(\\+|\\-)?\\d+(\\.\\d+)?")); //old: "[(-|+)|][0-9]+"
 }
 
 bool isAlphaWorld(const std::string& path)
@@ -166,7 +166,7 @@ size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_
 		//on same index in arr
 		const uint64_t norm = arr[startBit / numBits<uint64_t>()];
 		uint64_t val = swap_endian(norm);
-		const auto m = ((startBit / numBits<uint64_t>()) * numBits<uint64_t>());
+		const auto m = startBit & (~0x3F); //((startBit / numBits<uint64_t>()) * numBits<uint64_t>());
 
 		val >>= (startBit - m);
 		val &= ~(~0 << lengthOfOne);

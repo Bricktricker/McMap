@@ -272,6 +272,10 @@ int main(int argc, char **argv)
 				if (scaleImage > 1.0) {
 					std::cerr << "Warning: you try to upscale the resulting image!\n";
 				}
+				else if (scaleImage < 0.0 || scaleImage == 0.0) {
+					std::cerr << "Error: -scale needs a postitive scale value > 0. eg. 0.5";
+					return 1;
+				}
 			} else {
 				filename = option;
 			}

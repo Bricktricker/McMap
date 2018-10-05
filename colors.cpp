@@ -90,8 +90,17 @@ bool loadColorMap(const std::string& path)
 		Color_t finalCol{ r, g, b, a, noise, brightness, blockType };
 		colorMap.insert(from, to, finalCol);
 	}
+	Color_t finalCol{ 0, 0, 0, 0, 0, 0, 0 };
+	colorMap.insert(0, 0, finalCol);
 
 	colorMap.balance();
+
+	//cachecontent: Air, Stone, Grass, Dirt, Water 
+	colorMap.addToCache(0, 0);
+	colorMap.addToCache(1, 1);
+	colorMap.addToCache(2, 9);
+	colorMap.addToCache(3, 10);
+	colorMap.addToCache(4, 34);
 
 	return true;
 }
