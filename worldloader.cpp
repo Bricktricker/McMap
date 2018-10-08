@@ -382,7 +382,7 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 
 bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ)
 {
-	NBTlist sections;
+	std::list<NBT_Tag*> sections;
 	if (!level->getList("Sections", sections) || sections.empty()) {
 		std::cerr << "No sections found in region\n";
 		return false;
@@ -428,7 +428,7 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 			}
 		}
 
-		NBTlist palette;
+		std::list<NBT_Tag*> palette;
 		if (!sec->getList("Palette", palette)) {
 			std::cerr << "No Palette in sub-Chunk\n";
 			continue;

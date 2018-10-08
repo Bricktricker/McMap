@@ -3,13 +3,14 @@
 #include <map>
 #include <list>
 #include <string>
+#include <memory>
 #include "helper.h"
 
 using std::string;
 
 class NBT_Tag;
-typedef std::map<std::string, NBT_Tag*> tagmap;
-typedef std::list<NBT_Tag*> NBTlist;
+typedef std::map<std::string, std::unique_ptr<NBT_Tag>> tagmap;
+typedef std::list<std::unique_ptr<NBT_Tag>> NBTlist;
 
 enum TagType {
 	tagUnknown = 0, // Tag_End is not made available, so 0 should never be in any list of available elements
@@ -54,7 +55,7 @@ private:
 		~DataHolder() {};
 
 		tagmap _compound;
-		std::list<NBT_Tag*> _list;
+		NBTlist _list;
 		PrimDataType _primDataType;
 		PrimArray<char> _string;
 		PrimArray<uint8_t> _byteArray;

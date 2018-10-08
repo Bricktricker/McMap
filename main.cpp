@@ -715,11 +715,10 @@ void optimizeTerrain()
 		return;
 	}
 
-
 	size_t gBlocksRemoved = 0;
 	const size_t modZ = maxZ * Global::MapsizeY;
 	std::vector<bool> blocked(modZ, false);
-	int offsetZ = 0, offsetY = 0, offsetGlobal = 0;
+	size_t offsetZ = 0, offsetY = 0, offsetGlobal = 0;
 	for (size_t x = maxX - 1; x >= CHUNKSIZE_X; --x) {
 		printProgress(maxX - (x + 1), maxX);
 		offsetZ = offsetGlobal;
@@ -728,11 +727,11 @@ void optimizeTerrain()
 			for (size_t y = 0; y < Global::MapsizeY; ++y) { // Go up
 				const uint16_t block = BLOCKAT(x, y, z); // Get the block at that point
 
-				//const int oldIndex = ((y + offsetY) % Global::MapsizeY) + (offsetZ % modZ);
-				const int newIndex = -static_cast<int>(Global::MapsizeY)*((y + offsetY) / Global::MapsizeY) + offsetY - modZ*(offsetZ / modZ) + offsetZ + y;
+				const size_t oldIndex = ((y + offsetY) % Global::MapsizeY) + (offsetZ % modZ);
+				//const size_t newIndex = fast_mod<size_t>(y + offsetY, Global::MapsizeY) + fast_mod(offsetZ, modZ);
 				//newIndex should be faster, but not sure
 
-				auto&& current = blocked[static_cast<const size_t>(newIndex)];
+				auto&& current = blocked[oldIndex];
 				if (current) { // Block is hidden, remove
 					if (block != AIR) {
 						++gBlocksRemoved;
