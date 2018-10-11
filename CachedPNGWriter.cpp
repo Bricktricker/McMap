@@ -43,7 +43,7 @@ CachedPNGWriter::CachedPNGWriter(const size_t origW, const size_t origH)
 	}
 }
 
-bool CachedPNGWriter::open(const size_t width, const size_t height)
+bool CachedPNGWriter::reserve(const size_t width, const size_t height)
 {
 	const size_t pixSize = width * height * CHANSPERPIXEL;
 	std::cout << "Creating temporary image: " << width << 'x' << height << ", 32bpp, " << float(pixSize / float(1024 * 1024)) << "MiB\n";
@@ -87,7 +87,7 @@ bool CachedPNGWriter::addPart(const int startx, const int starty, const int widt
 	const std::string name = "cache/" + std::to_string(localX) + '.' + std::to_string(localY) + '.' + std::to_string(localWidth) + '.' + std::to_string(localHeight) + '.' + std::to_string((int)time(NULL)) + ".png";
 	m_partList.emplace_back(name, localX, localY, localWidth, localHeight);
 
-	if (!this->open(localWidth, localHeight))
+	if (!this->reserve(localWidth, localHeight))
 		return false;
 
 	return true;

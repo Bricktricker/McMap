@@ -214,7 +214,7 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 		return false;
 	}
 
-	NBT_Tag *level = NULL;
+	NBT_Tag* level = nullptr;
 	ok = chunk.getCompound("Level", level);
 	if (!ok) {
 		std::cerr << "No level\n";
@@ -474,8 +474,8 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 			}
 			idList.push_back(blockID);
 		}
+
 		//Now IDList is build up, no run through all block in sub-Chunk
-		//TODO: add light support
 		for (int x = 0; x < CHUNKSIZE_X; ++x) {
 			for (int z = 0; z < CHUNKSIZE_Z; ++z) {
 				uint16_t* targetBlock = nullptr;
@@ -929,7 +929,7 @@ bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks
 				std::cerr << "cold not decompress region! Error\n";
 			}
 		} else {
-			std::cerr << "Unsupported McRegion version: " << (int)version << '\n';
+			std::cerr << "Unsupported Region version: " << (int)version << '\n';
 			continue;
 		}
 		std::vector<uint8_t> buf(decompressedBuffer.begin(), decompressedBuffer.begin() + len);

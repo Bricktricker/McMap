@@ -21,7 +21,7 @@ BasicPNGWriter::~BasicPNGWriter()
 		std::cerr << "BasicPNGWriter closes without writing image\n";
 }
 
-bool BasicPNGWriter::open(const size_t width, const size_t height)
+bool BasicPNGWriter::reserve(const size_t width, const size_t height)
 {
 	const size_t pixSize = width * height * CHANSPERPIXEL;
 	std::cout << "Image dimensions are " << width << 'x' << height << ", 32bpp, " << float(pixSize / float(1024 * 1024)) << "MiB\n";

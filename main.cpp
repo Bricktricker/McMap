@@ -446,7 +446,7 @@ int main(int argc, char **argv)
 	if (tilePath.empty()) {
 		if (!splitImage) {
 			pngWriter = std::make_unique<BasicPNGWriter>();
-			pngWriter->open(bitmapX, bitmapY);
+			pngWriter->reserve(bitmapX, bitmapY);
 		}
 		else {
 			pngWriter = std::make_unique<CachedPNGWriter>(bitmapX, bitmapY);
@@ -454,7 +454,7 @@ int main(int argc, char **argv)
 	} else {
 		if (!splitImage) {
 			pngWriter = std::make_unique<BasicTiledPNGWriter>();
-			pngWriter->open(bitmapX, bitmapY);
+			pngWriter->reserve(bitmapX, bitmapY);
 		}
 		else {
 			pngWriter = std::make_unique<CachedTiledPNGWriter>(bitmapX, bitmapY);

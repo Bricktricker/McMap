@@ -68,7 +68,6 @@ void setPixel(const size_t x, const size_t y, const uint16_t stateID, const floa
 	int sub = static_cast<int>(fsub * (static_cast<float>(currentColor.brightness) / 323.0f + 0.21f));  // The brighter the color, the stronger the impact
 	//uint8_t L[CHANSPERPIXEL], D[CHANSPERPIXEL], c[CHANSPERPIXEL];
 	Color_t L, D;
-	// Now make a local copy of the color that we can modify just for this one block
 	currentColor = modColor(currentColor, sub); //set brightness
 
 	//if (g_UseBiomes && g_WorldFormat == 2) assignBiome(c, biome, color); //dropped biom support
@@ -440,8 +439,8 @@ namespace
 		// this will make grass look like dirt from the side
 		Color_t L = colorMap[blockTree["minecraft:dirt"].get()];
 		Color_t D = L;
-		modColor(L, sub - 15);
-		modColor(D, sub - 25);
+		L = modColor(L, sub - 15);
+		D = modColor(D, sub - 25);
 		// consider noise
 		int noise = 0;
 		if (Global::settings.noise && color.noise) {
@@ -560,8 +559,8 @@ namespace
 		// this will make grass look like dirt from the side
 		Color_t L = colorMap[blockTree["minecraft:dirt"].get()];
 		Color_t D = L;
-		modColor(L, sub - 15);
-		modColor(D, sub - 25);
+		L = modColor(L, sub - 15);
+		D = modColor(D, sub - 25);
 		// consider noise
 		int noise = 0;
 		if (Global::settings.noise && color.noise) {

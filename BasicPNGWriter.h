@@ -7,7 +7,7 @@ class BasicPNGWriter : public PNGWriter
 {
 public:
 	virtual ~BasicPNGWriter();
-	bool open(const size_t width, const size_t height) override;
+	bool reserve(const size_t width, const size_t height) override;
 	virtual bool write(const std::string& path) override;
 	uint8_t* getPixel(const size_t x, const size_t y) override;
 	uint8_t* getPixelClamped(int x, int y);
