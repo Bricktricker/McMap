@@ -265,15 +265,15 @@ int main(int argc, char **argv)
 				Global::mystCraftAge = atoi(NEXTARG);
 			}else if(option == "-scale"){
 				if (!MOREARGS(1) || !isNumeric(POLLARG(1))) {
-					std::cerr << "Error: -scale needs a scale argument. eg. 0.5";
+					std::cerr << "Error: -scale needs a scale argument. eg. 50";
 					return 1;
 				}
-				scaleImage = std::stod(NEXTARG);
+				scaleImage = std::stod(NEXTARG) / 100.0;
 				if (scaleImage > 1.0) {
 					std::cerr << "Warning: you try to upscale the resulting image!\n";
 				}
-				else if (scaleImage < 0.0 || scaleImage == 0.0) {
-					std::cerr << "Error: -scale needs a postitive scale value > 0. eg. 0.5";
+				else if (scaleImage <= 0.0) {
+					std::cerr << "Error: -scale needs a postitive scale value > 0. eg. 50";
 					return 1;
 				}
 			} else {
@@ -292,6 +292,11 @@ int main(int argc, char **argv)
 		memlimit = 1800 * uint64_t(1024 * 1024);
 	}
 #endif
+
+	if (!tilePath.empty() && scaleImage != 1.0) {
+		std::cerr << "You can't scale output image, if using -split argument\n";
+		scaleImage = 1.0;
+	}
 
 	// Load colors
 	if (blockfile.empty()) {
@@ -1048,6 +1053,7 @@ void printHelp(const std::string& binary)
 		<< "  -info NAME    Write information about map to file 'NAME' in JSON format\n"
 		<< "                use -infoonly to not render the world"
 		<< "  -split PATH   create tiled output (128x128 to 4096x4096) in given PATH\n"
+		<< "  -scale VAL    scales the resulting image by VAL. VAL in range 1-100\n"
 		<< "  -marker c x z currently not working\n"
 		<< "\n    WORLDPATH is the path of the desired world.\n\n"
 		////////////////////////////////////////////////////////////////////////////////
