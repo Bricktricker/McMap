@@ -239,8 +239,16 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 			std::cerr << "could not find Status in Chunk\n";
 			return false;
 		}
-		if (status >= "finalized" && status != "liquid_carved") {
-			return load113Chunk(level, chunkX, chunkZ);
+		//Check if we use light
+		if (Global::light.empty()) {
+			if (status != "empty") {
+				return load113Chunk(level, chunkX, chunkZ);
+			}
+		}
+		else {
+			if (status >= "finalized" && status != "liquid_carved") {
+				return load113Chunk(level, chunkX, chunkZ);
+			}
 		}
 		return false;
 	}else{
@@ -390,7 +398,7 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 
 	const int offsetz = (chunkZ - Global::FromChunkZ) * CHUNKSIZE_Z; //Blocks into world, from lowest point
 	const int offsetx = (chunkX - Global::FromChunkX) * CHUNKSIZE_X; //Blocks into world, from lowest point
-	size_t yoffsetsomething = (Global::MapminY + SECTION_Y * 10000) % SECTION_Y;
+	const size_t yoffsetsomething = (Global::MapminY + SECTION_Y * 10000) % SECTION_Y;
 	assert(yoffsetsomething == 0); //I don't now what this variable does. Always 0
 
 	for (const auto sec : sections) { //auto secItr = sections->begin(); secItr != sections->end(); secItr++

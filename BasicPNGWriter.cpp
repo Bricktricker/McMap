@@ -218,15 +218,3 @@ std::array<uint8_t, PNGWriter::CHANSPERPIXEL> BasicPNGWriter::SampleBicubic(cons
 
 	return ret;
 }
-
-/*
-uint8_t BasicPNGWriter::get_subpixel(int x, int y, const size_t channel)
-{
-	if (x < 0) x = 0;
-	if (y < 0) y = 0;
-	if (x >= m_width) x = m_width - 1;
-	if (y >= m_height) y = m_height - 1;
-
-	return m_buffer.at((x*CHANSPERPIXEL + y * (m_width * CHANSPERPIXEL))+channel);
-}
-*/

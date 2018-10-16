@@ -6,7 +6,7 @@ class CachedTiledPNGWriter : public CachedPNGWriter
 {
 public:
 	CachedTiledPNGWriter(const size_t origW, const size_t origH);
-	bool compose(const std::string& path) override;
+	bool compose(const std::string& path, const double scale) override;
 private:
 
 	struct ImageTile {

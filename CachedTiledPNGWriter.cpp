@@ -34,7 +34,7 @@ CachedTiledPNGWriter::CachedTiledPNGWriter(const size_t origW, const size_t orig
 {
 }
 
-bool CachedTiledPNGWriter::compose(const std::string & path)
+bool CachedTiledPNGWriter::compose(const std::string & path, const double scale)
 {
 	// Tiled output, suitable for google maps
 	std::cout << "Composing final png files...\n";

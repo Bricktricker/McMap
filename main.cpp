@@ -646,6 +646,10 @@ int main(int argc, char **argv)
 		} // End blend-underground
 		// If disk caching is used, save part to disk
 		if (splitImage) {
+			if (tilePath.empty() && scaleImage != 1.0) {
+				pngWriter->resize(scaleImage);
+			}
+
 			if (!pngWriter->write("")) {
 				std::cerr << "Error saving partially rendered image.\n";
 				return 1;
@@ -661,8 +665,7 @@ int main(int argc, char **argv)
 	// Saving
 	if (!splitImage) {
 		if (tilePath.empty() && scaleImage != 1.0) {
-			BasicPNGWriter* bpngw = dynamic_cast<BasicPNGWriter*>(pngWriter.get());
-			bpngw->resize(0.5);
+			pngWriter->resize(scaleImage);
 		}
 
 		if (!pngWriter->write(outfile)) {
@@ -670,7 +673,7 @@ int main(int argc, char **argv)
 		}
 	} else {
 		CachedPNGWriter* cpngw = dynamic_cast<CachedPNGWriter*>(pngWriter.get());
-		if (!cpngw->compose(outfile)) {
+		if (!cpngw->compose(outfile, scaleImage)) {
 			std::cerr << "Aborted.\n";
 			return 1;
 		}

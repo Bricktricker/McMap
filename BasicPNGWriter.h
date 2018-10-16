@@ -12,8 +12,8 @@ public:
 	uint8_t* getPixel(const size_t x, const size_t y) override;
 	uint8_t* getPixelClamped(int x, int y);
 
-	void resize(const double scaleFac);
-	void resize(const size_t newWidth, const size_t newHeight);
+	void resize(const double scaleFac) override;
+	void resize(const size_t newWidth, const size_t newHeight) override;
 protected:
 	std::vector<uint8_t> m_buffer;
 	size_t m_width;
