@@ -1,9 +1,11 @@
-#include "colors.h"
-#include "pngreader.h"
-#include "globals.h"
+//C++ Header
 #include <fstream>
 #include <iostream>
 #include <map>
+//My-Header
+#include "colors.h"
+#include "pngreader.h"
+#include "globals.h"
 #include "json.hpp"
 
 using nlohmann::json;
@@ -32,6 +34,11 @@ bool loadBlockTree(const std::string& path)
 	json jData;
 	try {
 		std::ifstream i(path);
+		if (i.fail()) {
+			std::cerr << "Could not open " << path << '\n';
+			return false;
+		}
+
 		i >> jData;
 		i.close();
 	}
@@ -65,7 +72,12 @@ bool loadColorMap(const std::string& path)
 {
 	json jData;
 	try {
-		std::ifstream i(path); //res/compressBlock.json
+		std::ifstream i(path);
+		if (i.fail()) {
+			std::cerr << "Could not open " << path << '\n';
+			return false;
+		}
+
 		i >> jData;
 		i.close();
 	}

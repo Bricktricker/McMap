@@ -652,6 +652,7 @@ int main(int argc, char **argv)
 		// If disk caching is used, save part to disk
 		if (splitImage) {
 			if (tilePath.empty() && scaleImage != 1.0) {
+				deallocateTerrain();
 				pngWriter->resize(scaleImage);
 			}
 
@@ -688,9 +689,6 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-/*
-Funktion geht von vorne nach hinten durch und prüft ob der nach rechts-vorne versetzte block den aktuellen Block verdeckt, dann wird der aktuelle block nicht gezeichnet / übersprungen
-*/
 void optimizeTerrain()
 {
 	std::cout << "Optimizing terrain...\n";

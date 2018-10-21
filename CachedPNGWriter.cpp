@@ -153,8 +153,8 @@ uint8_t* CachedPNGWriter::getPixelClamped(int x, int y)
 {
 	if (x < 0) x = 0;
 	if (y < 0) y = 0;
-	if (x > m_currWidth - 1) x = static_cast<int>(m_currWidth - 1);
-	if (y > m_currHeight - 1) y = static_cast<int>(m_currHeight - 1);
+	if (x > static_cast<int>(m_currWidth - 1)) x = static_cast<int>(m_currWidth - 1);
+	if (y > static_cast<int>(m_currHeight - 1)) y = static_cast<int>(m_currHeight - 1);
 
 	return &m_buffer[x*CHANSPERPIXEL + y * (m_currWidth * CHANSPERPIXEL)];
 }
