@@ -493,9 +493,13 @@ int main(int argc, char **argv)
 				if (sizex <= 0 || sizey <= 0) continue; // Don't know if this is right, might also be that the size calulation is plain wrong
 				
 				CachedPNGWriter* cpngw = dynamic_cast<CachedPNGWriter*>(pngWriter.get());
-				if (!cpngw->addPart(bitmapStartX - cropLeft, bitmapStartY - cropTop, sizex, sizey)) {
+				const auto ret = cpngw->addPart(bitmapStartX - cropLeft, bitmapStartY - cropTop, sizex, sizey);
+				if (ret == -1) {
 					std::cerr << "Error creating partial image to render.\n";
 					return 1;
+				}
+				else if (ret == 1) {
+					continue;
 				}
 			}
 		}

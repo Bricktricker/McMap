@@ -55,7 +55,7 @@ bool CachedPNGWriter::reserve(const size_t width, const size_t height)
 	return true;
 }
 
-bool CachedPNGWriter::addPart(const int startx, const int starty, const int width, const int height)
+int CachedPNGWriter::addPart(const int startx, const int starty, const int width, const int height)
 {
 	offsetX = std::min(startx, 0);
 	offsetY = std::min(starty, 0);
@@ -81,16 +81,16 @@ bool CachedPNGWriter::addPart(const int startx, const int starty, const int widt
 	}
 	if (localWidth < 1 || localHeight < 1) {
 		std::cerr << "ImagePart has Zero/Negative size\n";
-		return false;
+		return 1;
 	}
 
 	const std::string name = "cache/" + std::to_string(localX) + '.' + std::to_string(localY) + '.' + std::to_string(localWidth) + '.' + std::to_string(localHeight) + '.' + std::to_string((int)time(NULL)) + ".png";
 	m_partList.emplace_back(name, localX, localY, localWidth, localHeight);
 
 	if (!this->reserve(localWidth, localHeight))
-		return false;
+		return -1;
 
-	return true;
+	return 0;
 }
 
 bool CachedPNGWriter::write(const std::string& path)
@@ -143,10 +143,13 @@ bool CachedPNGWriter::write(const std::string& path)
 
 uint8_t* CachedPNGWriter::getPixel(const size_t x, const size_t y)
 {
-	if (x >= m_currWidth || y >= m_currHeight)
+	const int newX = static_cast<int>(x) + offsetX;
+	const int newY = static_cast<int>(y) + offsetY;
+	if (newX >= static_cast<int>(m_currWidth) || newY >= static_cast<int>(m_currHeight))
 		throw std::out_of_range("getPixel out of range\n");
 
-	return &m_buffer.at((x+offsetX) * CHANSPERPIXEL + (y + offsetY) * (m_currWidth * CHANSPERPIXEL)); //check index calculation
+	const size_t idx = (x + offsetX) * CHANSPERPIXEL + (y + offsetY) * (m_currWidth * CHANSPERPIXEL);
+	return &m_buffer.at(idx); //check index calculation
 }
 
 uint8_t* CachedPNGWriter::getPixelClamped(int x, int y)
