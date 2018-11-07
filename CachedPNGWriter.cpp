@@ -74,11 +74,12 @@ int CachedPNGWriter::addPart(const int startx, const int starty, const int width
 	}
 
 	if (localX + localWidth > static_cast<int>(m_origW)) {
-		localWidth = width - localX;
+		localWidth = m_origW - localX;
 	}
 	if (localY + localHeight > static_cast<int>(m_origH)) {
-		localHeight = height - localY;
+		localHeight = m_origH - localY;
 	}
+
 	if (localWidth < 1 || localHeight < 1) {
 		std::cerr << "ImagePart has Zero/Negative size\n";
 		return 1;
@@ -262,7 +263,6 @@ bool CachedPNGWriter::compose(const std::string& path, const double scale)
 				png_uint_32 ret = png_get_IHDR(img.pngPtr, img.pngInfo, &width, &height, &bitDepth, &type, &interlace, &comp, &filter);
 				if (ret == 0 || width != (png_uint_32)img.width || height != (png_uint_32)img.height) {
 					std::cerr << "Temp image " << img.filename << " has wrong dimensions; expected " << img.width << 'x' << img.height << ", got " << width << 'x' << height << '\n';
-					__debugbreak();
 					return false;
 				}
 
