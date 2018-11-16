@@ -1,34 +1,66 @@
 import json
 import re
 import math
-import calcColors
+import specialFuncs
 import sys
+import argparse
+import zipfile
 
-blockPath = "blocks.json"
+parser = argparse.ArgumentParser(description='Update colors.json file')
+parser.add_argument('-j', '--jar', help='Path to Minecraft jar file')
+parser.add_argument('-v', '--version', help='Minecraft version')
+parser.add_argument('-l', '--lib', help='Path to the Minecraft library folder, if not installed in default folder (Windows)')
+parser.add_argument('-s', '--special', help='File containing colors for special blocks. Default: specialBlocks.csv')
+args = parser.parse_args()
 
-if len(sys.argv) == 1:
-    print("usage: python loadTextures.py PATH_TO_UNPACKED_MINECRAFT_JAR [PATH_TO_block.json]")
-    sys.exit(0)
-elif len(sys.argv) > 1:
-    path = sys.argv[1]
-    if not path.endswith('/'):
-        path += '/'
-    if not path.endswith("minecraft/"):
-        print("PATH_TO_UNPACKED_MINECRAFT_JAR has to point to the minecraft/ dir")
+if args.jar and args.version:
+    print("--jar and --version are mutually exclusive")
+    sys.exit(1)
+
+jar = args.jar
+
+if jar is None:
+    if args.version is None:
+        print("Please specify either -v or -j")
         sys.exit(1)
-    
-if len(sys.argv) > 2:
-    blockPath = sys.argv[2]
+    jar = specialFuncs.getPathFromVersion(args.version)
 
+if not specialFuncs.genReport(jar, args.lib):
+    print("Error creating report")
+    sys.exit(1)
+
+blockFile = "generated/reports/blocks.json"
 csvPath = "specialBlocks.csv"
-allBlocks = json.loads(open(blockPath).read())
+if not args.special is None:
+    csvPath = args.special
+
+allBlocks = json.loads(open(blockFile).read())
 
 outData = []
+
+def loadFileJSON(file):
+    zf = zipfile.ZipFile(jar, 'r')
+    content = None
+    try:
+        iFile = zf.open("assets/minecraft/{}".format(file))
+        content = json.loads(iFile.read())
+        iFile.close()
+    finally:
+        zf.close()
+    return content
+
+def printPercent(val, maxVal):
+    sys.stdout.write('\r')
+    per = (val/maxVal)*100
+    per = round(per, 2)
+    sys.stdout.write("({}%)  ".format(per))
+    sys.stdout.flush()
+    
 
 def isTinted(data, selection):
     if "elements" not in data:
         if "parent" in data:
-            return isTinted(json.loads(open("{}models/{}.json".format(path, data["parent"])).read()), selection)
+            return isTinted(loadFileJSON("models/{}.json".format(data["parent"])), selection)
         return False
     
     elements = data["elements"]
@@ -41,7 +73,7 @@ def isTinted(data, selection):
                         return True
 
     if "parent" in data:
-        return isTinted(json.loads(open("{}models/{}.json".format(path, data["parent"])).read()), selection)
+        return isTinted(loadFileJSON("models/{}.json".format(data["parent"])), selection)
     else:
         return False
 
@@ -80,10 +112,10 @@ def handleSpecialBlocks(model):
     return None
 
 def getTextureFromModel(model):
-    modelData = json.loads(open("{}models/{}.json".format(path, model)).read())
+    modelData = loadFileJSON("models/{}.json".format(model))
     textures = modelData["textures"]
     texture = ""
-    blockType = 0 #0 = SOLID, 1 = FLAT (Snow/Trapdor/Carpet), 2 = TORCH, 3 = FLOWER/PLANT, 4 = FENCE, 5 = WIRE, 6 = RAIL, 7= GRASS, 8= FIRE, 9 = SLAP bottom, 10 = SLAP top
+    blockType = 0 #0 = SOLID, 1 = FLAT (Snow/Trapdor/Carpet), 2 = TORCH, 3 = FLOWER/PLANT, 4 = FENCE, 5 = WIRE, 6 = RAIL, 7 = GRASS, 8 = FIRE, 9 = SLAP bottom, 10 = SLAP top
     special = handleSpecialBlocks(model)
 
     selection = ""
@@ -163,8 +195,9 @@ def getTextureFromState(textures, propOfState): #returns texture tuple for given
 def getTextures(block):
     blockStatesData = None
     try:
-        blockStatesData = json.loads(open("{}blockstates/{}.json".format(path, block)).read())
-    except:
+        blockStatesData = loadFileJSON("blockstates/{}.json".format(block))
+    except Exception as e:
+        print(e)
         print("Could not load:{}".format(block))
         return {}
 
@@ -198,9 +231,12 @@ def getTextures(block):
         buffer[varName] = modelData
 
     return buffer
-    
 
+
+print("Generating colors for textures. This may take a while...")
+i = -1
 for blockNameL, blockData in allBlocks.items():
+    i += 1
     if blockNameL == "minecraft:air" or blockNameL == "minecraft:void_air" or blockNameL == "minecraft:cave_air":
         continue
 
@@ -221,19 +257,22 @@ for blockNameL, blockData in allBlocks.items():
             break
         state = list(blockData["states"])[0]
         texture = textures[list(textures.keys())[0]]
-        color = calcColors.calc(texture[0], path, texture[2], csvPath) #calc rgba values for texture
+        color = specialFuncs.calc(texture[0], jar, texture[2], csvPath) #calc rgba values for texture
         d = {"texture": texture[0], "from": state["id"], "to": state["id"], "blockType": texture[1], "color": color}
         outData.append(d)
+        printPercent(i, len(allBlocks))
 
     else: #multiple states
         for state in blockData["states"]:
             propOfState = state["properties"]
             texture = getTextureFromState(textures, propOfState)
-            color = calcColors.calc(texture[0], path, texture[2], csvPath) #calc rgba values for texture
+            color = specialFuncs.calc(texture[0], jar, texture[2], csvPath) #calc rgba values for texture
             d = {"texture": texture[0], "from": state["id"], "to": state["id"], "blockType": texture[1], "color": color}
             outData.append(d)
+            printPercent(i, len(allBlocks))
 
-#remove duplicates     
+#remove duplicates
+print("\n")
 pos = 0
 while pos < len(outData)-1:
     if outData[pos]["texture"] == outData[pos+1]["texture"] and outData[pos]["blockType"] == outData[pos+1]["blockType"] and outData[pos]["color"] == outData[pos+1]["color"]:
@@ -248,4 +287,6 @@ while pos < len(outData)-1:
 with open('../colors.json', 'w') as outfile:
     json.dump(outData, outfile)
     print("written {} colors successfully".format(len(outData)))
+
+specialFuncs.cleanReport()
 

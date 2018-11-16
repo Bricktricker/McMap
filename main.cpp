@@ -1053,7 +1053,7 @@ void printHelp(const std::string& binary)
 		<< "  -serverhell   force cropping of blocks at the top (use for nether servers)\n"
 		<< "  -connGrass    uses connected textures to render grass\n"
 		<< "  -info NAME    Write information about map to file 'NAME' in JSON format\n"
-		<< "                use -infoonly to not render the world"
+		<< "                use -infoonly to not render the world\n"
 		<< "  -split PATH   create tiled output (128x128 to 4096x4096) in given PATH\n"
 		<< "  -scale VAL    scales the resulting image by VAL. VAL in range 1-100\n"
 		<< "  -marker c x z currently not working\n"

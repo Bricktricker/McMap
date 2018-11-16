@@ -9,7 +9,7 @@
 
 
 //#define PIXEL(x,y) (gImageBuffer[((x) + gOffsetX) * CHANSPERPIXEL + ((y) + gOffsetY) * gPngLocalLineWidthChans])
-#define CHANSPERPIXEL 4
+#define CHANSPERPIXEL PNGWriter::CHANSPERPIXEL
 namespace
 {
 
@@ -53,7 +53,6 @@ uint64_t calcImageSize(const int mapChunksX, const int mapChunksZ, const size_t 
 
 /*
 fsub: brightnessAdjustment
-biom parameter not used
 */
 void setPixel(const size_t x, const size_t y, const uint16_t stateID, const float fsub, PNGWriter* pngWriter)
 {

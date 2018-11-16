@@ -14,24 +14,6 @@
 #include <limits>
 #include <cstring>
 
-/*
-Callstack:
-getWorldFormat()
-
-scanWorldDirectory()
-	scanWorldDirectoryRegion() -> finds all regon files and point data
-
-calcBitmapOverdraw() -> iterates over all points
-calcTerrainSize() -> calcultes terrain size in bytes?
-
-loadTerrain()
-	loadTerrainRegion() -> iterates over all chunks
-		allocateTerrain()
-		loadChunk() -> iterates over all blocks
-			loadAnvilChunk() -> loads chunk in anvil format
-				assignBlock() -> sets block in array
-*/
-
 #define CHUNKS_PER_BIOME_FILE 32
 #define REGIONSIZE 32
 
@@ -281,7 +263,6 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 		}
 		if (yo < Global::sectionMin || yo > Global::sectionMax) continue;
 		yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - yoffsetsomething; //Blocks into render zone in Y-Axis
-		if (yoffset < 0) yoffset = 0;
 		ok = section->getByteArray("Blocks", blockdata);
 		if(ok) len = blockdata._len;
 		if (!ok || len < CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) {
@@ -850,9 +831,11 @@ bool loadTerrain(const std::string& fromPath, int &loadedChunks)
 
 	}else{
 		printProgress(0, size_t(floorRegion(Global::ToChunkX) + tmpMin));
-		for (int x = floorRegion(Global::FromChunkX); x <= floorRegion(Global::ToChunkX); x += REGIONSIZE) {
-			for (int z = floorRegion(Global::FromChunkZ); z <= floorRegion(Global::ToChunkZ); z += REGIONSIZE) {
-				std::string path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".mca";
+		const int maxX = floorRegion(Global::ToChunkX);
+		for (int x = floorRegion(Global::FromChunkX); x <= maxX; x += REGIONSIZE) {
+			const int maxZ = floorRegion(Global::ToChunkZ);
+			for (int z = floorRegion(Global::FromChunkZ); z <= maxZ; z += REGIONSIZE) {
+				const std::string path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".mca";
 				const bool b = loadRegion(path, false, loadedChunks);
 				result |= b;
 			}

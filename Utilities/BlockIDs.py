@@ -1,14 +1,36 @@
 import json
 import sys
+import subprocess
+import specialFuncs
+import argparse
 
-if len(sys.argv) > 1:
-    p = sys.argv[1]
-else:
-    p = "blocks.json"
+parser = argparse.ArgumentParser(description='Update BlockID.json file')
+parser.add_argument('-j', '--jar', help='Path to Minecraft jar file')
+parser.add_argument('-v', '--version', help='Minecraft version')
+parser.add_argument('-l', '--lib', help='Path to the Minecraft library folder, if not installed in default folder (Windows)')
+args = parser.parse_args()
 
-allBlocks = json.loads(open(p).read())
+if args.jar and args.version:
+    print("--jar and --version are mutually exclusive")
+    sys.exit(1)
+
+jar = args.jar
+
+if jar is None:
+    if args.version is None:
+        print("Please specify either -v or -j")
+        sys.exit(1)
+    jar = specialFuncs.getPathFromVersion(args.version)
+
+if not specialFuncs.genReport(jar, args.lib):
+    print("Error creating report")
+    sys.exit(1)
+
+blockFile = "generated/reports/blocks.json"
+allBlocks = json.loads(open(blockFile).read())
 outData = {}
 
+print("Generating block id table...")
 for blockName, blockVals in allBlocks.items():
     ret = {}
     if "properties" in blockVals:
@@ -66,3 +88,7 @@ for blockName, blockVals in allBlocks.items():
 with open('../BlockIDs.json', 'w') as outfile:
     json.dump(outData, outfile)
     print("written {} blockstates successfully".format(len(outData)))
+
+specialFuncs.cleanReport()
+
+

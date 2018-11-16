@@ -155,7 +155,7 @@ size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_
 		size_t bitsLow = numBits<uint64_t>() - (startBit % numBits<uint64_t>()); //((index + 1) * lengthOfOne) - startBit - 1;
 		size_t bitsUp = lengthOfOne - bitsLow;
 
-		upByte &= ~(~0 << bitsUp);
+		upByte &= ~(~0U << bitsUp);
 		upByte = upByte << bitsLow;
 
 		lowByte = lowByte >> (numBits<uint64_t>() - bitsLow);
@@ -169,7 +169,7 @@ size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_
 		const auto m = startBit & (~0x3F); //((startBit / numBits<uint64_t>()) * numBits<uint64_t>());
 
 		val >>= (startBit - m);
-		val &= ~(~0 << lengthOfOne);
+		val &= ~(~0U << lengthOfOne);
 		return static_cast<size_t>(val);
 	}
 

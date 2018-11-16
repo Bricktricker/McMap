@@ -74,14 +74,13 @@ int CachedPNGWriter::addPart(const int startx, const int starty, const int width
 	}
 
 	if (localX + localWidth > static_cast<int>(m_origW)) {
-		localWidth = m_origW - localX;
+		localWidth = static_cast<int>(m_origW) - localX;
 	}
 	if (localY + localHeight > static_cast<int>(m_origH)) {
-		localHeight = m_origH - localY;
+		localHeight = static_cast<int>(m_origH) - localY;
 	}
 
 	if (localWidth < 1 || localHeight < 1) {
-		std::cerr << "ImagePart has Zero/Negative size\n";
 		return 1;
 	}
 

@@ -42,7 +42,7 @@ bool loadBlockTree(const std::string& path)
 		i >> jData;
 		i.close();
 	}
-	catch (nlohmann::json::parse_error e) {
+	catch (const nlohmann::json::parse_error& e) {
 		std::cerr << e.what() << std::endl;
 		return false;
 	}
@@ -81,7 +81,7 @@ bool loadColorMap(const std::string& path)
 		i >> jData;
 		i.close();
 	}
-	catch (nlohmann::json::parse_error e) {
+	catch (const nlohmann::json::parse_error& e) {
 		std::cerr << e.what() << std::endl;
 		return false;
 	}
