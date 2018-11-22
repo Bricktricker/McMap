@@ -73,7 +73,7 @@ bool CachedTiledPNGWriter::compose(const std::string & path, const double scale)
 		for (auto it = m_partList.begin(); it != m_partList.end(); ++it) {
 			ImagePart& img = *it;
 			// do we have to open this image?
-			if (img.y != y && img.pngPtr == nullptr)
+			if (img.y != static_cast<int>(y) && img.pngPtr == nullptr)
 				continue;
 
 			if (img.pngPtr == nullptr) {

@@ -61,7 +61,7 @@ template<typename keyT,
 
 	public:
 
-		explicit RangeMap(compT& tmpCmp = compT{})
+		explicit RangeMap(compT tmpCmp = compT{})
 			: compare(tmpCmp), root{ nullptr }, treeSize(0)
 		{};
 

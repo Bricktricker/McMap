@@ -18,8 +18,6 @@ namespace
 	//inline void blend(uint8_t* const destination, const uint8_t* const source); //Blend to pixel
 	Color_t modColor(const Color_t& color, const int mod);
 	inline void modColor(uint8_t* const pos, const int mod);
-	inline void addColor(uint8_t * const color, const int16_t * const add);
-	inline void addColorSimple(uint8_t * const color, const int16_t * const add);
 	inline void setColor(uint8_t* const pos, const Color_t& color);
 
 	// Split them up so setPixel won't be one hell of a mess
@@ -346,22 +344,6 @@ namespace
 		pos[0] = clamp(pos[0] + mod);
 		pos[1] = clamp(pos[1] + mod);
 		pos[2] = clamp(pos[2] + mod);
-	}
-
-	inline void addColor(uint8_t* const color, const int16_t * const add)
-	{
-		const float v2 = (float(add[PALPHA]) / 255.0f);
-		const float v1 = (1.0f - (v2 * .2f));
-		color[0] = clamp(int16_t(float(color[0]) * v1 + float(add[0]) * v2));
-		color[1] = clamp(int16_t(float(color[1]) * v1 + float(add[1]) * v2));
-		color[2] = clamp(int16_t(float(color[2]) * v1 + float(add[2]) * v2));
-	}
-
-	inline void addColorSimple(uint8_t * const color, const int16_t * const add)
-	{
-		color[0] = clamp(color[0] + add[0]);
-		color[1] = clamp(color[1] + add[1]);
-		color[2] = clamp(color[2] + add[2]);
 	}
 
 	void setColor(uint8_t* const pos, const Color_t & color)

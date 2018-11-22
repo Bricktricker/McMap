@@ -539,6 +539,9 @@ int main(int argc, char **argv)
 				std::cout << "Section is empty, skipping...\n";
 				continue;
 			}
+			else if (!result) {
+				std::cerr << "Could not load Section\n";
+			}
 		}
 
 		if (Global::settings.hell || Global::settings.serverHell) {

@@ -1,6 +1,7 @@
 //C++ Header
 #include <iostream>
 #include <fstream>
+#include <cmath> //g++ floor
 //Own Header
 #include "png.h"
 #include "PNGWriter.h"
@@ -206,7 +207,7 @@ std::array<uint8_t, PNGWriter::CHANSPERPIXEL> PNGWriter::SampleBicubic(const flo
 	// interpolate bi-cubically!
 	// Clamp the values since the curve can put the value below 0 or above 255
 	std::array<uint8_t, PNGWriter::CHANSPERPIXEL> ret;
-	for (int i = 0; i < PNGWriter::CHANSPERPIXEL; ++i)
+	for (size_t i = 0; i < PNGWriter::CHANSPERPIXEL; ++i)
 	{
 		const float col0 = CubicHermite(p00[i], p10[i], p20[i], p30[i], xfract);
 		const float col1 = CubicHermite(p01[i], p11[i], p21[i], p31[i], xfract);

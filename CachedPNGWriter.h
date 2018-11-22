@@ -20,7 +20,8 @@ public:
 protected:
 
 	struct ImagePart {
-		int x, y, width, height; //width, height can be size_t
+		int x, y;
+		size_t width, height;
 		std::string filename;
 		std::fstream file;
 		png_structp pngPtr;
