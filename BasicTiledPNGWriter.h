@@ -3,9 +3,9 @@
 
 //My-Header
 #include "png.h"
-#include "BasicPNGWriter.h"
+#include "PNGWriter.h"
 
-class BasicTiledPNGWriter : public BasicPNGWriter
+class BasicTiledPNGWriter : public PNGWriter
 {
 public:
 	bool write(const std::string& path) override;

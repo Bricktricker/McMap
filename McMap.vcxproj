@@ -161,13 +161,12 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(SolutionDir)middleware\zlib\lib\x64\;$(SolutionDir)middleware\pnglib\lib\x64\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>zlibstatic.lib;libpng16_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="BasicPNGWriter.h" />
     <ClInclude Include="BasicTiledPNGWriter.h" />
     <ClInclude Include="colors.h" />
     <ClInclude Include="draw_png.h" />
@@ -186,7 +185,6 @@
     <ClInclude Include="worldloader.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="BasicPNGWriter.cpp" />
     <ClCompile Include="BasicTiledPNGWriter.cpp" />
     <ClCompile Include="colors.cpp" />
     <ClCompile Include="draw_png.cpp" />
@@ -198,6 +196,7 @@
     <ClCompile Include="pngreader.cpp" />
     <ClCompile Include="CachedPNGWriter.cpp" />
     <ClCompile Include="CachedTiledPNGWriter.cpp" />
+    <ClCompile Include="PNGWriter.cpp" />
     <ClCompile Include="worldloader.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

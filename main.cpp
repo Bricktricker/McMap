@@ -450,7 +450,7 @@ int main(int argc, char **argv)
 	std::unique_ptr<PNGWriter> pngWriter;
 	if (tilePath.empty()) {
 		if (!splitImage) {
-			pngWriter = std::make_unique<BasicPNGWriter>();
+			pngWriter = std::make_unique<PNGWriter>();
 			pngWriter->reserve(bitmapX, bitmapY);
 		}
 		else {

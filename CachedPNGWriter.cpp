@@ -16,6 +16,7 @@
 #	define Z_BEST_SPEED 6
 #endif
 
+
 namespace {
 //Function to write png data to disc
 void userWriteData(png_structp pngPtr, png_bytep data, png_size_t length)
@@ -35,14 +36,16 @@ void userReadData(png_structp pngPtr, png_bytep data, png_size_t length)
 }
 }
 
+
 CachedPNGWriter::CachedPNGWriter(const size_t origW, const size_t origH)
-	: m_currWidth(0), m_currHeight(0), m_origW(origW), m_origH(origH), offsetX(0), offsetY(0)
+	: m_origW(origW), m_origH(origH), offsetX(0), offsetY(0)
 {
 	if (!Dir::createDir("cache")) {
 		std::cerr << "Could not create cache directory\n";
 	}
 }
 
+/*
 bool CachedPNGWriter::reserve(const size_t width, const size_t height)
 {
 	const size_t pixSize = width * height * CHANSPERPIXEL;
@@ -54,6 +57,7 @@ bool CachedPNGWriter::reserve(const size_t width, const size_t height)
 	m_currHeight = height;
 	return true;
 }
+*/
 
 int CachedPNGWriter::addPart(const int startx, const int starty, const int width, const int height)
 {
@@ -129,26 +133,27 @@ bool CachedPNGWriter::write(const std::string& path)
 	size_t line = 0;
 	for (int y = 0; y < part.height; ++y) {
 		png_write_row(pngStruct, (png_bytep)&m_buffer.at(line));
-		line += m_currWidth * CHANSPERPIXEL;
+		line += m_width * CHANSPERPIXEL;
 	}
 
 	png_write_end(pngStruct, NULL);
 	png_destroy_write_struct(&pngStruct, &pngInfo);
 
-	m_currHeight = 0;
-	m_currWidth = 0;
+	m_height = 0;
+	m_width = 0;
 
 	return true;
 }
 
+/*
 uint8_t* CachedPNGWriter::getPixel(const size_t x, const size_t y)
 {
 	const int newX = static_cast<int>(x) + offsetX;
 	const int newY = static_cast<int>(y) + offsetY;
-	if (newX >= static_cast<int>(m_currWidth) || newY >= static_cast<int>(m_currHeight))
+	if (newX >= static_cast<int>(m_width) || newY >= static_cast<int>(m_height))
 		throw std::out_of_range("getPixel out of range\n");
 
-	const size_t idx = (x + offsetX) * CHANSPERPIXEL + (y + offsetY) * (m_currWidth * CHANSPERPIXEL);
+	const size_t idx = (x + offsetX) * CHANSPERPIXEL + (y + offsetY) * (m_width * CHANSPERPIXEL);
 	return &m_buffer.at(idx); //check index calculation
 }
 
@@ -156,17 +161,18 @@ uint8_t* CachedPNGWriter::getPixelClamped(int x, int y)
 {
 	if (x < 0) x = 0;
 	if (y < 0) y = 0;
-	if (x > static_cast<int>(m_currWidth - 1)) x = static_cast<int>(m_currWidth - 1);
-	if (y > static_cast<int>(m_currHeight - 1)) y = static_cast<int>(m_currHeight - 1);
+	if (x > static_cast<int>(m_width - 1)) x = static_cast<int>(m_width - 1);
+	if (y > static_cast<int>(m_height - 1)) y = static_cast<int>(m_height - 1);
 
-	return &m_buffer[x*CHANSPERPIXEL + y * (m_currWidth * CHANSPERPIXEL)];
+	return &m_buffer[x*CHANSPERPIXEL + y * (m_width * CHANSPERPIXEL)];
 }
+*/
 
 void CachedPNGWriter::discardPart()
 {
 	m_partList.pop_back();
-	m_currHeight = 0;
-	m_currWidth = 0;
+	m_height = 0;
+	m_width = 0;
 }
 
 bool CachedPNGWriter::compose(const std::string& path, const double scale)
@@ -296,10 +302,12 @@ bool CachedPNGWriter::compose(const std::string& path, const double scale)
 	return true;
 }
 
+/*
 void CachedPNGWriter::resize(const double scaleFac)
 {
-	resize(static_cast<size_t>(m_currWidth*scaleFac), static_cast<size_t>(m_currHeight*scaleFac));
+	resize(static_cast<size_t>(m_currWidth * scaleFac), static_cast<size_t>(m_currHeight * scaleFac));
 }
+
 
 inline uint8_t saturate(const float x)
 {
@@ -406,3 +414,4 @@ std::array<uint8_t, PNGWriter::CHANSPERPIXEL> CachedPNGWriter::SampleBicubic(con
 
 	return ret;
 }
+*/
