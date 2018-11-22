@@ -12,16 +12,10 @@ class CachedPNGWriter : public PNGWriter
 public:
 	CachedPNGWriter(const size_t origW, const size_t origH);
 	virtual ~CachedPNGWriter() = default;
-	//bool reserve(const size_t width, const size_t height) override; //creates imageBuffer
 	int addPart(const int startx, const int starty, const int width, const int height);
 	virtual bool write(const std::string& path) override;
-	//uint8_t* getPixel(const size_t x, const size_t y) override;
-	//uint8_t* getPixelClamped(int x, int y);
 	void discardPart();
 	virtual bool compose(const std::string& path, const double scale);
-
-	//void resize(const double scaleFac) override;
-	//void resize(const size_t newWidth, const size_t newHeight) override;
 
 protected:
 
@@ -53,17 +47,11 @@ protected:
 		}
 	};
 
-	//size_t m_currWidth;
-	//size_t m_currHeight;
 	size_t m_origW;
 	size_t m_origH;
 	int offsetX;
 	int offsetY;
 
 	std::vector<ImagePart> m_partList;
-	//std::vector<uint8_t> m_buffer;
-
-private:
-	//std::array<uint8_t, CHANSPERPIXEL> SampleBicubic(const float u, const float v);
 };
 

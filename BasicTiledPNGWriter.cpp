@@ -10,14 +10,13 @@
 #include "filesystem.h"
 
 namespace {
-//Function to write png data to disc
-void userWriteData(png_structp pngPtr, png_bytep data, png_size_t length)
-{
-	//Our std::ostream pointer.
-	png_voidp a = png_get_io_ptr(pngPtr);
-	//Cast the pointer to std::ifstream* and read 'length' bytes into 'data'
-	((std::fstream*)a)->write((char*)data, length);
-}
+	//Function to write png data to disc
+	void userWriteData(png_structp pngPtr, png_bytep data, png_size_t length)
+	{
+		png_voidp a = png_get_io_ptr(pngPtr);
+		//Cast the pointer to std::ifstream* and read 'length' bytes into 'data'
+		((std::fstream*)a)->write((char*)data, length);
+	}
 }
 // Tiled output, suitable for google maps
 bool BasicTiledPNGWriter::write(const std::string& path)

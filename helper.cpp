@@ -139,7 +139,7 @@ T swap_endian(T u)
 	return dest.u;
 }
 
-size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne) {
+size_t getVal(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne) {
 #ifdef _DEBUG
 	const size_t maxObj = (arr.size() * numBits<uint64_t>()) / lengthOfOne;
 	if (maxObj <= index)
@@ -155,7 +155,9 @@ size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_
 		size_t bitsLow = numBits<uint64_t>() - (startBit % numBits<uint64_t>()); //((index + 1) * lengthOfOne) - startBit - 1;
 		size_t bitsUp = lengthOfOne - bitsLow;
 
-		upByte &= ~(~0U << bitsUp);
+		const uint64_t mask = ~(~static_cast<uint64_t>(0) << bitsUp);
+
+		upByte &= mask;
 		upByte = upByte << bitsLow;
 
 		lowByte = lowByte >> (numBits<uint64_t>() - bitsLow);
@@ -169,7 +171,8 @@ size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_
 		const auto m = startBit & (~0x3F); //((startBit / numBits<uint64_t>()) * numBits<uint64_t>());
 
 		val >>= (startBit - m);
-		val &= ~(~0U << lengthOfOne);
+		const uint64_t mask = ~(~static_cast<uint64_t>(0) << lengthOfOne);
+		val &= mask;
 		return static_cast<size_t>(val);
 	}
 

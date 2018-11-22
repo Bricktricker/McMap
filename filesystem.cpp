@@ -3,6 +3,8 @@
 #ifdef MSVCP
 #include <sys/stat.h>  
 #include <stdio.h>
+#include <locale>
+#include <codecvt>
 #else
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -13,9 +15,9 @@
 
 #include <string>
 #include <vector>
-#include <locale>
-#include <codecvt>
 #include <fstream>
+
+#ifdef MSVCP
 
 std::wstring stdStringToWstring(const std::string& str) {
 	const std::ctype<wchar_t>& CType = std::use_facet<std::ctype<wchar_t> >(std::locale());
@@ -31,6 +33,8 @@ std::string wStringToStdString(const std::wstring& str) {
 std::string wStringToStdString(const wchar_t* str) {
 	return std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(str);
 }
+
+#endif
 
 namespace Dir
 {

@@ -103,7 +103,7 @@ T ntoh(T u)
 	return dest.u;
 }
 
-size_t getZahl(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne);
+size_t getVal(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne);
 std::vector<std::string> strSplit(const std::string &s, char delim);
 
 //Fuctions to determinate certain blocks

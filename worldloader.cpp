@@ -55,6 +55,7 @@ T ntoh(void* u, size_t size)
 	return dest.u;
 }
 
+size_t getVal(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne);
 bool loadChunk(const std::vector<uint8_t>& buffer);
 bool loadAnvilChunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ);
 bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ);
@@ -497,7 +498,7 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 					if (Global::sectionMax == yo && y + yoffset >= Global::MapsizeY) break;
 
 					const size_t block1D = x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X;
-					const size_t IDLIstIndex = getZahl(blockStates, block1D, (blockStates.size()*64)/4096);
+					const size_t IDLIstIndex = getVal(blockStates, block1D, (blockStates.size()*64)/4096);
 					const uint16_t block = idList[IDLIstIndex];
 					*targetBlock = block;
 					targetBlock++;
@@ -1023,3 +1024,4 @@ void uncoverNether()
 	}
 	printProgress(10, 10);
 }
+
