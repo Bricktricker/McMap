@@ -85,7 +85,7 @@ std::vector<std::string> strSplit(const std::string &s, char delim) {
 	return elems;
 }
 
-bool inRange(const uint16_t bID, uint16_t lowLim, uint16_t upLim)
+constexpr bool inRange(const uint16_t bID, uint16_t lowLim, uint16_t upLim)
 {
 	return bID >= lowLim && bID <= upLim;
 }

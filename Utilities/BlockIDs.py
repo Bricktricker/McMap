@@ -4,6 +4,7 @@ import subprocess
 import specialFuncs
 import argparse
 
+#Parse arguments
 parser = argparse.ArgumentParser(description='Update BlockID.json file')
 parser.add_argument('-j', '--jar', help='Path to Minecraft jar file')
 parser.add_argument('-v', '--version', help='Minecraft version')
@@ -14,7 +15,7 @@ if args.jar and args.version:
     print("--jar and --version are mutually exclusive")
     sys.exit(1)
 
-jar = args.jar
+jar = args.jar #path to minecraft jar file
 
 if jar is None:
     if args.version is None:
@@ -22,6 +23,7 @@ if jar is None:
         sys.exit(1)
     jar = specialFuncs.getPathFromVersion(args.version)
 
+#generate report for all blocks in minecraft
 if not specialFuncs.genReport(jar, args.lib):
     print("Error creating report")
     sys.exit(1)
@@ -33,17 +35,18 @@ outData = {}
 print("Generating block id table...")
 for blockName, blockVals in allBlocks.items():
     ret = {}
+    #check if block has multiple states
     if "properties" in blockVals:
         properties = blockVals["properties"]
-        if len(properties) > 1:
+        if len(properties) > 1: #check if block has more than one state description (e.g snowy, rotation)
             length = {}
             for prop, values in properties.items():
                 length[prop] = len(values)
-            #get lowest length
+                
+            #find state desc with lowest amount of values to build order
             lowest = 100
             lowestName = ""
             order = []
-            #print(length)
             while len(length) > 0:
                 for k, v in length.items():
                     if v < lowest:
@@ -56,8 +59,10 @@ for blockName, blockVals in allBlocks.items():
 
             ret["order"] = order
         else:
+            #only one state description, take it
             ret["order"] = [list(properties.keys())[0]]
 
+        #build state tree
         blockStates = blockVals["states"]
         outStates = {}
         for state in blockStates:
@@ -74,6 +79,7 @@ for blockName, blockVals in allBlocks.items():
 
         ret["states"] = outStates
     else:
+        #just take only existing state
         bID = blockVals["states"][0]["id"]
 
         if blockName == "minecraft:void_air" or blockName == "minecraft:cave_air":
@@ -84,10 +90,10 @@ for blockName, blockVals in allBlocks.items():
 
     outData[blockName] = ret
 
-
+#write tree to file
 with open('../BlockIDs.json', 'w') as outfile:
     json.dump(outData, outfile)
-    print("written {} blockstates successfully".format(len(outData)))
+    print("written all blockstates successfully")
 
 specialFuncs.cleanReport()
 
