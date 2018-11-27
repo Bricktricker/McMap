@@ -116,7 +116,7 @@ bool CachedPNGWriter::write(const std::string& path)
 	png_write_info(pngStruct, pngInfo);
 
 	size_t line = 0;
-	for (int y = 0; y < part.height; ++y) {
+	for (size_t y = 0; y < part.height; ++y) {
 		png_write_row(pngStruct, (png_bytep)&m_buffer.at(line));
 		line += m_width * CHANSPERPIXEL;
 	}
