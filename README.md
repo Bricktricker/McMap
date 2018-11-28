@@ -23,7 +23,7 @@ This project is a fork of [WRIM/mcmap](https://github.com/WRIM/mcmap) beta versi
 - You can also modify the ```specialBlocks.csv``` file to preset certain colors for special textures or pass a new one with ```-s```
 
 ## Compatibility
-This software is able to render all minecraft saves, which are in the anvil file format (MC >= 1.2.1), but maybe not all blocks will be rendered correctly. I recommend to update your minecraft save to minecraft version 1.13.1 to ensure optimal rendering.
+This software is able to render all minecraft saves, which are in the anvil file format (MC >= 1.2.1), but maybe not all blocks will be rendered correctly. I recommend to update your minecraft save to Minecraft version 1.13 or newer to ensure optimal rendering.
 
 ## Dependencies
  - [zlib](https://zlib.net/)
