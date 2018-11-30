@@ -21,6 +21,7 @@ namespace {
 	static World world;
 }
 
+
 template <typename T, typename std::enable_if_t<std::is_integral<T>::value>* = nullptr>
 T ntoh(void* u, size_t size)
 {
@@ -54,6 +55,7 @@ T ntoh(void* u, size_t size)
 
 	return dest.u;
 }
+
 
 size_t getVal(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne);
 bool loadChunk(const std::vector<uint8_t>& buffer);
@@ -151,7 +153,7 @@ bool scanWorldDirectory(const std::string& fromPath)
 		}
 		// Check for existing chunks in region and update bounds
 		for (int i = 0; i < REGIONSIZE * REGIONSIZE; ++i) {
-			const uint32_t offset = (ntoh<uint32_t>(&buffer[i * 4], 3) >> 8) * 4096;
+			const uint32_t offset = (swap_endian<uint32_t>(buffer[i * 4] + (buffer[(i * 4)+1] << 8) + (buffer[(i * 4)+2] << 16))>>8) * 4096;
 			if (offset == 0) continue;
 
 			const int valX = region.x + i % REGIONSIZE;
@@ -809,7 +811,7 @@ bool loadTerrain(const std::string& fromPath, int &loadedChunks)
 
 		for (int x = floorRegion(Global::FromChunkX); x <= floorRegion(Global::ToChunkX); x += REGIONSIZE) {
 			for (int z = floorRegion(Global::FromChunkZ); z <= floorRegion(Global::ToChunkZ); z += REGIONSIZE) {
-				std::string path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".mca";
+				const std::string path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".mca";
 				
 				results.emplace_back(Global::threadPool->enqueue([&atomicLoadedChunks] (const std::string path) {
 					int load = 0;

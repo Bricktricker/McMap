@@ -45,6 +45,7 @@
 
 // Difference between MSVC++ and gcc/others
 #if defined(_WIN32) && !defined(__GNUC__)
+	#define MSVCP
 #else
 #	include <unistd.h>
 #endif
@@ -75,19 +76,10 @@ constexpr size_t numBits() {
 /*
  Converts big endian values to host-architecture
 */
-template <typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type>
-T ntoh(T u)
+template <typename T> //, typename std::enable_if_t<std::is_integral<T>::value>* = nullptr
+T swap_endian(const T u)
 {
 	static_assert (std::numeric_limits<unsigned char>::digits == 8, "CHAR_BIT != 8");
-
-	{ //Check for big endiness
-		union {
-			uint32_t i;
-			char c[4];
-		} b = { 0x01020304 };
-
-		if (b.c[0] == 1) return u;
-	}
 
 	union
 	{
@@ -102,6 +94,27 @@ T ntoh(T u)
 
 	return dest.u;
 }
+
+//Optimization for Windows
+#ifdef MSVCP
+#include <intrin.h>
+
+template <>
+inline uint64_t swap_endian<uint64_t>(const uint64_t u)
+{
+	static_assert (std::numeric_limits<unsigned char>::digits == 8, "CHAR_BIT != 8");
+	static_assert ('ABCD' == 0x41424344UL, "Endiness not supported");
+	return _byteswap_uint64(u);
+}
+
+template <>
+inline uint32_t swap_endian<uint32_t>(const uint32_t u)
+{
+	static_assert (std::numeric_limits<unsigned char>::digits == 8, "CHAR_BIT != 8");
+	static_assert ('ABCD' == 0x41424344UL, "Endiness not supported");
+	return _byteswap_ulong(u);
+}
+#endif
 
 size_t getVal(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne);
 std::vector<std::string> strSplit(const std::string &s, char delim);

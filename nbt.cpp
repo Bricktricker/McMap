@@ -47,7 +47,7 @@
 
 template<typename T>
 T readBuffer(const std::vector<uint8_t>& data, size_t& pos) {
-	T val = ntoh<T>(*reinterpret_cast<const T*>(&data[pos]));
+	T val = swap_endian<T>(*reinterpret_cast<const T*>(&data[pos]));
 	pos += sizeof(T);
 	return val;
 }

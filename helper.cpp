@@ -120,6 +120,7 @@ bool isTorch(const uint16_t bID)
 	return inRange(bID, 1130, 1134);
 }
 
+/*
 template <typename T, typename std::enable_if_t<std::is_integral<T>::value>* = nullptr>
 T swap_endian(T u)
 {
@@ -138,6 +139,19 @@ T swap_endian(T u)
 
 	return dest.u;
 }
+
+#ifdef MSVCP
+#include <intrin.h>
+
+template <>
+uint64_t swap_endian(uint64_t u)
+{
+	static_assert (std::numeric_limits<unsigned char>::digits == 8, "CHAR_BIT != 8");
+	static_assert ('ABCD' == 0x41424344UL, "Endiness not supported");
+	return _byteswap_uint64(u);
+}
+#endif
+*/
 
 size_t getVal(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne) {
 #ifdef _DEBUG

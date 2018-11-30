@@ -17,9 +17,9 @@ public:
 	virtual void resize(const size_t newWidth, const size_t newHeight);
 
 	// Separate them in case I ever implement 16bit rendering
-	static const size_t CHANSPERPIXEL{ 4 };
-	static const size_t BYTESPERCHAN{ 1 }; //Not used
-	static const size_t BYTESPERPIXEL{ 4 };
+	static constexpr size_t CHANSPERPIXEL{ 4 };
+	static constexpr size_t BYTESPERCHAN{ 1 }; //Not used
+	static constexpr size_t BYTESPERPIXEL{ 4 };
 
 protected:
 	uint8_t* getPixelClamped(int x, int y);
