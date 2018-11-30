@@ -17,27 +17,6 @@ uint8_t clamp(int32_t val)
 	return (uint8_t)val;
 }
 
-std::string base36(int val)
-{
-	if (val < 0) {
-		return std::string("-") + base36(-val);
-	}
-	if (val / 36 == 0) {
-		if (val < 10) {
-			char x = '0' + val;
-			return std::string(&x, 1);
-		}
-		char x = 'a' + (val - 10);
-		return std::string(&x, 1);
-	}
-	return base36(val / 36) + base36(val % 36);
-}
-
-int base10(const std::string& val)
-{
-	return std::stoi(val);
-}
-
 void printProgress(const size_t current, const size_t max)
 {
 	static float lastp = -10;
@@ -84,74 +63,6 @@ std::vector<std::string> strSplit(const std::string &s, char delim) {
 	strSplit<decltype(std::back_inserter(elems))>(s, delim, std::back_inserter(elems));
 	return elems;
 }
-
-constexpr bool inRange(const uint16_t bID, uint16_t lowLim, uint16_t upLim)
-{
-	return bID >= lowLim && bID <= upLim;
-}
-
-bool isWater(const uint16_t bID)
-{
-	return inRange(bID, 34, 49);
-}
-
-bool isLava(const uint16_t bID)
-{
-	return inRange(bID, 50, 65);
-}
-
-bool isGrass(const uint16_t bID)
-{
-	return inRange(bID, 8, 9);
-}
-
-bool isLeave(const uint16_t bID)
-{
-	return inRange(bID, 144, 227);
-}
-
-bool isSnow(const uint16_t bID)
-{
-	return inRange(bID, 3415, 3422) || bID == 3424;
-}
-
-bool isTorch(const uint16_t bID)
-{
-	return inRange(bID, 1130, 1134);
-}
-
-/*
-template <typename T, typename std::enable_if_t<std::is_integral<T>::value>* = nullptr>
-T swap_endian(T u)
-{
-	static_assert (std::numeric_limits<unsigned char>::digits == 8, "CHAR_BIT != 8");
-
-	union
-	{
-		T u;
-		unsigned char u8[sizeof(T)];
-	} source, dest;
-
-	source.u = u;
-
-	for (size_t k = 0; k < sizeof(T); k++)
-		dest.u8[k] = source.u8[sizeof(T) - k - 1];
-
-	return dest.u;
-}
-
-#ifdef MSVCP
-#include <intrin.h>
-
-template <>
-uint64_t swap_endian(uint64_t u)
-{
-	static_assert (std::numeric_limits<unsigned char>::digits == 8, "CHAR_BIT != 8");
-	static_assert ('ABCD' == 0x41424344UL, "Endiness not supported");
-	return _byteswap_uint64(u);
-}
-#endif
-*/
 
 size_t getVal(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne) {
 #ifdef _DEBUG

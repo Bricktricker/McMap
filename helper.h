@@ -32,11 +32,6 @@
 // Heightmap array
 #define HEIGHTAT(x,z) Global::heightMap[(z) + ((x) * Global::MapsizeZ)]
 
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-//#define RIGHTSTRING(x,y) ((x) + strlen(x) - ((y) > strlen(x) ? strlen(x) : (y)))
-#define RIGHTSTRING(x,y) (strlen(x) >= (y) ? (x) + strlen(x) - (y) : (x))
-
 #include <string>
 #include <vector>
 #include <iterator>
@@ -50,14 +45,11 @@
 #	include <unistd.h>
 #endif
 
-std::string base36(int val);
-int base10(const std::string& val);
 uint8_t clamp(int32_t val);
 void printProgress(const size_t current, const size_t max);
 bool isNumeric(const std::string& str);
 bool isAlphaWorld(const std::string& path);
 bool strEndsWith(std::string const &fullString, std::string const &ending);
-
 
 template<typename Out>
 void strSplit(const std::string &s, char delim, Out result) {
@@ -120,12 +112,39 @@ size_t getVal(const std::vector<uint64_t>& arr, const size_t index, const size_t
 std::vector<std::string> strSplit(const std::string &s, char delim);
 
 //Fuctions to determinate certain blocks
-constexpr bool inRange(const uint16_t bID, uint16_t lowLim, uint16_t upLim);
-bool isWater(const uint16_t bID);
-bool isLava(const uint16_t bID);
-bool isGrass(const uint16_t bID);
-bool isLeave(const uint16_t bID);
-bool isSnow(const uint16_t bID);
-bool isTorch(const uint16_t bID);
+inline constexpr bool inRange(const uint16_t bID, uint16_t lowLim, uint16_t upLim)
+{
+	return bID >= lowLim && bID <= upLim;
+}
+
+inline bool isWater(const uint16_t bID)
+{
+	return inRange(bID, 34, 49);
+}
+
+inline bool isLava(const uint16_t bID)
+{
+	return inRange(bID, 50, 65);
+}
+
+inline bool isGrass(const uint16_t bID)
+{
+	return inRange(bID, 8, 9);
+}
+
+inline bool isLeave(const uint16_t bID)
+{
+	return inRange(bID, 144, 227);
+}
+
+inline bool isSnow(const uint16_t bID)
+{
+	return inRange(bID, 3415, 3422) || bID == 3424;
+}
+
+inline bool isTorch(const uint16_t bID)
+{
+	return inRange(bID, 1130, 1134);
+}
 
 #endif

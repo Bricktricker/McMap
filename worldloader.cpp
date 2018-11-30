@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "ThreadPool.h"
 #include "worldloader.h"
 #include "filesystem.h"
@@ -13,6 +14,7 @@
 #include <iomanip>
 #include <limits>
 #include <cstring>
+#include <algorithm>
 
 #define CHUNKS_PER_BIOME_FILE 32
 #define REGIONSIZE 32
@@ -20,42 +22,6 @@
 namespace {
 	static World world;
 }
-
-
-template <typename T, typename std::enable_if_t<std::is_integral<T>::value>* = nullptr>
-T ntoh(void* u, size_t size)
-{
-	static_assert (std::numeric_limits<unsigned char>::digits == 8, "CHAR_BIT != 8");
-	assert(size <= sizeof(T));
-
-	{ //Check for big endiness
-		union {
-			uint32_t i;
-			char c[4];
-		} b = { 0x01020304 };
-
-		if (b.c[0] == 1) {
-			T t{};
-			std::memcpy(&t, u, size);
-			//check, may not working
-			return t;
-		}
-	}
-
-	union
-	{
-		T u;
-		unsigned char u8[sizeof(T)];
-	} source{}, dest{};
-
-	memcpy(&source.u, u, size);
-
-	for (size_t k = 0; k < sizeof(T); k++)
-		dest.u8[k] = source.u8[sizeof(T) - k - 1];
-
-	return dest.u;
-}
-
 
 size_t getVal(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne);
 bool loadChunk(const std::vector<uint8_t>& buffer);
@@ -359,7 +325,7 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 							highsky = clamp(highsky / 3 - 2);
 							lowsky = clamp(lowsky / 3 - 2);
 						}
-						*lightByte++ = ((MAX(highlight, highsky) & 0x0F) << 4) | (MAX(lowlight, lowsky) & 0x0F);
+						*lightByte++ = ((std::max(highlight, highsky) & 0x0F) << 4) | (std::max(lowlight, lowsky) & 0x0F);
 					} else if (Global::settings.nightmode && (y & 1) == 0) {
 						*lightByte++ = ((lightdata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F)
 							| ((lightdata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) << 4);
@@ -521,7 +487,7 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 							highsky = clamp(highsky / 3 - 2);
 							lowsky = clamp(lowsky / 3 - 2);
 						}
-						*lightByte++ = ((MAX(highlight, highsky) & 0x0F) << 4) | (MAX(lowlight, lowsky) & 0x0F);
+						*lightByte++ = ((std::max(highlight, highsky) & 0x0F) << 4) | (std::max(lowlight, lowsky) & 0x0F);
 					}
 					else if (Global::settings.nightmode && (y & 1) == 0) {
 						*lightByte++ = ((lightdata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F)
@@ -868,7 +834,7 @@ bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks
 	// Sort chunks using a map, so we access the file as sequential as possible
 	chunkMap localChunks;
 	for (uint32_t i = 0; i < REGION_HEADER_SIZE; i += 4) {
-		const uint32_t offset = (ntoh<uint32_t>(&buffer[i], 3) >> 8) * 4096;
+		const uint32_t offset = (swap_endian<uint32_t>(buffer[i * 4] + (buffer[(i * 4) + 1] << 8) + (buffer[(i * 4) + 2] << 16)) >> 8) * 4096;
 		if (offset == 0) continue;
 		localChunks[offset] = i;
 	}
@@ -889,7 +855,7 @@ bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks
 			std::cerr << "Error reading chunk size from region file " << file << '\n';
 			continue;
 		}
-		uint32_t len = ntoh<uint32_t>(buffer.data(), 4);
+		uint32_t len = swap_endian<uint32_t>(*buffer.data());
 		uint8_t version = buffer[4];
 		if (len == 0) continue;
 		len--;

@@ -25,7 +25,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-
+#define NOMINMAX
 #include "draw_png.h"
 #include "colors.h"
 #include "worldloader.h"
@@ -43,6 +43,7 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
+#include <algorithm> //std::min, std::max
 #ifndef _WIN32
 #include <sys/stat.h>
 #endif
@@ -471,7 +472,7 @@ int main(int argc, char **argv)
 	// Precompute brightness adjustment factor
 	std::vector<float> brightnessLookup(Global::MapsizeY);
 	for (size_t y = 0; y < brightnessLookup.size(); ++y) {
-		brightnessLookup[y] = ((100.0f / (1.0f + exp(- (1.3f * (float(y) * MIN(Global::MapsizeY, 200) / Global::MapsizeY) / 16.0f) + 6.0f))) - 91);   // thx Donkey Kong
+		brightnessLookup[y] = ((100.0f / (1.0f + exp(- (1.3f * (float(y) * std::min(Global::MapsizeY, 200U) / Global::MapsizeY) / 16.0f) + 6.0f))) - 91);   // thx Donkey Kong
 	}
 
 	// Now here's the loop rendering all the required parts of the image.
@@ -586,14 +587,14 @@ int main(int argc, char **argv)
 						} else {
 							const bool up = y + 1 < Global::MapsizeY;
 							if (x + 1 < Global::MapsizeX && (!up || BLOCKAT(x + 1, y + 1, z) == 0)) {
-								l = MAX(l, GETLIGHTAT(x + 1, y, z));
-								if (x + 2 < Global::MapsizeX) l = MAX(l, GETLIGHTAT(x + 2, y, z) - 1);
+								l = std::max(l, GETLIGHTAT(x + 1, y, z));
+								if (x + 2 < Global::MapsizeX) l = std::max(l, GETLIGHTAT(x + 2, y, z) - 1);
 							}
 							if (z + 1 < Global::MapsizeZ && (!up || BLOCKAT(x, y + 1, z + 1) == 0)) {
-								l = MAX(l, GETLIGHTAT(x, y, z + 1));
-								if (z + 2 < Global::MapsizeZ) l = MAX(l, GETLIGHTAT(x, y, z + 2) - 1);
+								l = std::max(l, GETLIGHTAT(x, y, z + 1));
+								if (z + 2 < Global::MapsizeZ) l = std::max(l, GETLIGHTAT(x, y, z + 2) - 1);
 							}
-							if (up) l = MAX(l, GETLIGHTAT(x, y + 1, z));
+							if (up) l = std::max(l, GETLIGHTAT(x, y + 1, z));
 							//if (y + 2 < Global::MapsizeY) l = MAX(l, GETLIGHTAT(x, y + 2, z) - 1);
 						}
 						if (!Global::settings.skylight) { // Night
@@ -645,7 +646,7 @@ int main(int argc, char **argv)
 				for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
 					const size_t bmpPosX = (Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX) - cropLeft;
 					size_t bmpPosY = Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY) - cropTop;
-					for (unsigned int y = 0; y < MIN(Global::MapsizeY, 64); ++y) {
+					for (unsigned int y = 0; y < std::min(Global::MapsizeY, 64U); ++y) {
 						uint16_t &c = BLOCKAT(x, y, z);
 						if (c != AIR) { // If block is not air (colors[c][3] != 0)
 							blendPixel(bmpPosX, bmpPosY, c, float(y + 30) * .0048f, pngWriter.get());
@@ -825,7 +826,7 @@ void undergroundMode(bool explore)
 		for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) {
 			printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
 			for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
-				for (size_t y = 0; y < MIN(Global::MapsizeY, 64) - 1; y++) {
+				for (size_t y = 0; y < std::min(Global::MapsizeY, 64U) - 1; y++) {
 					if (isTorch(BLOCKAT(x, y, z))) {
 						// Torch
 						BLOCKAT(x, y, z) = AIR;
