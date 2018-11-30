@@ -112,9 +112,15 @@ size_t getVal(const std::vector<uint64_t>& arr, const size_t index, const size_t
 std::vector<std::string> strSplit(const std::string &s, char delim);
 
 //Fuctions to determinate certain blocks
+//TODO: move into BlockIDs.json file
 inline constexpr bool inRange(const uint16_t bID, uint16_t lowLim, uint16_t upLim)
 {
 	return bID >= lowLim && bID <= upLim;
+}
+
+inline bool isGrass(const uint16_t bID)
+{
+	return inRange(bID, 8, 9);
 }
 
 inline bool isWater(const uint16_t bID)
@@ -127,24 +133,20 @@ inline bool isLava(const uint16_t bID)
 	return inRange(bID, 50, 65);
 }
 
-inline bool isGrass(const uint16_t bID)
-{
-	return inRange(bID, 8, 9);
-}
-
 inline bool isLeave(const uint16_t bID)
 {
 	return inRange(bID, 144, 227);
 }
 
-inline bool isSnow(const uint16_t bID)
-{
-	return inRange(bID, 3415, 3422) || bID == 3424;
-}
-
 inline bool isTorch(const uint16_t bID)
 {
-	return inRange(bID, 1130, 1134);
+	return inRange(bID, 1131, 1135);
 }
+
+inline bool isSnow(const uint16_t bID)
+{
+	return inRange(bID, 3416, 3423) || bID == 3425;
+}
+
 
 #endif
