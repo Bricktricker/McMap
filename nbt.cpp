@@ -150,8 +150,8 @@ bool NBT_Tag::parseData(const std::vector<uint8_t>& data, size_t& pos, bool pars
 		new(&dataHolder._compound)(tagmap);
 		//dataHolder._compound = tmp;
 		while (pos < data.size() && data[pos] != 0){
-			NBT_Tag* tag = new NBT_Tag(data, pos); //make_unique doesn't work
-			dataHolder._compound.insert(std::pair<std::string, std::unique_ptr<NBT_Tag>>(tag->getName(), tag));
+			auto tag = std::unique_ptr<NBT_Tag>(new NBT_Tag(data, pos)); //make_unique doesn't work
+			dataHolder._compound.insert(std::pair<std::string, std::unique_ptr<NBT_Tag>>(tag->getName(), std::move(tag)));
 		}
 		if (data[pos] == 0) pos++;
 		break;
