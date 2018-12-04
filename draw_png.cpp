@@ -52,8 +52,15 @@ uint64_t calcImageSize(const int mapChunksX, const int mapChunksZ, const size_t 
 /*
 fsub: brightnessAdjustment
 */
-void setPixel(const size_t x, const size_t y, const uint16_t stateID, const float fsub, PNGWriter* pngWriter)
+void setPixel(const int x, const int y, const uint16_t stateID, const float fsub, PNGWriter* pngWriter)
 {
+	if (x < 0 || x >= pngWriter->getWidth()) {
+		return;
+	}
+	if (y < 0 || y >= pngWriter->getHeight()) {
+		return;
+	}
+
 	// Sets pixels around x,y where A is the anchor
 	// T = given color, D = darker, L = lighter
 	// A T T T

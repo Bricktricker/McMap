@@ -313,7 +313,7 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 					if (Global::settings.underground) {
 						if (isTorch(block)) {
 							if (y + yoffset < static_cast<size_t>(Global::MapminY)) continue;
-							std::cout << "Torch at " << std::to_string(x + offsetx) << ' ' << std::to_string(yoffset + y) << ' ' << std::to_string(z + offsetz) << '\n';
+							//std::cout << "Torch at " << std::to_string(x + offsetx) << ' ' << std::to_string(yoffset + y) << ' ' << std::to_string(z + offsetz) << '\n';
 							lightCave(x + offsetx, static_cast<int>(yoffset + y), z + offsetz);
 						}
 					} else if (Global::settings.skylight && (y & 1) == 0) {
@@ -474,7 +474,7 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 					if (Global::settings.underground) {
 						if (isTorch(block)) {
 							if (y + yoffset < static_cast<size_t>(Global::MapminY)) continue;
-							std::cout << "Torch at " << std::to_string(x + offsetx) << ' ' << std::to_string(yoffset + y) << ' ' << std::to_string(z + offsetz) << '\n';
+							//std::cout << "Torch at " << std::to_string(x + offsetx) << ' ' << std::to_string(yoffset + y) << ' ' << std::to_string(z + offsetz) << '\n';
 							lightCave(x + offsetx, yoffset + static_cast<int>(y), z + offsetz);
 						}
 					}
@@ -855,7 +855,7 @@ bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks
 			std::cerr << "Error reading chunk size from region file " << file << '\n';
 			continue;
 		}
-		uint32_t len = swap_endian<uint32_t>(*buffer.data());
+		uint32_t len = swap_endian<uint32_t>(*reinterpret_cast<uint32_t*>(buffer.data()));
 		uint8_t version = buffer[4];
 		if (len == 0) continue;
 		len--;

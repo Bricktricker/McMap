@@ -9,7 +9,6 @@
 #include "ThreadPool.h"
 
 #define UNDEFINED 0x7FFFFFFF
-#define MAX_MARKERS 200
 
 enum Orientation {
 	North,
@@ -50,9 +49,8 @@ public:
 	static int FromChunkX, FromChunkZ, ToChunkX, ToChunkZ; // Current area of world being rendered
 	static size_t MapsizeZ, MapsizeX, Terrainsize; // size of that area in blocks (no offset)
 	static int MapminY; //minimum height to render from
-	static unsigned int MapsizeY; //maximum height to rendrer (max CHUNKSIZE_Y (256))
-	static int OffsetY; // y pixel offset in the final image for one y step in 3d array (2 or 3)
-	//static WorldFormat worldFormat; //Format of the world Needed???
+	static unsigned int MapsizeY; //maximum height to render (max CHUNKSIZE_Y (256))
+	static int OffsetY; // y pixel offset in the final image for one y step in 3d array (2)
 	static Settings settings; //Used settings
 
 	static std::vector<Marker> markers;

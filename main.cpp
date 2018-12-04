@@ -228,10 +228,6 @@ int main(int argc, char **argv)
 				return 0;
 			} else if (option == "-marker") {
 				std::cerr << "Markers currently do not work!\n";
-				if (Global::markers.size() >= MAX_MARKERS) {
-					std::cerr << "Too many markers, ignoring additional ones\n";
-					continue;
-				}
 				if (!MOREARGS(3) || !isNumeric(POLLARG(2)) || !isNumeric(POLLARG(3))) {
 					std::cerr << "Error: -marker needs a char and two integer arguments, ie: -marker r -15 240\n";
 					return 1;
@@ -536,7 +532,7 @@ int main(int argc, char **argv)
 				cpngw->discardPart();
 				continue;
 			}
-			else if (numberOfChunks == 0) {
+			else if (numberOfChunks == 0 && numSplitsX != 0) {
 				std::cout << "Section is empty, skipping...\n";
 				continue;
 			}
@@ -554,7 +550,7 @@ int main(int argc, char **argv)
 			undergroundMode(false);
 		}
 
-		optimizeTerrain();
+		//optimizeTerrain();
 
 		// Finally, render terrain to file
 		std::cout << "Drawing map...\n";
@@ -647,7 +643,7 @@ int main(int argc, char **argv)
 					const size_t bmpPosX = (Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX) - cropLeft;
 					size_t bmpPosY = Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY) - cropTop;
 					for (unsigned int y = 0; y < std::min(Global::MapsizeY, 64U); ++y) {
-						uint16_t &c = BLOCKAT(x, y, z);
+						const uint16_t &c = BLOCKAT(x, y, z);
 						if (c != AIR) { // If block is not air (colors[c][3] != 0)
 							blendPixel(bmpPosX, bmpPosY, c, float(y + 30) * .0048f, pngWriter.get());
 						}

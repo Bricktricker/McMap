@@ -16,6 +16,9 @@ public:
 	virtual void resize(const double scaleFac);
 	virtual void resize(const size_t newWidth, const size_t newHeight);
 
+	virtual size_t getWidth() const noexcept { return m_width; };
+	virtual size_t getHeight() const noexcept { return m_height; };
+
 	// Separate them in case I ever implement 16bit rendering
 	static constexpr size_t CHANSPERPIXEL{ 4 };
 	static constexpr size_t BYTESPERCHAN{ 1 }; //Not used
