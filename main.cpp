@@ -550,7 +550,7 @@ int main(int argc, char **argv)
 			undergroundMode(false);
 		}
 
-		//optimizeTerrain();
+		optimizeTerrain();
 
 		// Finally, render terrain to file
 		std::cout << "Drawing map...\n";
