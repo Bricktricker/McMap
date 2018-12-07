@@ -119,7 +119,7 @@ bool scanWorldDirectory(const std::string& fromPath)
 		}
 		// Check for existing chunks in region and update bounds
 		for (int i = 0; i < REGIONSIZE * REGIONSIZE; ++i) {
-			const uint32_t offset = (swap_endian<uint32_t>(buffer[i * 4] + (buffer[(i * 4)+1] << 8) + (buffer[(i * 4)+2] << 16))>>8) * 4096;
+			const uint32_t offset = (swap_endian<uint32_t>(buffer[i] + (buffer[i+1] << 8) + (buffer[i+2] << 16))>>8) * 4096;
 			if (offset == 0) continue;
 
 			const int valX = region.x + i % REGIONSIZE;
@@ -834,7 +834,7 @@ bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks
 	// Sort chunks using a map, so we access the file as sequential as possible
 	chunkMap localChunks;
 	for (uint32_t i = 0; i < REGION_HEADER_SIZE; i += 4) {
-		const uint32_t offset = (swap_endian<uint32_t>(buffer[i * 4] + (buffer[(i * 4) + 1] << 8) + (buffer[(i * 4) + 2] << 16)) >> 8) * 4096;
+		const uint32_t offset = (swap_endian<uint32_t>(buffer[i] + (buffer[i + 1] << 8) + (buffer[i + 2] << 16)) >> 8) * 4096;
 		if (offset == 0) continue;
 		localChunks[offset] = i;
 	}
