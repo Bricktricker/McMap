@@ -55,11 +55,9 @@ fsub: brightnessAdjustment
 void setPixel(const int x, const int y, const uint16_t stateID, const float fsub, PNGWriter* pngWriter)
 {
 	if (x < 0 || x >= pngWriter->getWidth()) {
-		std::cerr << "setPixel out of bounds\n";
 		return;
 	}
 	if (y < 0 || y >= pngWriter->getHeight()) {
-		std::cerr << "setPixel out of bounds\n";
 		return;
 	}
 

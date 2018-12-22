@@ -24,11 +24,6 @@ public:
 		stop();
 	}
 
-	size_t size() const noexcept
-	{
-		return mThreads.size();
-	}
-
 	template<class T, typename... Arguments>
 	auto enqueue(T task, Arguments... args) -> std::future<decltype(task(args...))>
 	{

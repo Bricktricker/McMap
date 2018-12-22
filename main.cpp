@@ -76,7 +76,6 @@ namespace
 
 void optimizeTerrain();
 size_t optimizeTerrainMulti(const size_t startX, const size_t startZ);
-void drawMapMulti(const size_t startX, const size_t endX, const int R1, const int R2, const std::vector<float>& brightnessLookup, PNGWriter* pngWriter);
 void undergroundMode(bool explore);
 bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStartY);
 void writeInfoFile(const std::string& file, int xo, int yo, int bitmapx, int bitmapy);
@@ -555,90 +554,68 @@ int main(int argc, char **argv)
 
 		// Finally, render terrain to file
 		std::cout << "Drawing map...\n";
-		if (Global::threadPool) {
-			const size_t sizePerThread = (Global::MapsizeX - CHUNKSIZE_X - CHUNKSIZE_X) / Global::threadPool->size();
-			if (((Global::MapsizeX - CHUNKSIZE_X - CHUNKSIZE_X) % Global::threadPool->size()) == 0) {
-				std::cerr << "size does not fit\n";
-			}
-
-			std::vector<std::future<void>> results;
-			for (size_t i = 0; i < Global::threadPool->size(); ++i) {
-				const size_t startX = (i*sizePerThread) + CHUNKSIZE_X;
-				const size_t stopX = startX + sizePerThread;
-				results.emplace_back(Global::threadPool->enqueue(drawMapMulti, startX, stopX, (splitImage ? -2 : bitmapStartX - cropLeft), (splitImage ? 0 : bitmapStartY - cropTop), brightnessLookup, pngWriter.get()));
-			}
-
-			for (const auto& r : results) {
-				r.wait();
-			}
-
-		}else {
-			for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) { //iterate over all blocks, ignore outer Chunks
-				printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
-				for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
-					const int bmpPosX = int((Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX - cropLeft));
-					int bmpPosY = int(Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY - cropTop)) + 2 - (HEIGHTAT(x, z) & 0xFF) * Global::OffsetY;
-					const unsigned int max = (HEIGHTAT(x, z) & 0xFF00) >> 8;
-					for (unsigned int y = int8_t(HEIGHTAT(x, z)); y < max; ++y) {
-						bmpPosY -= Global::OffsetY;
-						const uint16_t& c = BLOCKAT(x, y, z);
-						if (c == AIR) {
-							continue;
-						}
-
-						//float col = float(y) * .78f - 91;
-						float brightnessAdjustment = brightnessLookup[y];
-						if (Global::settings.blendUnderground) {
-							brightnessAdjustment -= 168;
-						}
-						// we use light if...
-						if (Global::settings.nightmode // nightmode is active, or
-							|| (Global::settings.skylight // skylight is used and
-								&& (!BLOCK_AT_MAPEDGE(x, z))  // block is not edge of map (or if it is, has non-opaque block above)
-								)) {
-							int l = GETLIGHTAT(x, y, z);  // find out how much light hits that block
-							if (l == 0 && y + 1 == Global::MapsizeY) {
-								l = (Global::settings.nightmode ? 3 : 15);   // quickfix: assume maximum strength at highest level
-							}
-							else {
-								const bool up = y + 1 < Global::MapsizeY;
-								if (x + 1 < Global::MapsizeX && (!up || BLOCKAT(x + 1, y + 1, z) == 0)) {
-									l = std::max(l, GETLIGHTAT(x + 1, y, z));
-									if (x + 2 < Global::MapsizeX) l = std::max(l, GETLIGHTAT(x + 2, y, z) - 1);
-								}
-								if (z + 1 < Global::MapsizeZ && (!up || BLOCKAT(x, y + 1, z + 1) == 0)) {
-									l = std::max(l, GETLIGHTAT(x, y, z + 1));
-									if (z + 2 < Global::MapsizeZ) l = std::max(l, GETLIGHTAT(x, y, z + 2) - 1);
-								}
-								if (up) l = std::max(l, GETLIGHTAT(x, y + 1, z));
-								//if (y + 2 < Global::MapsizeY) l = MAX(l, GETLIGHTAT(x, y + 2, z) - 1);
-							}
-							if (!Global::settings.skylight) { // Night
-								brightnessAdjustment -= (100 - l * 8);
-							}
-							else { // Day
-								brightnessAdjustment -= (210 - l * 14);
-							}
-						}
-
-						// Edge detection (this means where terrain goes 'down' and the side of the block is not visible)
-						if (y != 0) {
-							uint16_t &b = BLOCKAT(x - 1, y - 1, z - 1);
-							if ((y + 1 < Global::MapsizeY)  // In bounds?
-								&& BLOCKAT(x, y + 1, z) == AIR  // Only if block above is air
-								&& BLOCKAT(x - 1, y + 1, z - 1) == AIR  // and block above and behind is air
-								&& (b == AIR || b == c)   // block behind (from pov) this one is same type or air
-								&& (BLOCKAT(x - 1, y, z) == AIR || BLOCKAT(x, y, z - 1) == AIR)) {   // block TL/TR from this one is air = edge
-								brightnessAdjustment += 13;
-							}
-						}
-
-						setPixel(bmpPosX, bmpPosY, c, brightnessAdjustment, pngWriter.get());
+		for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) { //iterate over all blocks, ignore outer Chunks
+			printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
+			for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
+				const int bmpPosX = int((Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX - cropLeft));
+				int bmpPosY = int(Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY - cropTop)) + 2 - (HEIGHTAT(x, z) & 0xFF) * Global::OffsetY;
+				const unsigned int max = (HEIGHTAT(x, z) & 0xFF00) >> 8;
+				for (unsigned int y = int8_t(HEIGHTAT(x, z)); y < max; ++y) {
+					bmpPosY -= Global::OffsetY;
+					const uint16_t& c = BLOCKAT(x, y, z);
+					if (c == AIR) {
+						continue;
 					}
+
+					//float col = float(y) * .78f - 91;
+					float brightnessAdjustment = brightnessLookup[y];
+					if (Global::settings.blendUnderground) {
+						brightnessAdjustment -= 168;
+					}
+					// we use light if...
+					if (Global::settings.nightmode // nightmode is active, or
+					      || (Global::settings.skylight // skylight is used and
+					          && (!BLOCK_AT_MAPEDGE(x, z))  // block is not edge of map (or if it is, has non-opaque block above)
+					         )) {
+						int l = GETLIGHTAT(x, y, z);  // find out how much light hits that block
+						if (l == 0 && y + 1 == Global::MapsizeY) {
+							l = (Global::settings.nightmode ? 3 : 15);   // quickfix: assume maximum strength at highest level
+						} else {
+							const bool up = y + 1 < Global::MapsizeY;
+							if (x + 1 < Global::MapsizeX && (!up || BLOCKAT(x + 1, y + 1, z) == 0)) {
+								l = std::max(l, GETLIGHTAT(x + 1, y, z));
+								if (x + 2 < Global::MapsizeX) l = std::max(l, GETLIGHTAT(x + 2, y, z) - 1);
+							}
+							if (z + 1 < Global::MapsizeZ && (!up || BLOCKAT(x, y + 1, z + 1) == 0)) {
+								l = std::max(l, GETLIGHTAT(x, y, z + 1));
+								if (z + 2 < Global::MapsizeZ) l = std::max(l, GETLIGHTAT(x, y, z + 2) - 1);
+							}
+							if (up) l = std::max(l, GETLIGHTAT(x, y + 1, z));
+							//if (y + 2 < Global::MapsizeY) l = MAX(l, GETLIGHTAT(x, y + 2, z) - 1);
+						}
+						if (!Global::settings.skylight) { // Night
+							brightnessAdjustment -= (100 - l * 8);
+						} else { // Day
+							brightnessAdjustment -= (210 - l * 14);
+						}
+					}
+
+					// Edge detection (this means where terrain goes 'down' and the side of the block is not visible)
+					if (y != 0) {
+						uint16_t &b = BLOCKAT(x - 1, y - 1, z - 1);
+						if ((y + 1 < Global::MapsizeY)  // In bounds?
+							&& BLOCKAT(x, y + 1, z) == AIR  // Only if block above is air
+							&& BLOCKAT(x - 1, y + 1, z - 1) == AIR  // and block above and behind is air
+							&& (b == AIR || b == c)   // block behind (from pov) this one is same type or air
+							&& (BLOCKAT(x - 1, y, z) == AIR || BLOCKAT(x, y, z - 1) == AIR)) {   // block TL/TR from this one is air = edge
+							brightnessAdjustment += 13;
+						}
+					}
+
+					setPixel(bmpPosX, bmpPosY, c, brightnessAdjustment, pngWriter.get());
 				}
 			}
 		}
-
 		printProgress(10, 10);
 		// Bitmap creation complete
 		// unless using....
@@ -832,74 +809,6 @@ size_t optimizeTerrainMulti(const size_t startX, const size_t startZ) {
 
 	return removedBlocks;
 
-}
-
-void drawMapMulti(const size_t startX, const size_t endX, const int R1, const int R2, const std::vector<float>& brightnessLookup, PNGWriter* pngWriter)
-{
-	for (size_t x = startX; x < endX; ++x) { //iterate over all blocks, ignore outer Chunks
-		printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
-		for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
-			const int bmpPosX = int((Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + R1);
-			int bmpPosY = int(Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + R2) + 2 - (HEIGHTAT(x, z) & 0xFF) * Global::OffsetY;
-			const unsigned int max = (HEIGHTAT(x, z) & 0xFF00) >> 8;
-			for (unsigned int y = int8_t(HEIGHTAT(x, z)); y < max; ++y) {
-				bmpPosY -= Global::OffsetY;
-				const uint16_t& c = BLOCKAT(x, y, z);
-				if (c == AIR) {
-					continue;
-				}
-
-				//float col = float(y) * .78f - 91;
-				float brightnessAdjustment = brightnessLookup[y];
-				if (Global::settings.blendUnderground) {
-					brightnessAdjustment -= 168;
-				}
-				// we use light if...
-				if (Global::settings.nightmode // nightmode is active, or
-					|| (Global::settings.skylight // skylight is used and
-						&& (!BLOCK_AT_MAPEDGE(x, z))  // block is not edge of map (or if it is, has non-opaque block above)
-						)) {
-					int l = GETLIGHTAT(x, y, z);  // find out how much light hits that block
-					if (l == 0 && y + 1 == Global::MapsizeY) {
-						l = (Global::settings.nightmode ? 3 : 15);   // quickfix: assume maximum strength at highest level
-					}
-					else {
-						const bool up = y + 1 < Global::MapsizeY;
-						if (x + 1 < Global::MapsizeX && (!up || BLOCKAT(x + 1, y + 1, z) == 0)) {
-							l = std::max(l, GETLIGHTAT(x + 1, y, z));
-							if (x + 2 < Global::MapsizeX) l = std::max(l, GETLIGHTAT(x + 2, y, z) - 1);
-						}
-						if (z + 1 < Global::MapsizeZ && (!up || BLOCKAT(x, y + 1, z + 1) == 0)) {
-							l = std::max(l, GETLIGHTAT(x, y, z + 1));
-							if (z + 2 < Global::MapsizeZ) l = std::max(l, GETLIGHTAT(x, y, z + 2) - 1);
-						}
-						if (up) l = std::max(l, GETLIGHTAT(x, y + 1, z));
-						//if (y + 2 < Global::MapsizeY) l = MAX(l, GETLIGHTAT(x, y + 2, z) - 1);
-					}
-					if (!Global::settings.skylight) { // Night
-						brightnessAdjustment -= (100 - l * 8);
-					}
-					else { // Day
-						brightnessAdjustment -= (210 - l * 14);
-					}
-				}
-
-				// Edge detection (this means where terrain goes 'down' and the side of the block is not visible)
-				if (y != 0) {
-					uint16_t &b = BLOCKAT(x - 1, y - 1, z - 1);
-					if ((y + 1 < Global::MapsizeY)  // In bounds?
-						&& BLOCKAT(x, y + 1, z) == AIR  // Only if block above is air
-						&& BLOCKAT(x - 1, y + 1, z - 1) == AIR  // and block above and behind is air
-						&& (b == AIR || b == c)   // block behind (from pov) this one is same type or air
-						&& (BLOCKAT(x - 1, y, z) == AIR || BLOCKAT(x, y, z - 1) == AIR)) {   // block TL/TR from this one is air = edge
-						brightnessAdjustment += 13;
-					}
-				}
-
-				setPixel(bmpPosX, bmpPosY, c, brightnessAdjustment, pngWriter);
-			}
-		}
-	}
 }
 
 void undergroundMode(bool explore)
