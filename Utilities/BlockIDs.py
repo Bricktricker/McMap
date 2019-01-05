@@ -71,6 +71,7 @@ for blockName, blockVals in allBlocks.items():
             for i in range(0, len(ret["order"])):
                 o = ret["order"][i]
                 if i+2 > len(ret["order"]):
+                    assert state["id"] < 2**16
                     current[stateProp[o]] = state["id"]
                 else:
                     if not stateProp[o] in current:
@@ -84,7 +85,9 @@ for blockName, blockVals in allBlocks.items():
 
         if blockName == "minecraft:void_air" or blockName == "minecraft:cave_air":
             bID = 0
-        
+
+        assert bID > 2**16
+                    
         outStates = {"": bID}
         ret["states"] = outStates
 
