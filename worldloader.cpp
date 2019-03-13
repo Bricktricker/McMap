@@ -401,10 +401,18 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 				std::cerr << "State has no name\n";
 				continue;
 			}
+
+			if (blockTree.find(blockName) == blockTree.end()) {
+				std::cerr << blockName << " is missing in your BlockIDs.json file!\n";
+				idList.push_back(0);
+				continue;
+			}
+
 			NBT_Tag* property;
-			StateID_t blockID = 0;;
+			StateID_t blockID = 0;
 			if (state->getCompound("Properties", property)) {
 				//has complex properties
+
 				const auto& tree = blockTree.at(blockName);
 				const auto& order = tree.getOrder();
 				std::vector<std::string> stateValues;
@@ -415,6 +423,7 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 						if (item == "waterlogged") {
 							s = "false";
 						}else {
+							//Leave it in, but never occurred for me
 							std::cerr << blockName << ':' << item << "-state not in tree\n";
 							stateValues.clear();
 							blockID = 0;
@@ -425,7 +434,12 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 				}
 
 				if (!stateValues.empty()) {
-					blockID = tree.get(stateValues);
+					try {
+						blockID = tree.get(stateValues);
+					}
+					catch (std::out_of_range&) {
+						std::cerr << "Loaded blockstates for " << blockName <<" differ from defined blockstates in your BlockIDs.json file\n";
+					}
 				}
 
 			}else{
