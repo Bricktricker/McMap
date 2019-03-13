@@ -5,6 +5,7 @@
 #include <list>
 #include <map>
 #include <vector>
+#include "defines.h"
 #include "globals.h"
 
 WorldFormat getWorldFormat(const std::string& worldPath);

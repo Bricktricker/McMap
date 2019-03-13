@@ -63,6 +63,9 @@
     <ClInclude Include="CachedTiledPNGWriter.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="defines.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="colors.cpp">

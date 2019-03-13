@@ -5,7 +5,7 @@
 
 #include "draw_png.h"
 #include "colors.h"
-#include "globals.h"
+#include "helper.h"
 
 
 //#define PIXEL(x,y) (gImageBuffer[((x) + gOffsetX) * CHANSPERPIXEL + ((y) + gOffsetY) * gPngLocalLineWidthChans])

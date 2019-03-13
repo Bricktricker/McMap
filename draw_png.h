@@ -2,6 +2,7 @@
 #define DRAW_PNG_H_
 
 #include <fstream>
+#include "defines.h"
 #include "PNGWriter.h"
 
 void setPixel(const int x, const int y, const uint16_t stateID, const float fsub, PNGWriter* pngWriter);

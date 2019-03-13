@@ -4,6 +4,8 @@ import subprocess
 import specialFuncs
 import argparse
 
+specialBlocks = {"grass_block": ["minecraft:grass_block"], "water": ["minecraft:water"], "lava": ["minecraft:lava"], "leaves": ["minecraft:oak_leaves", "minecraft:spruce_leaves", "minecraft:birch_leaves", "minecraft:jungle_leaves", "minecraft:acacia_leaves", "minecraft:dark_oak_leaves"], "torch": ["minecraft:torch", "minecraft:wall_torch"], "snow": ["minecraft:snow", "minecraft:snow_block"]}
+
 #Parse arguments
 parser = argparse.ArgumentParser(description='Update BlockID.json file')
 parser.add_argument('-j', '--jar', help='Path to Minecraft jar file')
@@ -30,9 +32,10 @@ if not specialFuncs.genReport(jar, args.lib):
 
 blockFile = "generated/reports/blocks.json"
 allBlocks = json.loads(open(blockFile).read())
-outData = {}
+outData = {"allBlocks": {}, "specialBlocks": {}}
 
 print("Generating block id table...")
+#Get all possible blockstates
 for blockName, blockVals in allBlocks.items():
     ret = {}
     #check if block has multiple states
@@ -86,13 +89,54 @@ for blockName, blockVals in allBlocks.items():
         if blockName == "minecraft:void_air" or blockName == "minecraft:cave_air":
             bID = 0
 
-        assert bID > 2**16
+        assert bID < 2**16
                     
         outStates = {"": bID}
         ret["states"] = outStates
 
-    outData[blockName] = ret
+    outData["allBlocks"][blockName] = ret
 
+#get block Id's for the special blocks
+specialBlocksContainer = {}
+for blockName, blockVals in allBlocks.items():
+    found = False
+    match = ""
+    for blockDesc, assoBlocks in specialBlocks.items():
+        if any(b == blockName for b in assoBlocks):
+            found = True
+            match = blockDesc
+    if not found:
+        continue
+
+    minID = sys.maxsize
+    maxID = 0
+    states = blockVals["states"]
+    for state in states:
+        sID = state["id"]
+        minID = min(minID, sID)
+        maxID = max(maxID, sID)
+
+    if match in specialBlocksContainer:
+        specialBlocksContainer[match].append({"min": minID, "max": maxID})
+    else:
+        specialBlocksContainer[match] = [{"min": minID, "max": maxID}]
+
+#simplify specialBlocksContainer
+for block, values in specialBlocksContainer.items():
+    outData["specialBlocks"][block] = []
+    minID = values[0]["min"]
+    maxID = values[0]["max"]
+    if len(values) > 1:
+        for i in range(1, len(values)):
+            if maxID+1 == values[i]["min"]:
+                maxID = values[i]["max"]
+            else:
+                outData["specialBlocks"][block].append({"min": minID, "max": maxID})
+                minID = values[i]["min"]
+                maxID = values[i]["max"]
+                
+    outData["specialBlocks"][block].append({"min": minID, "max": maxID})
+        
 #write tree to file
 with open('../BlockIDs.json', 'w') as outfile:
     json.dump(outData, outfile)

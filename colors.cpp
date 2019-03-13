@@ -3,9 +3,9 @@
 #include <iostream>
 #include <map>
 //My-Header
-#include "colors.h"
-#include "pngreader.h"
+#include "defines.h"
 #include "globals.h"
+#include "colors.h"
 #include "json.hpp"
 
 using nlohmann::json;
@@ -47,12 +47,14 @@ bool loadBlockTree(const std::string& path)
 		return false;
 	}
 
-	for (auto block = jData.begin(); block != jData.end(); ++block) {
+	const json allBlocks = jData["allBlocks"];
+	for (auto block = allBlocks.begin(); block != allBlocks.end(); ++block) {
 		const std::string name = block.key();
 		Tree<std::string, StateID_t> tree;
-		const json jOrder = (*block)["order"];
-		if (!jOrder.empty()) {
-			tree.setOrder(jOrder);
+		
+		const auto jOrderItr = block->find("order");
+		if (jOrderItr != block->end()) {
+			tree.setOrder(*jOrderItr);
 
 			json jStates = (*block)["states"];
 			std::vector<std::string> vec;
@@ -63,6 +65,43 @@ bool loadBlockTree(const std::string& path)
 		}
 
 		blockTree[name] = tree;
+	}
+
+	//load special block ids
+	const json specialBlocks = jData["specialBlocks"];
+	for (auto block = specialBlocks.begin(); block != specialBlocks.end(); ++block) {
+		SpecialBlocks blockEnum;
+		const std::string blockStr = block.key();
+		if (blockStr == "grass_block") {
+			blockEnum = SpecialBlocks::GRASS_BLOCK;
+		}
+		else if (blockStr == "water") {
+			blockEnum = SpecialBlocks::WATER;
+		}
+		else if (blockStr == "lava") {
+			blockEnum = SpecialBlocks::LAVA;
+		}
+		else if (blockStr == "leaves") {
+			blockEnum = SpecialBlocks::LEAVES;
+		}
+		else if (blockStr == "torch") {
+			blockEnum = SpecialBlocks::TORCH;
+		}
+		else if (blockStr == "snow") {
+			blockEnum = SpecialBlocks::SNOW;
+		}
+		else {
+			std::cerr << "Error loading BlockID.json file";
+			return false;
+		}
+
+		std::vector<std::pair<StateID_t, StateID_t>> ranges;
+		for (auto range : block.value()) {
+			const StateID_t minID = range["min"];
+			const StateID_t maxID = range["max"];
+			ranges.emplace_back(minID, maxID);
+		}
+		Global::specialBlockMap[blockEnum] = ranges;
 	}
 
 	return true;

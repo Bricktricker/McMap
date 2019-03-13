@@ -169,6 +169,7 @@
   <ItemGroup>
     <ClInclude Include="BasicTiledPNGWriter.h" />
     <ClInclude Include="colors.h" />
+    <ClInclude Include="defines.h" />
     <ClInclude Include="draw_png.h" />
     <ClInclude Include="filesystem.h" />
     <ClInclude Include="globals.h" />

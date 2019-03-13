@@ -26,12 +26,14 @@
  *
  */
 #define NOMINMAX
+#include "defines.h"
 #include "draw_png.h"
 #include "colors.h"
 #include "worldloader.h"
 #include "globals.h"
 #include "filesystem.h"
 #include "json.hpp"
+#include "helper.h"
 
 //PNGWriter
 #include "BasicTiledPNGWriter.h"

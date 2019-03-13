@@ -6,8 +6,10 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include <array>
+#include <utility>
+#include "defines.h"
 #include "ThreadPool.h"
-#include "colors.h"
 
 #define UNDEFINED 0x7FFFFFFF
 
@@ -28,6 +30,16 @@ enum WorldFormat {
 	REGION = 1, //old 1
 	ANVIL = 2, //old 2
 	ANVIL13 = 3 //New Anvil format in Minecraft 1.13
+};
+
+enum SpecialBlocks {
+	GRASS_BLOCK,
+	WATER,
+	LAVA,
+	LEAVES,
+	TORCH,
+	SNOW,
+	NUM_SPECIALBLOCKS
 };
 
 struct Settings {
@@ -58,6 +70,8 @@ public:
 	static std::vector<StateID_t> terrain;
 	static std::vector<uint8_t>	light; // 3D arrays holding terrain/lightmap
 	static std::vector<uint16_t> heightMap; // 2D array to store min and max block height per X/Z - it's 2 bytes per index, upper for highest, lower for lowest (don't ask!)
+
+	static std::array<std::vector<std::pair<StateID_t, StateID_t>>, SpecialBlocks::NUM_SPECIALBLOCKS> specialBlockMap; //BlockType -> StateID range -> (min, max)
 
 	static int8_t sectionMin, sectionMax; //No idea
 	static uint8_t mystCraftAge;

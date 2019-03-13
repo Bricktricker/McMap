@@ -37,6 +37,8 @@
 #include <iterator>
 #include <sstream>
 #include <limits> // needed for g++
+#include "defines.h"
+#include "globals.h" //SpecialBlocks
 
 // Difference between MSVC++ and gcc/others
 #if defined(_WIN32) && !defined(__GNUC__)
@@ -112,41 +114,36 @@ size_t getVal(const std::vector<uint64_t>& arr, const size_t index, const size_t
 std::vector<std::string> strSplit(const std::string &s, char delim);
 
 //Fuctions to determinate certain blocks
-//TODO: move into BlockIDs.json file
-inline constexpr bool inRange(const uint16_t bID, uint16_t lowLim, uint16_t upLim)
+bool inRange(const SpecialBlocks blockType, const StateID_t bID);
+
+inline bool isGrass(const StateID_t bID)
 {
-	return bID >= lowLim && bID <= upLim;
+	return inRange(SpecialBlocks::GRASS_BLOCK, bID);
 }
 
-inline bool isGrass(const uint16_t bID)
+inline bool isWater(const StateID_t bID)
 {
-	return inRange(bID, 8, 9);
+	return inRange(SpecialBlocks::WATER, bID);
 }
 
-inline bool isWater(const uint16_t bID)
+inline bool isLava(const StateID_t bID)
 {
-	return inRange(bID, 34, 49);
+	return inRange(SpecialBlocks::LAVA, bID);
 }
 
-inline bool isLava(const uint16_t bID)
+inline bool isLeave(const StateID_t bID)
 {
-	return inRange(bID, 50, 65);
+	return inRange(SpecialBlocks::LEAVES, bID);
 }
 
-inline bool isLeave(const uint16_t bID)
+inline bool isTorch(const StateID_t bID)
 {
-	return inRange(bID, 144, 227);
+	return inRange(SpecialBlocks::TORCH, bID);
 }
 
-inline bool isTorch(const uint16_t bID)
+inline bool isSnow(const StateID_t bID)
 {
-	return inRange(bID, 1131, 1135);
+	return inRange(SpecialBlocks::SNOW, bID);
 }
-
-inline bool isSnow(const uint16_t bID)
-{
-	return inRange(bID, 3416, 3423) || bID == 3425;
-}
-
 
 #endif

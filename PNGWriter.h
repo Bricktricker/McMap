@@ -2,14 +2,7 @@
 #include <string>
 #include <vector>
 #include <array>
-
-using Channel = uint8_t;
-struct Pixel
-{
-	Channel r, g, b, a;
-};
-
-static_assert(sizeof(Channel) * 4 == sizeof(Pixel), "Ups!");
+#include "defines.h"
 
 class PNGWriter
 {
