@@ -1,29 +1,33 @@
 #ifndef _COLORS_
 #define _COLORS_
 
+#include <string>
+
 #include "helper.h"
 #include "RangeMap.h"
 #include "Tree.h"
-#include <string>
+#include "PNGWriter.h"
 
 //Data structures for color
 struct Color_t {
-	uint8_t r, g, b, a, noise, brightness;
-	uint8_t blockType;
+	Channel r, g, b, a;
+	uint8_t noise, brightness, blockType;
 
 	Color_t()
 		: r(0), g(0), b(0), a(0), noise(0), brightness(0), blockType(0)
 	{}
 
-	Color_t(const uint8_t _r, const uint8_t _g, const uint8_t _b, const uint8_t _a, const uint8_t _n, const uint8_t _bright, const uint8_t _bType)
+	Color_t(const Channel _r, const Channel _g, const Channel _b, const Channel _a, const Channel _n, const Channel _bright, const Channel _bType)
 		: r(_r), g(_g), b(_b), a(_a), noise(_n), brightness(_bright), blockType(_bType)
 	{}
 
 };
 
-extern std::map<std::string, Tree<std::string, uint16_t>> blockTree; //Maps blockState to id
-extern RangeMap<uint16_t, Color_t> colorMap; //maps id to color_t
-extern const std::map<uint16_t, uint16_t> metaToState; //maps old blockid:meta to new states
+using StateID_t = uint16_t;
+
+extern std::map<std::string, Tree<std::string, StateID_t>> blockTree; //Maps blockState to id
+extern RangeMap<StateID_t, Color_t> colorMap; //maps id to color_t
+extern const std::map<uint16_t, StateID_t> metaToState; //maps old blockid:meta to new states
 
 bool loadBlockTree(const std::string& path);
 bool loadColorMap(const std::string& path);

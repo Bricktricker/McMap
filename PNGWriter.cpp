@@ -33,7 +33,7 @@ bool PNGWriter::reserve(const size_t width, const size_t height)
 	return true;
 }
 
-bool PNGWriter::write(const std::string & path)
+bool PNGWriter::write(const std::string& path)
 {
 	//open file
 	std::fstream fileHandle(path, std::fstream::out | std::fstream::binary);
@@ -96,7 +96,7 @@ bool PNGWriter::write(const std::string & path)
 	return true;
 }
 
-uint8_t* PNGWriter::getPixel(const size_t x, const size_t y)
+Channel* PNGWriter::getPixel(const size_t x, const size_t y)
 {
 	if (x >= m_width || y >= m_height)
 		throw std::out_of_range("getPixel out of range\n");
@@ -113,7 +113,7 @@ void PNGWriter::resize(const double scaleFac)
 void PNGWriter::resize(const size_t newWidth, const size_t newHeight)
 {
 	std::cout << "Resizing image...\n";
-	std::vector<uint8_t> out(newWidth * newHeight * CHANSPERPIXEL);
+	std::vector<Channel> out(newWidth * newHeight * CHANSPERPIXEL);
 
 	for (size_t y = 0; y < newHeight; ++y) {
 		if (y % 25 == 0) {
@@ -122,7 +122,7 @@ void PNGWriter::resize(const size_t newWidth, const size_t newHeight)
 
 		const float v = float(y) / float(newHeight - 1);
 		for (size_t x = 0; x < newWidth; ++x) {
-			uint8_t* destPixel = &out.at(x*CHANSPERPIXEL + y * (newWidth * CHANSPERPIXEL));
+			Channel* destPixel = &out.at(x*CHANSPERPIXEL + y * (newWidth * CHANSPERPIXEL));
 			const float u = float(x) / float(newWidth - 1);
 			const auto sample = SampleBicubic(u, v);
 
@@ -139,7 +139,7 @@ void PNGWriter::resize(const size_t newWidth, const size_t newHeight)
 	m_height = newHeight;
 }
 
-uint8_t* PNGWriter::getPixelClamped(int x, int y)
+Channel* PNGWriter::getPixelClamped(int x, int y)
 {
 	if (x < 0) x = 0;
 	if (y < 0) y = 0;
@@ -162,11 +162,11 @@ inline float CubicHermite(const float A, const float B, const float C, const flo
 	return a * t*t*t + b * t*t + c * t + d;
 }
 
-inline uint8_t saturate(const float x)
+inline Channel saturate(const float x)
 {
 	return x > 255.0f ? 255
 		: x < 0.0f ? 0
-		: uint8_t(x);
+		: Channel(x);
 }
 
 std::array<uint8_t, PNGWriter::CHANSPERPIXEL> PNGWriter::SampleBicubic(const float u, const float v)
@@ -206,7 +206,7 @@ std::array<uint8_t, PNGWriter::CHANSPERPIXEL> PNGWriter::SampleBicubic(const flo
 
 	// interpolate bi-cubically!
 	// Clamp the values since the curve can put the value below 0 or above 255
-	std::array<uint8_t, PNGWriter::CHANSPERPIXEL> ret;
+	std::array<Channel, PNGWriter::CHANSPERPIXEL> ret;
 	for (size_t i = 0; i < PNGWriter::CHANSPERPIXEL; ++i)
 	{
 		const float col0 = CubicHermite(p00[i], p10[i], p20[i], p30[i], xfract);

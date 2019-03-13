@@ -14,11 +14,11 @@ namespace
 {
 
 	inline void assignBiome(uint8_t* const color, const uint8_t biome, const uint16_t block);
-	inline void blend(uint8_t* const destination, const Color_t& source); //Blend color to pixel
-	//inline void blend(uint8_t* const destination, const uint8_t* const source); //Blend to pixel
+	inline void blend(Channel* const destination, const Color_t& source); //Blend color to pixel
+	//inline void blend(Channel* const destination, const Channel* const source); //Blend to pixel
 	Color_t modColor(const Color_t& color, const int mod);
-	inline void modColor(uint8_t* const pos, const int mod);
-	inline void setColor(uint8_t* const pos, const Color_t& color);
+	inline void modColor(Channel* const pos, const int mod);
+	inline void setColor(Channel* const pos, const Color_t& color);
 
 	// Split them up so setPixel won't be one hell of a mess
 	void setSnow(const size_t x, const size_t y, const Color_t& color, PNGWriter* pngWriter);
@@ -180,7 +180,7 @@ void setPixel(const int x, const int y, const uint16_t stateID, const float fsub
 	// Ordinary blocks are all rendered the same way
 	if (currentColor.a == 255) { // Fully opaque - faster
 		// Top row
-		uint8_t *pos = pngWriter->getPixel(x, y); //&PIXEL(x, y);
+		Channel* pos = pngWriter->getPixel(x, y); //&PIXEL(x, y);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
 			setColor(pos, currentColor);
 			if (noise) {
@@ -217,7 +217,7 @@ void setPixel(const int x, const int y, const uint16_t stateID, const float fsub
 		}
 	} else { // Not opaque, use slower blending code
 		// Top row
-		uint8_t *pos = pngWriter->getPixel(x, y);
+		Channel* pos = pngWriter->getPixel(x, y);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
 			blend(pos, currentColor);
 			if (noise) {
@@ -277,7 +277,7 @@ void blendPixel(const size_t x, const size_t y, const uint16_t stateID, const fl
 		noise = static_cast<int>(static_cast<float>(currentColor.noise * Global::settings.noise) * (static_cast<float>(currentColor.brightness + 10) / 2650.0f));
 	}
 	// Top row
-	uint8_t *pos = pngWriter->getPixel(x, y);
+	Channel* pos = pngWriter->getPixel(x, y);
 	for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
 		blend(pos, currentColor);
 		if (noise) {
@@ -294,14 +294,14 @@ void blendPixel(const size_t x, const size_t y, const uint16_t stateID, const fl
 	}
 }
 
-void blend(uint8_t* const destination, const uint8_t* const source)
+void blend(Channel* const destination, const Channel* const source)
 {
 #define PALPHA 3
 	if (destination[PALPHA] == 0 || source[PALPHA] == 255) { //compare alpha
 		std::memcpy(destination, source, PNGWriter::BYTESPERPIXEL);
 		return;
 	}
-#define BLEND(ca,aa,cb) uint8_t(((size_t(ca) * size_t(aa)) + (size_t(255 - aa) * size_t(cb))) / 255)
+#define BLEND(ca,aa,cb) Channel(((size_t(ca) * size_t(aa)) + (size_t(255 - aa) * size_t(cb))) / 255)
 	destination[0] = BLEND(source[0], source[PALPHA], destination[0]);
 	destination[1] = BLEND(source[1], source[PALPHA], destination[1]);
 	destination[2] = BLEND(source[2], source[PALPHA], destination[2]);
@@ -321,7 +321,7 @@ namespace
 		//dropped biom support
 	}
 
-	inline void blend(uint8_t* const destination, const Color_t& source)
+	inline void blend(Channel* const destination, const Color_t& source)
 	{
 		if (destination[PALPHA] == 0 || source.a == 255) { //compare alpha
 			destination[0] = source.r;
@@ -330,7 +330,7 @@ namespace
 			destination[3] = source.a;
 			return;
 		}
-#define BLEND(ca,aa,cb) uint8_t(((size_t(ca) * size_t(aa)) + (size_t(255 - aa) * size_t(cb))) / 255)
+#define BLEND(ca,aa,cb) Channel(((size_t(ca) * size_t(aa)) + (size_t(255 - aa) * size_t(cb))) / 255)
 		destination[0] = BLEND(source.r, source.a, destination[0]);
 		destination[1] = BLEND(source.g, source.a, destination[1]);
 		destination[2] = BLEND(source.b, source.a, destination[2]);
@@ -346,14 +346,14 @@ namespace
 		return retCol;
 	}
 
-	void modColor(uint8_t* const pos, const int mod)
+	void modColor(Channel* const pos, const int mod)
 	{
 		pos[0] = clamp(pos[0] + mod);
 		pos[1] = clamp(pos[1] + mod);
 		pos[2] = clamp(pos[2] + mod);
 	}
 
-	void setColor(uint8_t* const pos, const Color_t & color)
+	void setColor(Channel* const pos, const Color_t & color)
 	{
 		pos[0] = color.r;
 		pos[1] = color.g;
@@ -365,7 +365,7 @@ namespace
 	void setSnow(const size_t x, const size_t y, const Color_t& color, PNGWriter* pngWriter)
 	{
 		// Top row (second row)
-		uint8_t* pos = pngWriter->getPixel(x,y+1);
+		Channel* pos = pngWriter->getPixel(x,y+1);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
 			pos[0] = color.r;
 			pos[1] = color.g;
@@ -377,7 +377,7 @@ namespace
 	void setTorch(const size_t x, const size_t y, const Color_t& color, PNGWriter* pngWriter)
 	{
 		// Maybe the orientation should be considered when drawing, but it probably isn't worth the efford
-		uint8_t *pos = pngWriter->getPixel(x+2,y+1);
+		Channel* pos = pngWriter->getPixel(x+2,y+1);
 		pos[0] = color.r;
 		pos[1] = color.g;
 		pos[2] = color.b;
@@ -392,7 +392,7 @@ namespace
 
 	void setFlower(const size_t x, const size_t y, const Color_t& color, PNGWriter* pngWriter)
 	{
-		uint8_t *pos = pngWriter->getPixel(x, y + 1);
+		Channel* pos = pngWriter->getPixel(x, y + 1);
 		setColor(pos + (CHANSPERPIXEL), color);
 		setColor(pos + (CHANSPERPIXEL*3), color);
 
@@ -407,7 +407,7 @@ namespace
 	{
 		// This basically just leaves out a few pixels
 		// Top row
-		uint8_t *pos = pngWriter->getPixel(x, y);
+		Channel* pos = pngWriter->getPixel(x, y);
 		blend(pos, light);
 		blend(pos + CHANSPERPIXEL*2, dark);
 		// Second and third row
@@ -436,7 +436,7 @@ namespace
 			noise = static_cast<int>(static_cast<float>(Global::settings.noise * color.noise) * (static_cast<float>(color.brightness + 10) / 2650.0f));
 		}
 		// Top row
-		uint8_t *pos = pngWriter->getPixel(x, y);
+		Channel* pos = pngWriter->getPixel(x, y);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
 			setColor(pos, color);
 			if (noise) {
@@ -468,7 +468,7 @@ namespace
 	void setFence(const size_t x, const size_t y, const Color_t& color, PNGWriter* pngWriter)
 	{
 		// First row
-		uint8_t *pos = pngWriter->getPixel(x, y);
+		Channel* pos = pngWriter->getPixel(x, y);
 		blend(pos+CHANSPERPIXEL, color);
 		blend(pos+CHANSPERPIXEL*2, color);
 		// Second row
@@ -482,7 +482,7 @@ namespace
 
 	void setStep(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark, PNGWriter* pngWriter)
 	{
-		uint8_t *pos = pngWriter->getPixel(x, y+1);
+		Channel* pos = pngWriter->getPixel(x, y+1);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
 			setColor(pos, color);
 		}
@@ -494,7 +494,7 @@ namespace
 
 	void setUpStep(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark, PNGWriter* pngWriter)
 	{
-		uint8_t *pos = pngWriter->getPixel(x, y);
+		Channel* pos = pngWriter->getPixel(x, y);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
 			setColor(pos, color);
 		}
@@ -506,7 +506,7 @@ namespace
 
 	void setRedwire(const size_t x, const size_t y, const Color_t& color, PNGWriter* pngWriter)
 	{
-		uint8_t *pos = pngWriter->getPixel(x+1, y+2);
+		Channel* pos = pngWriter->getPixel(x+1, y+2);
 		blend(pos, color);
 		blend(pos+CHANSPERPIXEL, color);
 	}
@@ -516,7 +516,7 @@ namespace
 	void setSnowBA(const size_t x, const size_t y, const Color_t& color, PNGWriter* pngWriter)
 	{
 		// Top row (second row)
-		uint8_t *pos = pngWriter->getPixel(x, y+1);
+		Channel* pos = pngWriter->getPixel(x, y+1);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
 			blend(pos, color);
 		}
@@ -525,7 +525,7 @@ namespace
 	void setTorchBA(const size_t x, const size_t y, const Color_t& color, PNGWriter* pngWriter)
 	{
 		// Maybe the orientation should be considered when drawing, but it probably isn't worth the effort
-		uint8_t *pos = pngWriter->getPixel(x+2, y+1);
+		Channel* pos = pngWriter->getPixel(x+2, y+1);
 		blend(pos, color);
 		pos = pngWriter->getPixel(x+2, y+2);
 		blend(pos, color);
@@ -533,7 +533,7 @@ namespace
 
 	void setFlowerBA(const size_t x, const size_t y, const Color_t& color, PNGWriter* pngWriter)
 	{
-		uint8_t *pos = pngWriter->getPixel(x, y+1);
+		Channel* pos = pngWriter->getPixel(x, y+1);
 		blend(pos+CHANSPERPIXEL, color);
 		blend(pos+CHANSPERPIXEL*3, color);
 		pos = pngWriter->getPixel(x+2, y+2);
@@ -556,7 +556,7 @@ namespace
 			noise = static_cast<int>(static_cast<float>(Global::settings.noise * color.noise) * (static_cast<float>(color.brightness + 10) / 2650.0f));
 		}
 		// Top row
-		uint8_t *pos = pngWriter->getPixel(x, y);
+		Channel* pos = pngWriter->getPixel(x, y);
 		for (size_t i = 0; i < 4; ++i, pos += CHANSPERPIXEL) {
 			blend(pos, color);
 			if (noise) {
@@ -585,7 +585,7 @@ namespace
 
 	void setStepBA(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark, PNGWriter* pngWriter)
 	{
-		uint8_t *pos = pngWriter->getPixel(x, y+1);
+		Channel* pos = pngWriter->getPixel(x, y+1);
 		for (size_t i = 0; i < 3; ++i, pos += CHANSPERPIXEL) {
 			blend(pos, color);
 		}
@@ -597,7 +597,7 @@ namespace
 
 	void setUpStepBA(const size_t x, const size_t y, const Color_t& color, const Color_t& light, const Color_t& dark, PNGWriter* pngWriter)
 	{
-		uint8_t *pos = pngWriter->getPixel(x, y);
+		Channel* pos = pngWriter->getPixel(x, y);
 		for (size_t i = 0; i < 3; ++i, pos += CHANSPERPIXEL) {
 			blend(pos, color);
 		}

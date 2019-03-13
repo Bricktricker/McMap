@@ -3,6 +3,14 @@
 #include <vector>
 #include <array>
 
+using Channel = uint8_t;
+struct Pixel
+{
+	Channel r, g, b, a;
+};
+
+static_assert(sizeof(Channel) * 4 == sizeof(Pixel), "Ups!");
+
 class PNGWriter
 {
 public:
@@ -10,7 +18,7 @@ public:
 
 	virtual bool reserve(const size_t width, const size_t height);
 	virtual bool write(const std::string& path);
-	virtual uint8_t* getPixel(const size_t x, const size_t y);
+	virtual Channel* getPixel(const size_t x, const size_t y);
 	virtual ~PNGWriter() = default;
 
 	virtual void resize(const double scaleFac);
@@ -25,10 +33,10 @@ public:
 	static constexpr size_t BYTESPERPIXEL{ 4 };
 
 protected:
-	uint8_t* getPixelClamped(int x, int y);
-	std::array<uint8_t, CHANSPERPIXEL> SampleBicubic(const float u, const float v);
+	Channel* getPixelClamped(int x, int y);
+	std::array<Channel, CHANSPERPIXEL> SampleBicubic(const float u, const float v);
 
-	std::vector<uint8_t> m_buffer;
+	std::vector<Channel> m_buffer; //Change to Pixel
 	size_t m_width;
 	size_t m_height;
 };

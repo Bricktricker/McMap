@@ -87,7 +87,7 @@ bool scanWorldDirectory(const std::string& fromPath)
 						world.regions.push_back(Region(full, valX, valZ));
 					}
 					else {
-						std::cerr << std::string("Ignoring bad region at ") << valX << ' ' + valZ << '\n';
+						std::cerr << "Ignoring bad region at " << valX << ' ' + valZ << '\n';
 					}
 				}
 			}
@@ -185,7 +185,7 @@ bool loadChunk(const std::vector<uint8_t>& buffer) //uint8_t* buffer, const size
 	}
 
 	if (dataVersion > 1343) {
-		std::string status;
+		std::string status; //can be: empty, base, carved, liquid_carved, decorated, lighted, mobs_spawned, finalized, fullchunk, postprocessed
 		if (!level->getString("Status", status)) {
 			std::cerr << "could not find Status in Chunk\n";
 			return false;
@@ -263,7 +263,7 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 		// Copy data
 		for (int x = 0; x < CHUNKSIZE_X; ++x) {
 			for (int z = 0; z < CHUNKSIZE_Z; ++z) {
-				uint16_t* targetBlock = nullptr;
+				StateID_t* targetBlock = nullptr;
 				uint8_t *lightByte = nullptr;
 				if (Global::settings.orientation == East) {
 					targetBlock = &BLOCKEAST(x + offsetx, yoffset, z + offsetz); //BLOCKEAST
@@ -301,13 +301,16 @@ bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t c
 					const uint16_t blockWithMeta = block + (col << 12);
 
 					auto stateItr = metaToState.find(blockWithMeta);
+					StateID_t blockStateId;
 					if (stateItr != metaToState.end()) {
-						block = stateItr->second;
+						blockStateId = stateItr->second;
+						*targetBlock = blockStateId;
+						targetBlock++;
 					}else{
-						block = metaToState.at(block);
+						blockStateId = metaToState.at(block);
+						*targetBlock = blockStateId;
+						targetBlock++;
 					}
-					*targetBlock = block;
-					targetBlock++;
 
 					// Light
 					if (Global::settings.underground) {
@@ -391,7 +394,7 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 			std::cerr << "No Palette in sub-Chunk\n";
 			continue;
 		}
-		std::vector<uint16_t> idList;
+		std::vector<StateID_t> idList;
 		for (const auto state : palette) {
 			std::string blockName;
 			if (!state->getString("Name", blockName)) {
@@ -399,7 +402,7 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 				continue;
 			}
 			NBT_Tag* property;
-			uint16_t blockID;
+			StateID_t blockID = 0;;
 			if (state->getCompound("Properties", property)) {
 				//has complex properties
 				const auto& tree = blockTree.at(blockName);
@@ -467,7 +470,7 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 
 					const size_t block1D = x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X;
 					const size_t IDLIstIndex = getVal(blockStates, block1D, (blockStates.size()*64)/4096);
-					const uint16_t block = idList[IDLIstIndex];
+					const StateID_t block = idList[IDLIstIndex];
 					*targetBlock = block;
 					targetBlock++;
 					// Light
@@ -504,7 +507,7 @@ bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chun
 
 uint64_t calcTerrainSize(const int chunksX, const int chunksZ)
 {
-	uint64_t size = sizeof(uint16_t) * uint64_t(chunksX+2) * CHUNKSIZE_X * uint64_t(chunksZ+2) * CHUNKSIZE_Z * uint64_t(Global::MapsizeY);
+	uint64_t size = sizeof(StateID_t) * uint64_t(chunksX+2) * CHUNKSIZE_X * uint64_t(chunksZ+2) * CHUNKSIZE_Z * uint64_t(Global::MapsizeY);
 
 	if (Global::settings.nightmode || Global::settings.underground || Global::settings.blendUnderground || Global::settings.skylight) {
 			size += size / 4;
@@ -626,15 +629,15 @@ void allocateTerrain()
 	const size_t heightMapSize = Global::MapsizeX * Global::MapsizeZ;
 	Global::Terrainsize = Global::MapsizeX * Global::MapsizeY * Global::MapsizeZ;
 
-	if (Global::heightMap.size() < heightMapSize || Global::heightMap.size() * 0.9f > heightMapSize) {
+	if (Global::heightMap.size() < heightMapSize) {
 		Global::heightMap.clear();
 		Global::heightMap.shrink_to_fit();
 		Global::heightMap.resize(heightMapSize);
 	}
 	std::fill_n(Global::heightMap.begin(), heightMapSize, 0xff00);
 
-	std::cout << "Terrain takes up " << std::setprecision(5) << float(Global::Terrainsize * sizeof(uint16_t) / float(1024 * 1024)) << "MiB";
-	if (Global::terrain.size() < Global::Terrainsize || Global::terrain.size() * 0.9f > Global::Terrainsize) {
+	std::cout << "Terrain takes up " << std::setprecision(5) << float(Global::Terrainsize * sizeof(StateID_t) / float(1024 * 1024)) << "MiB";
+	if (Global::terrain.size() < Global::Terrainsize) {
 		Global::terrain.clear();
 		Global::terrain.shrink_to_fit();
 		Global::terrain.resize(Global::Terrainsize);
