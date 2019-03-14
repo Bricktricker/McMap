@@ -7,10 +7,6 @@
 #include "Tree.h"
 #include "defines.h"
 
-extern std::map<std::string, Tree<std::string, StateID_t>> blockTree; //Maps blockState to id
-extern RangeMap<StateID_t, Color_t> colorMap; //maps id to color_t
-extern const std::map<uint16_t, StateID_t> metaToState; //maps old blockid:meta to new states
-
 bool loadBlockTree(const std::string& path);
 bool loadColorMap(const std::string& path);
 

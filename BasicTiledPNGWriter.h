@@ -5,21 +5,22 @@
 #include "png.h"
 #include "PNGWriter.h"
 
-class BasicTiledPNGWriter : public PNGWriter
-{
-public:
-	bool write(const std::string& path) override;
-private:
+namespace image {
+	class BasicTiledPNGWriter : public PNGWriter
+	{
+	public:
+		bool write(const std::string& path) override;
+	private:
 
-	struct ImageTile {
-		std::fstream fileHandle;
-		png_structp pngPtr;
-		png_infop pngInfo;
+		struct ImageTile {
+			std::fstream fileHandle;
+			png_structp pngPtr;
+			png_infop pngInfo;
 
-		ImageTile()
-			: pngPtr(nullptr), pngInfo(nullptr) {}
+			ImageTile()
+				: pngPtr(nullptr), pngInfo(nullptr) {}
+
+		};
 
 	};
-
-};
-
+}

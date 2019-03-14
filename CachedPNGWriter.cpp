@@ -35,231 +35,228 @@ namespace {
 	}
 }
 
-
-CachedPNGWriter::CachedPNGWriter(const size_t origW, const size_t origH)
-	: m_origW(origW), m_origH(origH), offsetX(0), offsetY(0)
-{
-	if (!Dir::createDir("cache")) {
-		std::cerr << "Could not create cache directory\n";
-	}
-}
-
-int CachedPNGWriter::addPart(const int startx, const int starty, const int width, const int height)
-{
-	offsetX = std::min(startx, 0);
-	offsetY = std::min(starty, 0);
-	int localX = startx;
-	int localY = starty;
-	int localWidth = width;
-	int localHeight = height;
-
-	if (localX < 0) {
-		localWidth += localX;
-		localX = 0;
-	}
-	if (localY < 0) {
-		localHeight += localY;
-		localY = 0;
-	}
-
-	if (localX + localWidth > static_cast<int>(m_origW)) {
-		localWidth = static_cast<int>(m_origW) - localX;
-	}
-	if (localY + localHeight > static_cast<int>(m_origH)) {
-		localHeight = static_cast<int>(m_origH) - localY;
-	}
-
-	if (localWidth < 1 || localHeight < 1) {
-		return 1;
-	}
-
-	const std::string name = "cache/" + std::to_string(localX) + '.' + std::to_string(localY) + '.' + std::to_string(localWidth) + '.' + std::to_string(localHeight) + '.' + std::to_string((int)time(NULL)) + ".png";
-	m_partList.emplace_back(name, localX, localY, localWidth, localHeight);
-
-	if (!this->reserve(localWidth, localHeight))
-		return -1;
-
-	return 0;
-}
-
-bool CachedPNGWriter::write(const std::string& path)
-{
-	const auto& part = m_partList.back();
-	std::fstream fileHandle(part.filename, std::ios::out | std::ios::binary);
-	if (fileHandle.fail()) {
-		std::cerr << "Could not create temporary image at " << part.filename << "; check permissions in current dir.\n";
-		return false;
-	}
-
-	png_structp pngStruct = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-	if (pngStruct == nullptr) {
-		return false;
-	}
-
-	png_infop pngInfo = png_create_info_struct(pngStruct);
-
-	if (pngInfo == NULL) {
-		png_destroy_write_struct(&pngStruct, NULL);
-		return false;
-	}
-
-	if (setjmp(png_jmpbuf(pngStruct))) { // libpng will issue a longjmp on error, so code flow will end up
-		png_destroy_write_struct(&pngStruct, &pngInfo); // here if something goes wrong in the code below
-		return false;
-	}
-
-	png_set_write_fn(pngStruct, (png_voidp)&fileHandle, userWriteData, NULL);
-	png_set_compression_level(pngStruct, Z_BEST_SPEED);
-	png_set_IHDR(pngStruct, pngInfo, (uint32_t)part.width, (uint32_t)part.height,
-		8, PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE,
-		PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
-	png_write_info(pngStruct, pngInfo);
-
-	size_t line = 0;
-	for (size_t y = 0; y < part.height; ++y) {
-		png_write_row(pngStruct, (png_bytep)&m_buffer.at(line));
-		line += m_width * CHANSPERPIXEL;
-	}
-
-	png_write_end(pngStruct, NULL);
-	png_destroy_write_struct(&pngStruct, &pngInfo);
-
-	m_height = 0;
-	m_width = 0;
-
-	return true;
-}
-
-void CachedPNGWriter::discardPart()
-{
-	m_partList.pop_back();
-	m_height = 0;
-	m_width = 0;
-}
-
-bool CachedPNGWriter::compose(const std::string& path, const double scale)
-{
-	std::cout << "Composing final png file...\n";
-
-	m_origH = static_cast<size_t>(m_origH * scale);
-	m_origW = static_cast<size_t>(m_origW * scale);
-
-	std::fstream outHandle(path, std::ios::out | std::ios::binary);
-	if (outHandle.fail()) {
-		std::cerr << "Error opening '" << path << "' for writing.\n";
-		return false;
-	}
-
-	png_structp pngStruct = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-	if (pngStruct == nullptr) {
-		return false;
-	}
-
-	png_infop pngInfo = png_create_info_struct(pngStruct);
-	if (pngInfo == nullptr) {
-		png_destroy_write_struct(&pngStruct, NULL);
-		return false;
-	}
-
-	if (setjmp(png_jmpbuf(pngStruct))) { // libpng will issue a longjmp on error, so code flow will end up
-		png_destroy_write_struct(&pngStruct, &pngInfo); // here if something goes wrong in the code below
-		return false;
-	}
-
-	png_set_write_fn(pngStruct, (png_voidp)&outHandle, userWriteData, NULL);
-
-	png_set_IHDR(pngStruct, pngInfo, (uint32_t)m_origW, (uint32_t)m_origH,
-		8, PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE,
-		PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
-
-	png_text title_text;
-	title_text.compression = PNG_TEXT_COMPRESSION_NONE;
-	title_text.key = (png_charp)"Software";
-	title_text.text = (png_charp)"mcmap";
-	png_set_text(pngStruct, pngInfo, &title_text, 1);
-
-	png_write_info(pngStruct, pngInfo);
-
-	const size_t tempWidth = (m_origW * CHANSPERPIXEL)+1;
-	const size_t tempWidthChans = tempWidth * CHANSPERPIXEL;
-
-	std::vector<uint8_t> lineWrite(tempWidthChans, 0);
-	std::vector<uint8_t> lineRead(tempWidth, 0);
-
-	// Prepare an array of png structs that will output simultaneously to the various tiles
-	for (size_t y = 0; y < m_origH; ++y) {
-		if (y % 100 == 0) {
-			printProgress(size_t(y), size_t(m_origH));
+namespace image {
+	CachedPNGWriter::CachedPNGWriter(const size_t origW, const size_t origH)
+		: m_origW(origW), m_origH(origH), offsetX(0), offsetY(0)
+	{
+		if (!Dir::createDir("cache")) {
+			std::cerr << "Could not create cache directory\n";
 		}
-		// paint each image on this one
-		std::fill(lineWrite.begin(), lineWrite.end(), 0);
-		// the partial images are kept in this list. they're already in the correct order in which they have to me merged and blended
-		for (auto it = m_partList.begin(); it != m_partList.end(); ++it) {
-			ImagePart& img = *it;
-			// do we have to open this image?
-			if (img.y != static_cast<int>(y) && img.pngPtr == nullptr) {
-				continue;   // Not your turn, image!
+	}
+
+	int CachedPNGWriter::addPart(const int startx, const int starty, const int width, const int height){
+		offsetX = std::min(startx, 0);
+		offsetY = std::min(starty, 0);
+		int localX = startx;
+		int localY = starty;
+		int localWidth = width;
+		int localHeight = height;
+
+		if (localX < 0) {
+			localWidth += localX;
+			localX = 0;
+		}
+		if (localY < 0) {
+			localHeight += localY;
+			localY = 0;
+		}
+
+		if (localX + localWidth > static_cast<int>(m_origW)) {
+			localWidth = static_cast<int>(m_origW) - localX;
+		}
+		if (localY + localHeight > static_cast<int>(m_origH)) {
+			localHeight = static_cast<int>(m_origH) - localY;
+		}
+
+		if (localWidth < 1 || localHeight < 1) {
+			return 1;
+		}
+
+		const std::string name = "cache/" + std::to_string(localX) + '.' + std::to_string(localY) + '.' + std::to_string(localWidth) + '.' + std::to_string(localHeight) + '.' + std::to_string((int)time(NULL)) + ".png";
+		m_partList.emplace_back(name, localX, localY, localWidth, localHeight);
+
+		if (!this->reserve(localWidth, localHeight))
+			return -1;
+
+		return 0;
+	}
+
+	bool CachedPNGWriter::write(const std::string& path){
+		const auto& part = m_partList.back();
+		std::fstream fileHandle(part.filename, std::ios::out | std::ios::binary);
+		if (fileHandle.fail()) {
+			std::cerr << "Could not create temporary image at " << part.filename << "; check permissions in current dir.\n";
+			return false;
+		}
+
+		png_structp pngStruct = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+		if (pngStruct == nullptr) {
+			return false;
+		}
+
+		png_infop pngInfo = png_create_info_struct(pngStruct);
+
+		if (pngInfo == NULL) {
+			png_destroy_write_struct(&pngStruct, NULL);
+			return false;
+		}
+
+		if (setjmp(png_jmpbuf(pngStruct))) { // libpng will issue a longjmp on error, so code flow will end up
+			png_destroy_write_struct(&pngStruct, &pngInfo); // here if something goes wrong in the code below
+			return false;
+		}
+
+		png_set_write_fn(pngStruct, (png_voidp)&fileHandle, userWriteData, NULL);
+		png_set_compression_level(pngStruct, Z_BEST_SPEED);
+		png_set_IHDR(pngStruct, pngInfo, (uint32_t)part.width, (uint32_t)part.height,
+			8, PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE,
+			PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+		png_write_info(pngStruct, pngInfo);
+
+		size_t line = 0;
+		for (size_t y = 0; y < part.height; ++y) {
+			png_write_row(pngStruct, (png_bytep)&m_buffer.at(line));
+			line += m_width * CHANSPERPIXEL;
+		}
+
+		png_write_end(pngStruct, NULL);
+		png_destroy_write_struct(&pngStruct, &pngInfo);
+
+		m_height = 0;
+		m_width = 0;
+
+		return true;
+	}
+
+	void CachedPNGWriter::discardPart(){
+		m_partList.pop_back();
+		m_height = 0;
+		m_width = 0;
+	}
+
+	bool CachedPNGWriter::compose(const std::string& path, const double scale){
+		std::cout << "Composing final png file...\n";
+
+		m_origH = static_cast<size_t>(m_origH * scale);
+		m_origW = static_cast<size_t>(m_origW * scale);
+
+		std::fstream outHandle(path, std::ios::out | std::ios::binary);
+		if (outHandle.fail()) {
+			std::cerr << "Error opening '" << path << "' for writing.\n";
+			return false;
+		}
+
+		png_structp pngStruct = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+		if (pngStruct == nullptr) {
+			return false;
+		}
+
+		png_infop pngInfo = png_create_info_struct(pngStruct);
+		if (pngInfo == nullptr) {
+			png_destroy_write_struct(&pngStruct, NULL);
+			return false;
+		}
+
+		if (setjmp(png_jmpbuf(pngStruct))) { // libpng will issue a longjmp on error, so code flow will end up
+			png_destroy_write_struct(&pngStruct, &pngInfo); // here if something goes wrong in the code below
+			return false;
+		}
+
+		png_set_write_fn(pngStruct, (png_voidp)&outHandle, userWriteData, NULL);
+
+		png_set_IHDR(pngStruct, pngInfo, (uint32_t)m_origW, (uint32_t)m_origH,
+			8, PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE,
+			PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+
+		png_text title_text;
+		title_text.compression = PNG_TEXT_COMPRESSION_NONE;
+		title_text.key = (png_charp)"Software";
+		title_text.text = (png_charp)"mcmap";
+		png_set_text(pngStruct, pngInfo, &title_text, 1);
+
+		png_write_info(pngStruct, pngInfo);
+
+		const size_t tempWidth = (m_origW * CHANSPERPIXEL)+1;
+		const size_t tempWidthChans = tempWidth * CHANSPERPIXEL;
+
+		std::vector<uint8_t> lineWrite(tempWidthChans, 0);
+		std::vector<uint8_t> lineRead(tempWidth, 0);
+
+		// Prepare an array of png structs that will output simultaneously to the various tiles
+		for (size_t y = 0; y < m_origH; ++y) {
+			if (y % 100 == 0) {
+				helper::printProgress(size_t(y), size_t(m_origH));
 			}
-
-			if (img.pngPtr == nullptr) {
-				assert(img.pngInfo == nullptr);
-				assert(!img.file.is_open());
-
-				img.file.open(img.filename, std::ios::in | std::ios::binary);
-				if (img.file.fail()) {
-					std::cerr << "Error opening temporary image " << img.filename << '\n';
-					return false;
+			// paint each image on this one
+			std::fill(lineWrite.begin(), lineWrite.end(), 0);
+			// the partial images are kept in this list. they're already in the correct order in which they have to me merged and blended
+			for (auto it = m_partList.begin(); it != m_partList.end(); ++it) {
+				ImagePart& img = *it;
+				// do we have to open this image?
+				if (img.y != static_cast<int>(y) && img.pngPtr == nullptr) {
+					continue;   // Not your turn, image!
 				}
 
-				img.pngPtr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 				if (img.pngPtr == nullptr) {
-					std::cerr << "Error creating read struct for temporary image " << img.filename << '\n';
-					return false; // Not really cleaning up here, but program will terminate anyways, so why bother
-				}
-				 img.pngInfo = png_create_info_struct(img.pngPtr);
-				if (img.pngInfo == nullptr || setjmp(png_jmpbuf(img.pngPtr))) {
-					std::cerr << "Error reading data from temporary image " << img.filename << '\n';
-					return false; // Same here
+					assert(img.pngInfo == nullptr);
+					assert(!img.file.is_open());
+
+					img.file.open(img.filename, std::ios::in | std::ios::binary);
+					if (img.file.fail()) {
+						std::cerr << "Error opening temporary image " << img.filename << '\n';
+						return false;
+					}
+
+					img.pngPtr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+					if (img.pngPtr == nullptr) {
+						std::cerr << "Error creating read struct for temporary image " << img.filename << '\n';
+						return false; // Not really cleaning up here, but program will terminate anyways, so why bother
+					}
+					 img.pngInfo = png_create_info_struct(img.pngPtr);
+					if (img.pngInfo == nullptr || setjmp(png_jmpbuf(img.pngPtr))) {
+						std::cerr << "Error reading data from temporary image " << img.filename << '\n';
+						return false; // Same here
+					}
+
+					png_set_read_fn(img.pngPtr, (png_voidp)&img.file, userReadData);
+					png_read_info(img.pngPtr, img.pngInfo);
+					// Check if image dimensions match what is expected
+					int type, interlace, comp, filter, bitDepth;
+					png_uint_32 width, height;
+					png_uint_32 ret = png_get_IHDR(img.pngPtr, img.pngInfo, &width, &height, &bitDepth, &type, &interlace, &comp, &filter);
+					if (ret == 0 || width != (png_uint_32)img.width || height != (png_uint_32)img.height) {
+						std::cerr << "Temp image " << img.filename << " has wrong dimensions; expected " << img.width << 'x' << img.height << ", got " << width << 'x' << height << '\n';
+						return false;
+					}
+
 				}
 
-				png_set_read_fn(img.pngPtr, (png_voidp)&img.file, userReadData);
-				png_read_info(img.pngPtr, img.pngInfo);
-				// Check if image dimensions match what is expected
-				int type, interlace, comp, filter, bitDepth;
-				png_uint_32 width, height;
-				png_uint_32 ret = png_get_IHDR(img.pngPtr, img.pngInfo, &width, &height, &bitDepth, &type, &interlace, &comp, &filter);
-				if (ret == 0 || width != (png_uint_32)img.width || height != (png_uint_32)img.height) {
-					std::cerr << "Temp image " << img.filename << " has wrong dimensions; expected " << img.width << 'x' << img.height << ", got " << width << 'x' << height << '\n';
-					return false;
+				// Read next line from current image chunk
+				png_read_row(img.pngPtr, (png_bytep)lineRead.data(), nullptr);
+				// Now this puts all the pixels in the right spot of the current line of the final image
+				const size_t end = (img.x + img.width) * CHANSPERPIXEL;
+				size_t read = 0;
+				for (size_t write = (img.x * CHANSPERPIXEL); write < end; write += CHANSPERPIXEL) {
+					draw::blend(&lineWrite[write], &lineRead[read]);
+					read += CHANSPERPIXEL;
 				}
-
+				// Now check if we're done with this image chunk
+				if (--(img.height) == 0) { // if so, close and discard
+					png_destroy_read_struct(&(img.pngPtr), &(img.pngInfo), NULL);
+					img.file.close();
+					img.pngPtr = nullptr;
+					remove(img.filename.c_str());
+				}
 			}
 
-			// Read next line from current image chunk
-			png_read_row(img.pngPtr, (png_bytep)lineRead.data(), nullptr);
-			// Now this puts all the pixels in the right spot of the current line of the final image
-			const size_t end = (img.x + img.width) * CHANSPERPIXEL;
-			size_t read = 0;
-			for (size_t write = (img.x * CHANSPERPIXEL); write < end; write += CHANSPERPIXEL) {
-				blend(&lineWrite[write], &lineRead[read]);
-				read += CHANSPERPIXEL;
-			}
-			// Now check if we're done with this image chunk
-			if (--(img.height) == 0) { // if so, close and discard
-				png_destroy_read_struct(&(img.pngPtr), &(img.pngInfo), NULL);
-				img.file.close();
-				img.pngPtr = nullptr;
-				remove(img.filename.c_str());
-			}
-		}
+			// Done composing this line, write to final image
+			png_write_row(pngStruct, (png_bytep)lineWrite.data());
 
-		// Done composing this line, write to final image
-		png_write_row(pngStruct, (png_bytep)lineWrite.data());
+		}// Y-Loop
 
-	}// Y-Loop
-
-	png_write_end(pngStruct, nullptr);
-	png_destroy_write_struct(&pngStruct, &pngInfo);
-	printProgress(10, 10);
-	return true;
+		png_write_end(pngStruct, nullptr);
+		png_destroy_write_struct(&pngStruct, &pngInfo);
+		helper::printProgress(10, 10);
+		return true;
+	}
 }

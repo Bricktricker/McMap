@@ -10,6 +10,8 @@
 #include <utility>
 #include "defines.h"
 #include "ThreadPool.h"
+#include "RangeMap.h"
+#include "Tree.h"
 
 #define UNDEFINED 0x7FFFFFFF
 
@@ -70,6 +72,10 @@ public:
 	static std::vector<StateID_t> terrain;
 	static std::vector<uint8_t>	light; // 3D arrays holding terrain/lightmap
 	static std::vector<uint16_t> heightMap; // 2D array to store min and max block height per X/Z - it's 2 bytes per index, upper for highest, lower for lowest (don't ask!)
+
+	static std::map<std::string, Tree<std::string, StateID_t>> blockTree; //Maps blockState to id
+	static RangeMap<StateID_t, Color_t> colorMap; //maps id to color_t
+	static const std::map<uint16_t, StateID_t> metaToState; //This beast maps old blockid:meta to new states to save them in terrain array
 
 	static std::array<std::vector<std::pair<StateID_t, StateID_t>>, SpecialBlocks::NUM_SPECIALBLOCKS> specialBlockMap; //BlockType -> StateID range -> (min, max)
 

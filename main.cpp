@@ -113,14 +113,14 @@ int main(int argc, char **argv)
 		while (MOREARGS(1)) {
 			const std::string option = NEXTARG;
 			if (option == "-from") {
-				if (!MOREARGS(2) || !isNumeric(POLLARG(1)) || !isNumeric(POLLARG(2))) {
+				if (!MOREARGS(2) || !helper::isNumeric(POLLARG(1)) || !helper::isNumeric(POLLARG(2))) {
 					std::cerr << "Error: -from needs two integer arguments, ie: -from -10 5\n";
 					return 1;
 				}
 				Global::FromChunkX = std::stoi(NEXTARG);
 				Global::FromChunkZ = std::stoi(NEXTARG);
 			} else if (option == "-to") {
-				if (!MOREARGS(2) || !isNumeric(POLLARG(1)) || !isNumeric(POLLARG(2))) {
+				if (!MOREARGS(2) || !helper::isNumeric(POLLARG(1)) || !helper::isNumeric(POLLARG(2))) {
 					std::cerr << "Error: -to needs two integer arguments, ie: -to -5 20\n";
 					return 1;
 				}
@@ -152,26 +152,26 @@ int main(int argc, char **argv)
 			} else if (option == "-lowmemory") {
 				std::cerr << "-lowmemory no longers supported\n";
 			} else if ((option == "-noise") || (option == "-dither")) {
-				if (!MOREARGS(1) || !isNumeric(POLLARG(1))) {
+				if (!MOREARGS(1) || !helper::isNumeric(POLLARG(1))) {
 					std::cerr << "Error: " << option << " needs an integer argument, ie: " << option << " 10\n";
 					return 1;
 				}
 				Global::settings.noise = std::stoi(NEXTARG);
 			} else if ((option == "-height") || (option == "-max")) {
-				if (!MOREARGS(1) || !isNumeric(POLLARG(1))) {
+				if (!MOREARGS(1) || !helper::isNumeric(POLLARG(1))) {
 					std::cerr << "Error: " << option << " needs an integer argument, ie: " << option << " 100\n";
 					return 1;
 				}
 				Global::MapsizeY = std::stoi(NEXTARG);
 				if (option == "-max")  Global::MapsizeY++;
 			} else if (option == "-min") {
-				if (!MOREARGS(1) || !isNumeric(POLLARG(1))) {
+				if (!MOREARGS(1) || !helper::isNumeric(POLLARG(1))) {
 					std::cerr << "Error: " << option << " needs an integer argument, ie: " << option << " 50\n";
 					return 1;
 				}
 				Global::MapminY = std::stoi(NEXTARG);
 			} else if (option == "-mem") {
-				if (!MOREARGS(1) || !isNumeric(POLLARG(1)) || atoi(POLLARG(1)) <= 0) {
+				if (!MOREARGS(1) || !helper::isNumeric(POLLARG(1)) || atoi(POLLARG(1)) <= 0) {
 					std::cerr << "Error: " << option << " needs a positive integer argument, ie: " << option << " 1000\n";
 					return 1;
 				}
@@ -198,7 +198,7 @@ int main(int argc, char **argv)
 				}
 				blockfile = NEXTARG;
 			}else if(option == "-threads") {
-				if (!MOREARGS(1) || !isNumeric(POLLARG(1)) || atoi(POLLARG(1)) <= 1) {
+				if (!MOREARGS(1) || !helper::isNumeric(POLLARG(1)) || atoi(POLLARG(1)) <= 1) {
 					std::cerr << "Error: " << option << " needs a positive integer argument, ie: " << option << " 4\n";
 					return 1;
 				}
@@ -230,7 +230,7 @@ int main(int argc, char **argv)
 				return 0;
 			} else if (option == "-marker") {
 				std::cerr << "Markers currently do not work!\n";
-				if (!MOREARGS(3) || !isNumeric(POLLARG(2)) || !isNumeric(POLLARG(3))) {
+				if (!MOREARGS(3) || !helper::isNumeric(POLLARG(2)) || !helper::isNumeric(POLLARG(3))) {
 					std::cerr << "Error: -marker needs a char and two integer arguments, ie: -marker r -15 240\n";
 					return 1;
 				}
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
 				}
 				Global::mystCraftAge = atoi(NEXTARG);
 			}else if(option == "-scale"){
-				if (!MOREARGS(1) || !isNumeric(POLLARG(1))) {
+				if (!MOREARGS(1) || !helper::isNumeric(POLLARG(1))) {
 					std::cerr << "Error: -scale needs a scale argument. eg. 50";
 					return 1;
 				}
@@ -316,7 +316,7 @@ int main(int argc, char **argv)
 		std::cerr << "Error: No world given. Please add the path to your world to the command line.\n";
 		return 1;
 	}
-	if (!isAlphaWorld(filename)) {
+	if (!helper::isAlphaWorld(filename)) {
 		std::cerr << "Error: Given path does not contain a Minecraft world.\n";
 		return 1;
 	}
@@ -344,13 +344,13 @@ int main(int argc, char **argv)
     }
 
 	// Figure out whether this is the old save format or McRegion or Anvil
-	WorldFormat worldFormat = getWorldFormat(filename);
+	WorldFormat worldFormat = terrain::getWorldFormat(filename);
 	if (!(worldFormat == ANVIL || worldFormat == ANVIL13)) {
 		std::cerr << "World in old format, please convert to new anvil format first\n";
 		return 1;
 	}
 
-	if (wholeworld && !scanWorldDirectory(filename)) {
+	if (wholeworld && !terrain::scanWorldDirectory(filename)) {
 		std::cerr << "Error accessing terrain at '" << filename << "'\n";
 		return 1;
 	}
@@ -380,14 +380,14 @@ int main(int argc, char **argv)
 
 	// Mem check
 	int bitmapX, bitmapY; //number of Pixels in the final image
-	uint64_t bitmapBytes = calcImageSize(Global::ToChunkX - Global::FromChunkX, Global::ToChunkZ - Global::FromChunkZ, Global::MapsizeY, bitmapX, bitmapY, false);
+	uint64_t bitmapBytes = draw::calcImageSize(Global::ToChunkX - Global::FromChunkX, Global::ToChunkZ - Global::FromChunkZ, Global::MapsizeY, bitmapX, bitmapY, false);
 	// Cropping
 	int cropLeft = 0, cropRight = 0, cropTop = 0, cropBottom = 0;
 	if (wholeworld) {
-		calcBitmapOverdraw(cropLeft, cropRight, cropTop, cropBottom);
+		terrain::calcBitmapOverdraw(cropLeft, cropRight, cropTop, cropBottom);
 		bitmapX -= (cropLeft + cropRight);
 		bitmapY -= (cropTop + cropBottom);
-		bitmapBytes = uint64_t(bitmapX) * PNGWriter::BYTESPERPIXEL * uint64_t(bitmapY);
+		bitmapBytes = uint64_t(bitmapX) * image::PNGWriter::BYTESPERPIXEL * uint64_t(bitmapY);
 	}
 
 	if (!infoFile.empty()) {
@@ -402,7 +402,7 @@ int main(int argc, char **argv)
 	bool splitImage = false; //true if we need to split the image in multiple smaller images (memlimit)
 	int numSplitsX = 0;
 	int numSplitsZ = 0;
-	if (memlimit && memlimit < bitmapBytes + calcTerrainSize(Global::ToChunkX - Global::FromChunkX, Global::ToChunkZ - Global::FromChunkZ)) {
+	if (memlimit && memlimit < bitmapBytes + terrain::calcTerrainSize(Global::ToChunkX - Global::FromChunkX, Global::ToChunkZ - Global::FromChunkZ)) {
 		// If we'd need more mem than allowed, we have to render groups of chunks...
 		if (memlimit < bitmapBytes + 220 * uint64_t(1024 * 1024)) {
 			// Warn about using incremental rendering if user didn't set limit manually
@@ -423,9 +423,9 @@ int main(int argc, char **argv)
 			int subAreaX = ((Global::TotalToChunkX - Global::TotalFromChunkX) + (numSplitsX - 1)) / numSplitsX;
 			int subAreaZ = ((Global::TotalToChunkZ - Global::TotalFromChunkZ) + (numSplitsZ - 1)) / numSplitsZ;
 			int subBitmapX, subBitmapY;
-			if (splitImage && calcImageSize(subAreaX, subAreaZ, Global::MapsizeY, subBitmapX, subBitmapY, true) + calcTerrainSize(subAreaX, subAreaZ) <= memlimit) {
+			if (splitImage && draw::calcImageSize(subAreaX, subAreaZ, Global::MapsizeY, subBitmapX, subBitmapY, true) + terrain::calcTerrainSize(subAreaX, subAreaZ) <= memlimit) {
 				break; // Found a suitable partitioning
-			} else if (!splitImage && bitmapBytes + calcTerrainSize(subAreaX, subAreaZ) <= memlimit) {
+			} else if (!splitImage && bitmapBytes + terrain::calcTerrainSize(subAreaX, subAreaZ) <= memlimit) {
 				break; // Found a suitable partitioning
 			}
 			//
@@ -446,22 +446,22 @@ int main(int argc, char **argv)
 
 	// open output file only if not doing the tiled output
 	//std::fstream fileHandle;
-	std::unique_ptr<PNGWriter> pngWriter;
+	std::unique_ptr<image::PNGWriter> pngWriter;
 	if (tilePath.empty()) {
 		if (!splitImage) {
-			pngWriter = std::make_unique<PNGWriter>();
+			pngWriter = std::make_unique<image::PNGWriter>();
 			pngWriter->reserve(bitmapX, bitmapY);
 		}
 		else {
-			pngWriter = std::make_unique<CachedPNGWriter>(bitmapX, bitmapY);
+			pngWriter = std::make_unique<image::CachedPNGWriter>(bitmapX, bitmapY);
 		}
 	} else {
 		if (!splitImage) {
-			pngWriter = std::make_unique<BasicTiledPNGWriter>();
+			pngWriter = std::make_unique<image::BasicTiledPNGWriter>();
 			pngWriter->reserve(bitmapX, bitmapY);
 		}
 		else {
-			pngWriter = std::make_unique<CachedTiledPNGWriter>(bitmapX, bitmapY);
+			pngWriter = std::make_unique<image::CachedTiledPNGWriter>(bitmapX, bitmapY);
 		}
 
 		outfile = tilePath;
@@ -491,7 +491,7 @@ int main(int argc, char **argv)
 				const int sizey = (int)Global::MapsizeY * Global::OffsetY + (Global::ToChunkX - Global::FromChunkX) * CHUNKSIZE_X + (Global::ToChunkZ - Global::FromChunkZ) * CHUNKSIZE_Z + 3;
 				if (sizex <= 0 || sizey <= 0) continue; // Don't know if this is right, might also be that the size calulation is plain wrong
 				
-				CachedPNGWriter* cpngw = dynamic_cast<CachedPNGWriter*>(pngWriter.get());
+				image::CachedPNGWriter* cpngw = dynamic_cast<image::CachedPNGWriter*>(pngWriter.get());
 				const auto ret = cpngw->addPart(bitmapStartX - cropLeft, bitmapStartY - cropTop, sizex, sizey);
 				if (ret == -1) {
 					std::cerr << "Error creating partial image to render.\n";
@@ -521,16 +521,16 @@ int main(int argc, char **argv)
 		}
 
 		// Load world or part of world
-		if (numSplitsX == 0 && wholeworld && !loadEntireTerrain()) {
+		if (numSplitsX == 0 && wholeworld && !terrain::loadEntireTerrain()) {
 			std::cerr << "Error loading terrain from '" << filename << "'\n";
 			return 1;
 		} else if (numSplitsX != 0 || !wholeworld) {
 			int numberOfChunks;
-			const bool result = loadTerrain(filename, numberOfChunks);
+			const bool result = terrain::loadTerrain(filename, numberOfChunks);
 
 			if (splitImage && numberOfChunks == 0) {
 				std::cout << "Section is empty, skipping...\n";
-				CachedPNGWriter* cpngw = dynamic_cast<CachedPNGWriter*>(pngWriter.get());
+				image::CachedPNGWriter* cpngw = dynamic_cast<image::CachedPNGWriter*>(pngWriter.get());
 				cpngw->discardPart();
 				continue;
 			}
@@ -544,7 +544,7 @@ int main(int argc, char **argv)
 		}
 
 		if (Global::settings.hell || Global::settings.serverHell) {
-			uncoverNether();
+			terrain::uncoverNether();
 		}
 
 		// If underground mode, remove blocks that don't seem to belong to caves
@@ -557,7 +557,7 @@ int main(int argc, char **argv)
 		// Finally, render terrain to file
 		std::cout << "Drawing map...\n";
 		for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) { //iterate over all blocks, ignore outer Chunks
-			printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
+			helper::printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
 			for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
 				const int bmpPosX = int((Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX - cropLeft));
 				int bmpPosY = int(Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY - cropTop)) + 2 - (HEIGHTAT(x, z) & 0xFF) * Global::OffsetY;
@@ -614,22 +614,22 @@ int main(int argc, char **argv)
 						}
 					}
 
-					setPixel(bmpPosX, bmpPosY, c, brightnessAdjustment, pngWriter.get());
+					draw::setPixel(bmpPosX, bmpPosY, c, brightnessAdjustment, pngWriter.get());
 				}
 			}
 		}
-		printProgress(10, 10);
+		helper::printProgress(10, 10);
 		// Bitmap creation complete
 		// unless using....
 		// Underground overlay mode
 		if (Global::settings.blendUnderground && !Global::settings.underground) {
 			// Load map data again, since block culling removed most of the blocks
-			if (numSplitsX == 0 && wholeworld && !loadEntireTerrain()) {
+			if (numSplitsX == 0 && wholeworld && !terrain::loadEntireTerrain()) {
 				std::cerr << "Error loading terrain from '" << filename <<"'\n";
 				return 1;
 			} else if (numSplitsX != 0 || !wholeworld) {
 				int i;
-				if (!loadTerrain(filename, i)) {
+				if (!terrain::loadTerrain(filename, i)) {
 					std::cerr << "Error loading terrain from '" << filename << "'\n";
 					return 1;
 				}
@@ -640,25 +640,25 @@ int main(int argc, char **argv)
 
 			std::cout << "Creating cave overlay...\n";
 			for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) {
-				printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
+				helper::printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
 				for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
 					const size_t bmpPosX = (Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX) - cropLeft;
 					size_t bmpPosY = Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY) - cropTop;
 					for (unsigned int y = 0; y < std::min(Global::MapsizeY, 64U); ++y) {
 						const uint16_t &c = BLOCKAT(x, y, z);
 						if (c != AIR) { // If block is not air (colors[c][3] != 0)
-							blendPixel(bmpPosX, bmpPosY, c, float(y + 30) * .0048f, pngWriter.get());
+							draw::blendPixel(bmpPosX, bmpPosY, c, float(y + 30) * .0048f, pngWriter.get());
 						}
 						bmpPosY -= Global::OffsetY;
 					}
 				}
 			}
-			printProgress(10, 10);
+			helper::printProgress(10, 10);
 		} // End blend-underground
 		// If disk caching is used, save part to disk
 		if (splitImage) {
 			if (tilePath.empty() && scaleImage != 1.0) {
-				deallocateTerrain();
+				terrain::deallocateTerrain();
 				pngWriter->resize(scaleImage);
 			}
 
@@ -673,7 +673,7 @@ int main(int argc, char **argv)
 		}
 	}
 	// Drawing complete, now either just save the image or compose it if disk caching was used
-	deallocateTerrain();
+	terrain::deallocateTerrain();
 	// Saving
 	if (!splitImage) {
 		if (tilePath.empty() && scaleImage != 1.0) {
@@ -684,7 +684,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 	} else {
-		CachedPNGWriter* cpngw = dynamic_cast<CachedPNGWriter*>(pngWriter.get());
+		image::CachedPNGWriter* cpngw = dynamic_cast<image::CachedPNGWriter*>(pngWriter.get());
 		if (!cpngw->compose(outfile, scaleImage)) {
 			std::cerr << "Aborted.\n";
 			return 1;
@@ -714,13 +714,13 @@ void optimizeTerrain()
 			results.emplace_back(Global::threadPool->enqueue(optimizeTerrainMulti, x, maxZ-1));
 		}
 
-		printProgress(0, results.size());
+		helper::printProgress(0, results.size());
 		for (size_t i = 0; i < results.size(); ++i) {
 			blocksRemoved += results[i].get();
-			printProgress(i, results.size());
+			helper::printProgress(i, results.size());
 		}
 
-		printProgress(10, 10);
+		helper::printProgress(10, 10);
 
 		std::cout << "Removed " << blocksRemoved << " blocks\n";
 
@@ -732,7 +732,7 @@ void optimizeTerrain()
 	std::vector<bool> blocked(modZ, false);
 	size_t offsetZ = 0, offsetY = 0, offsetGlobal = 0;
 	for (size_t x = maxX - 1; x >= CHUNKSIZE_X; --x) {
-		printProgress(maxX - (x + 1), maxX);
+		helper::printProgress(maxX - (x + 1), maxX);
 		offsetZ = offsetGlobal;
 		for (size_t z = CHUNKSIZE_Z; z < maxZ; ++z) {
 			size_t highest = 0, lowest = 0xFF; // remember lowest and highest block which are visible to limit the Y-for-loop later
@@ -749,7 +749,7 @@ void optimizeTerrain()
 						++gBlocksRemoved;
 					}
 				} else { // block is not hidden by another block
-					const auto col = colorMap[block];
+					const auto col = Global::colorMap[block];
 					if (block != AIR && lowest == 0xFF) { // if it's not air, this is the lowest block to draw
 						lowest = y;
 					}
@@ -769,7 +769,7 @@ void optimizeTerrain()
 		offsetGlobal += Global::MapsizeY;
 		++offsetY;
 	}
-	printProgress(10, 10);
+	helper::printProgress(10, 10);
 #ifdef _DEBUG
 	std::cout << "Removed " << gBlocksRemoved << " blocks\n";
 #endif
@@ -787,7 +787,7 @@ size_t optimizeTerrainMulti(const size_t startX, const size_t startZ) {
 		for (size_t y = 0; y < Global::MapsizeY; ++y) { // Go up
 			const uint16_t block = BLOCKAT(x, y, z);
 			if (!blocked[(y + numMoves) % Global::MapsizeY]) {
-				const auto col = colorMap[block];
+				const auto col = Global::colorMap[block];
 				if (block != AIR && lowest == 0xFF) { // if it's not air, this is the lowest block to draw
 					lowest = y;
 				}
@@ -820,12 +820,12 @@ void undergroundMode(bool explore)
 	//memset(cnt, 0, sizeof(cnt));
 	std::cout << "Exploring underground...\n";
 	if (explore) {
-		clearLightmap();
+		terrain::clearLightmap();
 		for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) {
-			printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
+			helper::printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
 			for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
 				for (size_t y = 0; y < std::min(Global::MapsizeY, 64U) - 1; y++) {
-					if (isTorch(BLOCKAT(x, y, z))) {
+					if (helper::isTorch(BLOCKAT(x, y, z))) {
 						// Torch
 						BLOCKAT(x, y, z) = AIR;
 						for (int ty = int(y) - 9; ty < int(y) + 9; ty += 2) { // The trick here is to only take into account
@@ -860,22 +860,22 @@ void undergroundMode(bool explore)
 		}
 	}
 	for (size_t x = 0; x < Global::MapsizeX; ++x) {
-		printProgress(x + Global::MapsizeX * (explore ? 1 : 0), Global::MapsizeX * (explore ? 2 : 1));
+		helper::printProgress(x + Global::MapsizeX * (explore ? 1 : 0), Global::MapsizeX * (explore ? 2 : 1));
 		for (size_t z = 0; z < Global::MapsizeZ; ++z) {
 			size_t ground = 0;
 			size_t cave = 0;
 			for (int y = Global::MapsizeY - 1; y >= 0; --y) {
 				uint16_t &c = BLOCKAT(x, y, z);
 				if (c != AIR && cave > 0) { // Found a cave, leave floor
-					if (isGrass(c) || isLeave(c) || isSnow(c) || GETLIGHTAT(x, y, z) == 0) {
+					if (helper::isGrass(c) || helper::isLeave(c) || helper::isSnow(c) || GETLIGHTAT(x, y, z) == 0) {
 						c = AIR; // But never count snow or leaves
 					} //else cnt[*c]++;
-					if (!isWater(c)) {
+					if (!helper::isWater(c)) {
 						--cave;
 					}
 				} else if (c != AIR) { // Block is not air, count up "ground"
 					c = AIR;
-					if (/*c != LOG &&*/ !isLeave(c) && !isSnow(c) && /*c != WOOD &&*/ !isWater(c)) {
+					if (/*c != LOG &&*/ !helper::isLeave(c) && !helper::isSnow(c) && /*c != WOOD &&*/ !helper::isWater(c)) {
 						++ground;
 					}
 				} else if (ground < 3) { // Block is air, if there was not enough ground above, don't treat that as a cave
@@ -886,7 +886,7 @@ void undergroundMode(bool explore)
 			}
 		}
 	}
-	printProgress(10, 10);
+	helper::printProgress(10, 10);
 }
 
 bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStartY)
