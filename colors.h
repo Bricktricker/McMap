@@ -10,8 +10,6 @@
 bool loadBlockTree(const std::string& path);
 bool loadColorMap(const std::string& path);
 
-#define AIR 0
-
 #define BLOCKSOLID 0
 #define BLOCKFLAT 1
 #define BLOCKTORCH 2

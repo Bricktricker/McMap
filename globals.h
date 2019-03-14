@@ -1,8 +1,6 @@
 #ifndef _GLOBALS_H_
 #define _GLOBALS_H_
 
-#define VERSION "beta 3.0.6"
-
 #include <vector>
 #include <string>
 #include <memory>
@@ -12,8 +10,6 @@
 #include "ThreadPool.h"
 #include "RangeMap.h"
 #include "Tree.h"
-
-#define UNDEFINED 0x7FFFFFFF
 
 enum Orientation {
 	North,

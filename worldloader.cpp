@@ -16,9 +16,6 @@
 #include <cstring>
 #include <algorithm>
 
-#define CHUNKS_PER_BIOME_FILE 32
-#define REGIONSIZE 32
-
 namespace {
 	static terrain::World world;
 }

@@ -7,8 +7,6 @@
 #include "colors.h"
 #include "helper.h"
 
-
-//#define PIXEL(x,y) (gImageBuffer[((x) + gOffsetX) * CHANSPERPIXEL + ((y) + gOffsetY) * gPngLocalLineWidthChans])
 #define CHANSPERPIXEL image::PNGWriter::CHANSPERPIXEL
 namespace draw {
 

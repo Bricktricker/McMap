@@ -50,23 +50,6 @@
 #include <sys/stat.h>
 #endif
 
-//determinate 64Bit or 32Bit
-#if defined(_WIN32) || defined(_WIN64)
-	#if defined(_WIN64)
-		#define NUM_BITS 64
-	#else
-		#define NUM_BITS 32
-	#endif
-#elif defined __GNUC__
-	#if defined(__x86_64__) || defined(__ppc64__)
-		#define NUM_BITS 64
-	#else
-		#define NUM_BITS 32
-	#endif
-#else
-	#error "Missing feature-test macro for 32/64-bit on this compiler."
-#endif
-
 namespace
 {
 	// For bright edge
