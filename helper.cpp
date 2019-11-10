@@ -41,7 +41,7 @@ namespace helper {
 		return std::regex_match(str, std::regex("(\\+|\\-)?\\d+(\\.\\d+)?")); //old: "[(-|+)|][0-9]+"
 	}
 
-	bool isAlphaWorld(const std::string& path){
+	bool isWorld(const std::string& path){
 		std::string pathToFile = path + "/level.dat";
 		return Dir::fileExists(pathToFile);
 	}

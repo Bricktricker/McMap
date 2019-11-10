@@ -20,7 +20,7 @@ namespace helper {
 	uint8_t clamp(int32_t val);
 	void printProgress(const size_t current, const size_t max);
 	bool isNumeric(const std::string& str);
-	bool isAlphaWorld(const std::string& path);
+	bool isWorld(const std::string& path);
 	bool strEndsWith(std::string const &fullString, std::string const &ending);
 
 	template<typename Out>

@@ -10,7 +10,6 @@
 #define CHANSPERPIXEL image::PNGWriter::CHANSPERPIXEL
 namespace draw {
 
-	inline void assignBiome(uint8_t* const color, const uint8_t biome, const uint16_t block);
 	inline void blend(Channel* const destination, const Color_t& source); //Blend color to pixel
 	//inline void blend(Channel* const destination, const Channel* const source); //Blend to pixel
 	Color_t modColor(const Color_t& color, const int mod);
@@ -47,7 +46,7 @@ namespace draw {
 	/*
 	fsub: brightnessAdjustment
 	*/
-	void setPixel(const int x, const int y, const uint16_t stateID, const float fsub, image::PNGWriter* pngWriter){
+	void setPixel(const int x, const int y, const StateID_t stateID, const float fsub, image::PNGWriter* pngWriter){
 		if (x < 0 || (size_t)x >= pngWriter->getWidth()) {
 			return;
 		}
@@ -246,7 +245,7 @@ namespace draw {
 
 	}
 
-	void blendPixel(const size_t x, const size_t y, const uint16_t stateID, const float fsub, image::PNGWriter* pngWriter){
+	void blendPixel(const size_t x, const size_t y, const StateID_t stateID, const float fsub, image::PNGWriter* pngWriter){
 		// This one is used for cave overlay
 		// Sets pixels around x,y where A is the anchor
 		// T = given color, D = darker, L = lighter
@@ -299,16 +298,6 @@ namespace draw {
 		destination[1] = BLEND(source[1], source[PALPHA], destination[1]);
 		destination[2] = BLEND(source[2], source[PALPHA], destination[2]);
 		destination[PALPHA] += (size_t(source[PALPHA]) * size_t(255 - destination[PALPHA])) / 255;
-	}
-
-	inline void assignBiome(uint8_t* const color, const uint8_t biome, const uint16_t block)
-	{
-		//do there what you want, this code response for changing single pixel depending on its biome
-		//note this works only for anvli format. old one still requires donkey kong biome extractor
-
-		//if (colorMap[block].blockType / BLOCKBIOME)
-			//addColor(color, biomes[biome]);
-		//dropped biom support
 	}
 
 	inline void blend(Channel* const destination, const Color_t& source)

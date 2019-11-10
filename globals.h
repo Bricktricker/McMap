@@ -72,7 +72,6 @@ public:
 
 	static std::unordered_map<std::string, Tree<std::string, StateID_t>> blockTree; //Maps blockState to id
 	static RangeMap<StateID_t, Color_t> colorMap; //maps id to color_t
-	static const std::unordered_map<uint16_t, StateID_t> metaToState; //This beast maps old blockid:meta to new states to save them in terrain array
 
 	static std::array<std::vector<std::pair<StateID_t, StateID_t>>, SpecialBlocks::NUM_SPECIALBLOCKS> specialBlockMap; //BlockType -> StateID range -> (min, max)
 

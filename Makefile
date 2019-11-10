@@ -3,7 +3,7 @@ CFLAGS=-O3 -std=c++14 -c -Wall -fomit-frame-pointer -pedantic -DWITHPNG -I/usr/l
 LDFLAGS=-O3 -std=c++14 -lz -lpng -fomit-frame-pointer -pthread -L/usr/local/lib
 DCFLAGS=-g -std=c++14 -O0 -c -Wall -D_DEBUG -DWITHPNG -I/usr/local/include
 DLDFLAGS=-g -std=c++14 -O0 -lz -lpng -L/usr/local/lib
-SOURCES=main.cpp helper.cpp nbt.cpp colors.cpp worldloader.cpp filesystem.cpp globals.cpp draw_png.cpp pngreader.cpp PNGWriter.cpp BasicTiledPNGWriter.cpp CachedPNGWriter.cpp CachedTiledPNGWriter.cpp
+SOURCES=main.cpp helper.cpp nbt.cpp colors.cpp worldloader.cpp filesystem.cpp globals.cpp draw_png.cpp PNGWriter.cpp BasicTiledPNGWriter.cpp CachedPNGWriter.cpp CachedTiledPNGWriter.cpp
 OBJECTS=$(SOURCES:.cpp=.default.o)
 OBJECTS_TURBO=$(SOURCES:.cpp=.turbo.o)
 DOBJECTS=$(SOURCES:.cpp=.debug.o)

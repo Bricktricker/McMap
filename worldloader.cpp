@@ -23,7 +23,6 @@ namespace {
 namespace terrain {
 	size_t getPalletIndex(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne);
 	bool loadChunk(const std::vector<uint8_t>& buffer);
-	bool loadAnvilChunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ);
 	bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ);
 	void allocateTerrain();
 	bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks);
@@ -207,144 +206,17 @@ namespace terrain {
 			}
 			return false;
 		}else{
-			return loadAnvilChunk(level, chunkX, chunkZ);
-		}
-	}
+			static bool showedWarning = false;
+			if (!showedWarning) {
+				std::cerr << "found chunk in 1.12.2 or older format, this is no longer supported. Update to 1.13.2+\n";
+				showedWarning = true;
+			}
 
-	//loads chunks for MC version 1.12.x and lower
-	bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t chunkZ) {
-		PrimArray<uint8_t> blockdata, lightdata, skydata, justData, addData;
-		size_t len, yoffset, yoffsetsomething = (Global::MapminY + SECTION_Y * 10000) % SECTION_Y;
-		int8_t yo;
-		std::list<NBT_Tag*> sections;
-		bool ok;
-		//
-		ok = level->getList("Sections", sections);
-		if (!ok) {
-			std::cerr << "No sections found in region\n";
 			return false;
 		}
-		//
-		const int offsetz = (chunkZ - Global::FromChunkZ) * CHUNKSIZE_Z; //Blocks into world, from lowest point
-		const int offsetx = (chunkX - Global::FromChunkX) * CHUNKSIZE_X; //Blocks into world, from lowest point
-		for (std::list<NBT_Tag *>::iterator it = sections.begin(); it != sections.end(); ++it) {
-			NBT_Tag* section = *it;
-			ok = section->getByte("Y", yo);
-			if (!ok) {
-				std::cerr << "Y-Offset not found in section\n";
-				return false;
-			}
-			if (yo < Global::sectionMin || yo > Global::sectionMax) continue;
-			yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - yoffsetsomething; //Blocks into render zone in Y-Axis
-			ok = section->getByteArray("Blocks", blockdata);
-			if(ok) len = blockdata._len;
-			if (!ok || len < CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) {
-				std::cerr << "No blocks\n";
-				return false;
-			}
-			ok = section->getByteArray("Data", justData); //Metadata
-			if(ok) len = justData._len;
-			if (!ok || len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
-				std::cerr << "No block data\n";
-				return false;
-			}
-			ok = section->getByteArray("Add", addData);
-			if(ok) len = addData._len;
-			if (Global::settings.nightmode || Global::settings.skylight) { // If nightmode, we need the light information too
-				ok = section->getByteArray("BlockLight", lightdata);
-				if (!ok || len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
-					std::cerr << "No block light\n";
-					return false;
-				}
-			}
-			if (Global::settings.skylight) { // Skylight desired - wish granted
-				ok = section->getByteArray("SkyLight", skydata);
-				len = skydata._len;
-				if (!ok || len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
-					return false;
-				}
-			}
-			// Copy data
-			for (int x = 0; x < CHUNKSIZE_X; ++x) {
-				for (int z = 0; z < CHUNKSIZE_Z; ++z) {
-					StateID_t* targetBlock = nullptr;
-					uint8_t *lightByte = nullptr;
-					if (Global::settings.orientation == East) {
-						targetBlock = &BLOCKEAST(x + offsetx, yoffset, z + offsetz); //BLOCKEAST
-						if (Global::settings.skylight || Global::settings.nightmode) lightByte = &SETLIGHTEAST(x + offsetx, yoffset, z + offsetz);
-						//if (g_UseBiomes) BIOMEEAST(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
-					} else if (Global::settings.orientation == North) {
-						targetBlock = &BLOCKNORTH(x + offsetx, yoffset, z + offsetz);
-						if (Global::settings.skylight || Global::settings.nightmode) lightByte = &SETLIGHTNORTH(x + offsetx, yoffset, z + offsetz);
-						//if (g_UseBiomes) BIOMENORTH(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
-					} else if (Global::settings.orientation == South) {
-						targetBlock = &BLOCKSOUTH(x + offsetx, yoffset, z + offsetz);
-						if (Global::settings.skylight || Global::settings.nightmode) lightByte = &SETLIGHTSOUTH(x + offsetx, yoffset, z + offsetz);
-						//if (g_UseBiomes) BIOMESOUTH(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
-					} else {
-						targetBlock = &BLOCKWEST(x + offsetx, yoffset, z + offsetz);
-						if (Global::settings.skylight || Global::settings.nightmode) lightByte = &SETLIGHTWEST(x + offsetx, yoffset, z + offsetz);
-						//if (g_UseBiomes) BIOMEWEST(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
-					}
-					//const int toY = g_MapsizeY + g_MapminY;
-					for (size_t y = 0; y < SECTION_Y; ++y) {
-						// In bounds check
-						if (Global::sectionMin == yo && y < yoffsetsomething) continue;
-						if (Global::sectionMax == yo && y + yoffset >= Global::MapsizeY) break;
-						// Block data
-						uint16_t block = static_cast<uint16_t>(blockdata._data[x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X]); //Block-ID (0,..,255)
-					
-						if (addData._len > 0) { //For blockID > 255
-							const uint8_t add = (addData._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF;
-							assert((block | (add << 8)) == ((block + (add << 8))));
-							block += (add << 8);
-						}
-						//for metadata
-						const uint8_t col = (justData._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x % 2) * 4)) & 0xF; //Get the 4Bits of MetaData
-						assert((block | (col << 12)) == ((block + (col << 12))));
-						const uint16_t blockWithMeta = block + (col << 12);
-
-						auto stateItr = Global::metaToState.find(blockWithMeta);
-						StateID_t blockStateId;
-						if (stateItr != Global::metaToState.end()) {
-							blockStateId = stateItr->second;
-							*targetBlock = blockStateId;
-							targetBlock++;
-						}else{
-							blockStateId = Global::metaToState.at(block);
-							*targetBlock = blockStateId;
-							targetBlock++;
-						}
-
-						// Light
-						if (Global::settings.underground) {
-							if (helper::isTorch(block)) {
-								if (y + yoffset < static_cast<size_t>(Global::MapminY)) continue;
-								//std::cout << "Torch at " << std::to_string(x + offsetx) << ' ' << std::to_string(yoffset + y) << ' ' << std::to_string(z + offsetz) << '\n';
-								lightCave(x + offsetx, static_cast<int>(yoffset + y), z + offsetz);
-							}
-						} else if (Global::settings.skylight && (y & 1) == 0) {
-							const uint8_t highlight = ((lightdata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
-							const uint8_t lowlight =  ((lightdata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
-							uint8_t highsky = ((skydata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
-							uint8_t lowsky =  ((skydata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
-							if (Global::settings.nightmode) {
-								highsky = helper::clamp(highsky / 3 - 2);
-								lowsky = helper::clamp(lowsky / 3 - 2);
-							}
-							*lightByte++ = ((std::max(highlight, highsky) & 0x0F) << 4) | (std::max(lowlight, lowsky) & 0x0F);
-						} else if (Global::settings.nightmode && (y & 1) == 0) {
-							*lightByte++ = ((lightdata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F)
-								| ((lightdata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) << 4);
-						}
-					} // for y
-				} // for z
-			} // for x
-
-		}
-		return true;
 	}
 
+	//Loads 1.13.2+ chunks
 	bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ) {
 		std::list<NBT_Tag*> sections;
 		if (!level->getList("Sections", sections)) {
@@ -463,7 +335,7 @@ namespace terrain {
 			//Now IDList is build up, no run through all block in sub-Chunk
 			for (int x = 0; x < CHUNKSIZE_X; ++x) {
 				for (int z = 0; z < CHUNKSIZE_Z; ++z) {
-					uint16_t* targetBlock = nullptr;
+					StateID_t* targetBlock = nullptr;
 					uint8_t* lightByte = nullptr;
 
 					if (Global::settings.orientation == East) {
@@ -540,7 +412,7 @@ namespace terrain {
 	}
 
 	/*
-		Berechnet Überschnitt auf allen 4 Seiten
+		Calculates overdraw on all 4 sites
 	*/
 	void calcBitmapOverdraw(int &left, int &right, int &top, int &bottom) {
 		top = left = bottom = right = 0x0fffffff;
@@ -548,8 +420,8 @@ namespace terrain {
 	
 		for (pointList::iterator itP = world.points.begin(); itP != world.points.end(); ++itP) {
 
-			int x = (*itP).x; //x-Coordinate des Chunks
-			int z = (*itP).z; //z-Coordinate des Chunks
+			int x = (*itP).x; //x-Coordinate
+			int z = (*itP).z; //z-Coordinate
 
 			if (Global::settings.orientation == North) {
 				// Right
@@ -1019,7 +891,7 @@ namespace terrain {
 			for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
 				// Remove blocks on top, otherwise there is not much to see here
 				int massive = 0;
-				uint16_t* bp = &Global::terrain[((z + (x * Global::MapsizeZ) + 1) * Global::MapsizeY) - 1];
+				StateID_t* bp = &Global::terrain[((z + (x * Global::MapsizeZ) + 1) * Global::MapsizeY) - 1];
 				int i;
 				for (i = 0; i < to; ++i) { // Go down 74 blocks from the ceiling to see if there is anything except solid
 					if (massive && (*bp == AIR || helper::isLava(*bp))) {

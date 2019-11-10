@@ -176,7 +176,6 @@
     <ClInclude Include="helper.h" />
     <ClInclude Include="json.hpp" />
     <ClInclude Include="nbt.h" />
-    <ClInclude Include="pngreader.h" />
     <ClInclude Include="PNGWriter.h" />
     <ClInclude Include="RangeMap.h" />
     <ClInclude Include="ThreadPool.h" />
@@ -194,7 +193,6 @@
     <ClCompile Include="helper.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="nbt.cpp" />
-    <ClCompile Include="pngreader.cpp" />
     <ClCompile Include="CachedPNGWriter.cpp" />
     <ClCompile Include="CachedTiledPNGWriter.cpp" />
     <ClCompile Include="PNGWriter.cpp" />

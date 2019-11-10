@@ -299,7 +299,7 @@ int main(int argc, char **argv)
 		std::cerr << "Error: No world given. Please add the path to your world to the command line.\n";
 		return 1;
 	}
-	if (!helper::isAlphaWorld(filename)) {
+	if (!helper::isWorld(filename)) {
 		std::cerr << "Error: Given path does not contain a Minecraft world.\n";
 		return 1;
 	}
@@ -329,7 +329,7 @@ int main(int argc, char **argv)
 	// Figure out whether this is the old save format or McRegion or Anvil
 	WorldFormat worldFormat = terrain::getWorldFormat(filename);
 	if (!(worldFormat == ANVIL || worldFormat == ANVIL13)) {
-		std::cerr << "World in old format, please convert to new anvil format first\n";
+		std::cerr << "Minecraft 1.12.2 and lower is no longer supported, please update to 1.13+\n";
 		return 1;
 	}
 
@@ -547,7 +547,7 @@ int main(int argc, char **argv)
 				const unsigned int max = (HEIGHTAT(x, z) & 0xFF00) >> 8;
 				for (unsigned int y = int8_t(HEIGHTAT(x, z)); y < max; ++y) {
 					bmpPosY -= Global::OffsetY;
-					const uint16_t& c = BLOCKAT(x, y, z);
+					const StateID_t c = BLOCKAT(x, y, z);
 					if (c == AIR) {
 						continue;
 					}
@@ -587,7 +587,7 @@ int main(int argc, char **argv)
 
 					// Edge detection (this means where terrain goes 'down' and the side of the block is not visible)
 					if (y != 0) {
-						uint16_t &b = BLOCKAT(x - 1, y - 1, z - 1);
+						const StateID_t b = BLOCKAT(x - 1, y - 1, z - 1);
 						if ((y + 1 < Global::MapsizeY)  // In bounds?
 							&& BLOCKAT(x, y + 1, z) == AIR  // Only if block above is air
 							&& BLOCKAT(x - 1, y + 1, z - 1) == AIR  // and block above and behind is air
@@ -628,7 +628,7 @@ int main(int argc, char **argv)
 					const size_t bmpPosX = (Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX) - cropLeft;
 					size_t bmpPosY = Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY) - cropTop;
 					for (unsigned int y = 0; y < std::min(Global::MapsizeY, 64U); ++y) {
-						const uint16_t &c = BLOCKAT(x, y, z);
+						const StateID_t c = BLOCKAT(x, y, z);
 						if (c != AIR) { // If block is not air (colors[c][3] != 0)
 							draw::blendPixel(bmpPosX, bmpPosY, c, float(y + 30) * .0048f, pngWriter.get());
 						}
@@ -720,7 +720,7 @@ void optimizeTerrain()
 		for (size_t z = CHUNKSIZE_Z; z < maxZ; ++z) {
 			size_t highest = 0, lowest = 0xFF; // remember lowest and highest block which are visible to limit the Y-for-loop later
 			for (size_t y = 0; y < Global::MapsizeY; ++y) { // Go up
-				const uint16_t block = BLOCKAT(x, y, z); // Get the block at that point
+				const StateID_t block = BLOCKAT(x, y, z); // Get the block at that point
 
 				const size_t oldIndex = ((y + offsetY) % Global::MapsizeY) + (offsetZ % modZ);
 				//const size_t newIndex = fast_mod<size_t>(y + offsetY, Global::MapsizeY) + fast_mod(offsetZ, modZ);
@@ -768,7 +768,7 @@ size_t optimizeTerrainMulti(const size_t startX, const size_t startZ) {
 	while (x >= CHUNKSIZE_X && z >= CHUNKSIZE_Z) {
 		size_t highest = 0, lowest = 0xFF;
 		for (size_t y = 0; y < Global::MapsizeY; ++y) { // Go up
-			const uint16_t block = BLOCKAT(x, y, z);
+			const StateID_t block = BLOCKAT(x, y, z);
 			if (!blocked[(y + numMoves) % Global::MapsizeY]) {
 				const auto col = Global::colorMap[block];
 				if (block != AIR && lowest == 0xFF) { // if it's not air, this is the lowest block to draw
@@ -848,7 +848,7 @@ void undergroundMode(bool explore)
 			size_t ground = 0;
 			size_t cave = 0;
 			for (int y = Global::MapsizeY - 1; y >= 0; --y) {
-				uint16_t &c = BLOCKAT(x, y, z);
+				StateID_t c = BLOCKAT(x, y, z);
 				if (c != AIR && cave > 0) { // Found a cave, leave floor
 					if (helper::isGrass(c) || helper::isLeave(c) || helper::isSnow(c) || GETLIGHTAT(x, y, z) == 0) {
 						c = AIR; // But never count snow or leaves

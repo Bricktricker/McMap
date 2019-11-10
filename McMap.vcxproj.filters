@@ -33,9 +33,6 @@
     <ClInclude Include="nbt.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="pngreader.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="worldloader.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
@@ -87,9 +84,6 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="nbt.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="pngreader.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="worldloader.cpp">
