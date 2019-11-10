@@ -36,6 +36,8 @@ if not args.special is None:
 
 allBlocks = json.loads(open(blockFile).read())
 
+specialFuncs.cleanReport()
+
 outData = []
 
 def loadFileJSON(file):
@@ -85,6 +87,7 @@ def parseStr(inStr):
         out[s[0]] = s[1]
     return out
 
+#returns tuple (textureKey, blockType)
 def handleSpecialBlocks(model):
     if model == "block/grass_block":
         return ("top", 7)
@@ -96,6 +99,8 @@ def handleSpecialBlocks(model):
         return ("end", 0)
     if "fence" in model:
         return ("texture", 4)
+    if "_bars" in model:
+        return ("particle", 4)
     if model.endswith("_carpet"):
         return ("wool", 1)
     if "height" in model:
@@ -104,21 +109,32 @@ def handleSpecialBlocks(model):
         return ("texture", 1)
     if model.startswith("block/fire") and "coral" not in model:
         return ("fire", 8)
-    if model == "block/seagrass":
+    if "seagrass" in model:
         return ("seagrass", 3)
     if "vine" in model:
         return ("vine", 4)
+    if "pressure_plate" in model:
+        return ("texture", 1)
+    if "tripwire" in model:
+        return ("particle", 5)
+    if model == "block/stonecutter":
+        return ("top", 9)
+    if model.startswith("block/bamboo") and not "sapling" in model:
+        return ("particle", 2)
+    if model.startswith("block/campfire"):
+        return ("log", 9)
         
     return None
 
+#returns a triple (textureKey, blockType, isTinted)
 def getTextureFromModel(model):
     modelData = loadFileJSON("models/{}.json".format(model))
     textures = modelData["textures"]
     texture = ""
-    blockType = 0 #0 = SOLID, 1 = FLAT (Snow/Trapdor/Carpet), 2 = TORCH, 3 = FLOWER/PLANT, 4 = FENCE, 5 = WIRE, 6 = RAIL, 7 = GRASS, 8 = FIRE, 9 = SLAP bottom, 10 = SLAP top
+    blockType = 0 #0 = SOLID, 1 = FLAT (Snow/Trapdor/Carpet/Pressure plate), 2 = TORCH, 3 = FLOWER/PLANT, 4 = FENCE, 5 = WIRE, 6 = RAIL, 7 = GRASS, 8 = FIRE, 9 = SLAP bottom, 10 = SLAP top
     special = handleSpecialBlocks(model)
 
-    selection = ""
+    selection = "" # used texture
     if special is not None:
         texture = textures[special[0]]
         blockType = special[1]
@@ -163,14 +179,15 @@ def getTextureFromModel(model):
         elif 'particle' in textures:
             texture = textures['particle']
             selection = 'particle'
+        elif 'pane' in textures:
+            texture = textures['pane']
+            selection = 'pane'
         else:
             selection = list(textures.keys())[0]
             texture = textures[selection] #simply take first texture
-            #print("Take first texture for {}".format(model))
 
-    tint = False
     tint = isTinted(modelData, selection)
-    
+
     return (texture, blockType, tint)
 
 def getTextureFromState(textures, propOfState): #returns texture tuple for given state
@@ -201,8 +218,8 @@ def getTextures(block):
         print("Could not load:{}".format(block))
         return {}
 
+    #load multipart blocks
     if 'variants' not in blockStatesData:
-        #print("no variants in {}".format(block))
         if 'multipart' not in blockStatesData:
             return {}
         else:
@@ -251,6 +268,7 @@ for blockNameL, blockData in allBlocks.items():
         print("No texures for {}".format(blockName))
         continue
 
+    #simple block, not block properties
     if 'properties' not in blockData:
         if len(textures) > 1:
             print("{} has multiple textures but only one state".format(blockName))
@@ -260,7 +278,6 @@ for blockNameL, blockData in allBlocks.items():
         color = specialFuncs.calc(texture[0], jar, texture[2], csvPath) #calc rgba values for texture
         d = {"texture": texture[0], "from": state["id"], "to": state["id"], "blockType": texture[1], "color": color}
         outData.append(d)
-        printPercent(i, len(allBlocks))
 
     else: #multiple states
         for state in blockData["states"]:
@@ -269,8 +286,10 @@ for blockNameL, blockData in allBlocks.items():
             color = specialFuncs.calc(texture[0], jar, texture[2], csvPath) #calc rgba values for texture
             d = {"texture": texture[0], "from": state["id"], "to": state["id"], "blockType": texture[1], "color": color}
             outData.append(d)
-            printPercent(i, len(allBlocks))
 
+    printPercent(i, len(allBlocks))
+
+printPercent(1, 1)
 #remove duplicates
 print("\n")
 pos = 0
@@ -288,5 +307,4 @@ with open('../colors.json', 'w') as outfile:
     json.dump(outData, outfile)
     print("written {} colors successfully".format(len(outData)))
 
-specialFuncs.cleanReport()
 

@@ -179,8 +179,14 @@ namespace terrain {
 			return false; // Nope, its not...
 		}
 
+		//Check for version > 1.12.2
 		if (dataVersion > 1343) {
-			std::string status; //can be: empty, base, carved, liquid_carved, decorated, lighted, mobs_spawned, finalized, fullchunk, postprocessed
+			/*
+			1.13.x status types: empty, base, carved, liquid_carved, decorated, lighted, mobs_spawned, finalized, fullchunk, postprocessed
+			1.14.x status types: empty, structure_starts, structure_references, biomes, noise, surface, carvers, liquid_carvers, features, light, spawn, heightmaps, full
+			*/
+
+			std::string status;
 			if (!level->getString("Status", status)) {
 				std::cerr << "could not find Status in Chunk\n";
 				return false;
@@ -190,10 +196,13 @@ namespace terrain {
 				if (status != "empty") {
 					return load113Chunk(level, chunkX, chunkZ);
 				}
-			}
-			else {
-				if (status >= "finalized" && status != "liquid_carved") {
-					return load113Chunk(level, chunkX, chunkZ);
+			}else {
+				if (dataVersion > 1631) { //1.13.2
+					return load113Chunk(level, chunkX, chunkZ); //try to load them in 1.14.x 
+				}else {
+					if (status >= "finalized" && status != "liquid_carved") {
+						return load113Chunk(level, chunkX, chunkZ);
+					}
 				}
 			}
 			return false;
@@ -202,6 +211,7 @@ namespace terrain {
 		}
 	}
 
+	//loads chunks for MC version 1.12.x and lower
 	bool loadAnvilChunk(NBT_Tag * const level, const int32_t chunkX, const int32_t chunkZ) {
 		PrimArray<uint8_t> blockdata, lightdata, skydata, justData, addData;
 		size_t len, yoffset, yoffsetsomething = (Global::MapminY + SECTION_Y * 10000) % SECTION_Y;
@@ -337,17 +347,19 @@ namespace terrain {
 
 	bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ) {
 		std::list<NBT_Tag*> sections;
-		if (!level->getList("Sections", sections) || sections.empty()) {
+		if (!level->getList("Sections", sections)) {
 			std::cerr << "No sections found in region\n";
 			return false;
 		}
+		if (sections.empty())
+			return false;
 
 		const int offsetz = (chunkZ - Global::FromChunkZ) * CHUNKSIZE_Z; //Blocks into world, from lowest point
 		const int offsetx = (chunkX - Global::FromChunkX) * CHUNKSIZE_X; //Blocks into world, from lowest point
 		const size_t yoffsetsomething = (Global::MapminY + SECTION_Y * 10000) % SECTION_Y;
 		assert(yoffsetsomething == 0); //I don't now what this variable does. Always 0
 
-		for (const auto sec : sections) { //auto secItr = sections->begin(); secItr != sections->end(); secItr++
+		for (const auto sec : sections) {
 			int8_t yo = -1;
 			if(!sec->getByte("Y", yo)){
 				std::cerr << "Y-Offset not found in section\n";
@@ -360,7 +372,6 @@ namespace terrain {
 
 			PrimArray<int64_t> blockStatesPrim;
 			if(!sec->getLongArray("BlockStates", blockStatesPrim)) {
-				std::cerr << "No blockStates in sub-Chunk\n";
 				continue;
 			}
 			std::vector<uint64_t> blockStates((uint64_t*)blockStatesPrim._data, (uint64_t*)blockStatesPrim._data + blockStatesPrim._len);
@@ -368,23 +379,29 @@ namespace terrain {
 			PrimArray<uint8_t> lightdata;
 			if (Global::settings.nightmode || Global::settings.skylight) { // If nightmode, we need the light information too
 				bool ok = sec->getByteArray("BlockLight", lightdata);
+				if (ok && lightdata._len == 0)
+					continue;
+
 				if (!ok || lightdata._len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
 					std::cerr << "No block light\n";
-					return false;
+					continue;
 				}
 			}
 
 			PrimArray<uint8_t> skydata;
-			if (Global::settings.skylight) { // Skylight desired - wish granted?
+			if (Global::settings.skylight) { // Skylight desired
 				bool ok = sec->getByteArray("SkyLight", skydata);
+				if (ok && skydata._len == 0)
+					continue;
+
 				if (!ok || skydata._len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
-					return false;
+					std::cerr << "No Sky light";
+					continue;
 				}
 			}
 
 			std::list<NBT_Tag*> palette;
 			if (!sec->getList("Palette", palette)) {
-				std::cerr << "No Palette in sub-Chunk\n";
 				continue;
 			}
 			std::vector<StateID_t> idList;
@@ -431,7 +448,7 @@ namespace terrain {
 							blockID = tree.get(stateValues);
 						}
 						catch (std::out_of_range&) {
-							std::cerr << "Loaded blockstates for " << blockName <<" differ from defined blockstates in your BlockIDs.json file\n";
+							std::cerr << "Loaded blockstates for " << blockName << " differ from defined blockstates in your BlockIDs.json file\n";
 						}
 					}
 

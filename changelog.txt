@@ -1,6 +1,9 @@
 mcmap3 changelog
 Latest version is available at: https://github.com/Bricktricker/McMap/
 ------------------------------------------------------
+beta 3.0.7 (not released)
+- added support for minecraft 1.14.4
+
 beta 3.0.6 (sep 22 2018)
 - added -connGrass option
 - added multithreading support for terrain loading and optimization

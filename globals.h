@@ -76,7 +76,7 @@ public:
 
 	static std::array<std::vector<std::pair<StateID_t, StateID_t>>, SpecialBlocks::NUM_SPECIALBLOCKS> specialBlockMap; //BlockType -> StateID range -> (min, max)
 
-	static int8_t sectionMin, sectionMax; //No idea
+	static int8_t sectionMin, sectionMax; //Section borders, 1 Section are 16x16x16 Blocks, values for block height
 	static uint8_t mystCraftAge;
 
 	static std::unique_ptr<ThreadPool> threadPool;

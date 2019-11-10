@@ -5,6 +5,7 @@ block/spruce_leaves;44;84;44;160;20;0
 block/birch_leaves;85;124;60;170;11;0
 block/dark_oak_leaves;29;110;15;180;0;0
 block/jungle_leaves;44;135;50;175;11;0
+block/acacia_leaves;59;148;43;170;11;0
 block/glass;255;255;255;40;0;0
 block/torch;245;220;50;200;0;2
 block/dandelion;250;250;0;254;0;3
@@ -14,3 +15,4 @@ block/blue_orchid;27;184;189;254;0;3
 block/orange_tulip;161;79;19;254;0;3
 block/pink_tulip;174;142;174;254;0;3
 block/red_tulip;197;45;10;254;0;3
+item/barrier;0;0;0;0;0;0

@@ -31,16 +31,17 @@ def genReport(jar, lib):
         libPath = lib
     
     deps = []
-    deps.append("net/sf/jopt-simple/jopt-simple/5.0.3/jopt-simple-5.0.3.jar")
-    deps.append("org/apache/logging/log4j/log4j-core/2.8.1/log4j-core-2.8.1.jar")
-    deps.append("org/apache/logging/log4j/log4j-api/2.8.1/log4j-api-2.8.1.jar")
-    deps.append("com/mojang/brigadier/1.0.14/brigadier-1.0.14.jar")
+    deps.append("net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar")
+    deps.append("org/apache/logging/log4j/log4j-core/2.11.2/log4j-core-2.11.2.jar")
+    deps.append("org/apache/logging/log4j/log4j-api/2.11.2/log4j-api-2.11.2.jar")
+    deps.append("com/mojang/brigadier/1.0.17/brigadier-1.0.17.jar")
+    deps.append("com/mojang/javabridge/1.0.22/javabridge-1.0.22.jar")
     deps.append("com/google/code/gson/gson/2.8.0/gson-2.8.0.jar")
     deps.append("com/google/guava/guava/21.0/guava-21.0.jar")
     deps.append("it/unimi/dsi/fastutil/8.2.1/fastutil-8.2.1.jar")
     deps.append("org/apache/commons/commons-lang3/3.5/commons-lang3-3.5.jar")
     deps.append("io/netty/netty-all/4.1.25.Final/netty-all-4.1.25.Final.jar")
-    deps.append("com/mojang/datafixerupper/1.0.21/datafixerupper-1.0.21.jar")
+    deps.append("com/mojang/datafixerupper/2.0.24/datafixerupper-2.0.24.jar")
     #Below are deps to remove errors
     deps.append("com/mojang/authlib/1.5.25/authlib-1.5.25.jar")
     deps.append("commons-io/commons-io/2.5/commons-io-2.5.jar")
@@ -62,7 +63,7 @@ cache = {}
 def tint_image(image, tint_color):
     return ImageChops.multiply(image, Image.new('RGBA', image.size, tint_color))
 
-def calcRGBA(img, glass):
+def calcRGBA(img):
     mode = img.mode
     width, height = img.size
     r = 0
@@ -76,7 +77,7 @@ def calcRGBA(img, glass):
         for x in range(0, minSize):
             for y in range(0, minSize):
                 TmpR, TmpG, TmpB, TmpA = img.getpixel((x, y))
-                if TmpA == 0 and not glass:
+                if TmpA == 0:
                     n -= 1
                 else:
                     r += TmpR
@@ -109,7 +110,7 @@ def calcRGBA(img, glass):
 
         if n < minSize * minSize:
             a = max(a, 254)
-
+    
     return r, g, b, a, noise
 
 
@@ -140,10 +141,12 @@ def calc(texture, jar, tint, csvFile):
         img = img.convert("RGBA")
         if "block/water_" in texture:
             img = tint_image(img, (40,93,255,255))
+        elif "block/redstone_dust_" in texture:
+            img = tint_image(img, (255,51,0,255)) #on: (255,51,0,255) off: (76,0,0,255)
         elif tint:
             img = tint_image(img, (102, 255, 76)) 
         
-        r, g, b, a, n = calcRGBA(img, "glass" in texture)
+        r, g, b, a, n = calcRGBA(img)
         col = {"r": r, "g": g, "b": b, "a": a, "n": n}
     
         if "block/water_" in texture:
