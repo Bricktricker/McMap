@@ -24,26 +24,9 @@ void buildTree(std::vector<std::string>& strVec, const json jState, Tree<std::st
 	}
 }
 
-bool loadBlockTree(const std::string& path)
+bool loadBlockTree(const json& blocks)
 {
-	json jData;
-	try {
-		std::ifstream i(path);
-		if (i.fail()) {
-			std::cerr << "Could not open " << path << '\n';
-			return false;
-		}
-
-		i >> jData;
-		i.close();
-	}
-	catch (const nlohmann::json::parse_error& e) {
-		std::cerr << e.what() << std::endl;
-		return false;
-	}
-
-	const json allBlocks = jData["allBlocks"];
-	for (auto block = allBlocks.begin(); block != allBlocks.end(); ++block) {
+	for (auto block = blocks.begin(); block != blocks.end(); ++block) {
 		const std::string name = block.key();
 		Tree<std::string, StateID_t> tree;
 		
@@ -62,47 +45,10 @@ bool loadBlockTree(const std::string& path)
 		Global::blockTree[name] = tree;
 	}
 
-	//load special block ids
-	const json specialBlocks = jData["specialBlocks"];
-	for (auto block = specialBlocks.begin(); block != specialBlocks.end(); ++block) {
-		SpecialBlocks blockEnum;
-		const std::string blockStr = block.key();
-		if (blockStr == "grass_block") {
-			blockEnum = SpecialBlocks::GRASS_BLOCK;
-		}
-		else if (blockStr == "water") {
-			blockEnum = SpecialBlocks::WATER;
-		}
-		else if (blockStr == "lava") {
-			blockEnum = SpecialBlocks::LAVA;
-		}
-		else if (blockStr == "leaves") {
-			blockEnum = SpecialBlocks::LEAVES;
-		}
-		else if (blockStr == "torch") {
-			blockEnum = SpecialBlocks::TORCH;
-		}
-		else if (blockStr == "snow") {
-			blockEnum = SpecialBlocks::SNOW;
-		}
-		else {
-			std::cerr << "Error loading BlockID.json file";
-			return false;
-		}
-
-		std::vector<std::pair<StateID_t, StateID_t>> ranges;
-		for (auto range : block.value()) {
-			const StateID_t minID = range["min"];
-			const StateID_t maxID = range["max"];
-			ranges.emplace_back(minID, maxID);
-		}
-		Global::specialBlockMap[blockEnum] = ranges;
-	}
-
 	return true;
 }
 
-bool loadColorMap(const std::string& path)
+bool loadColors(const std::string& path)
 {
 	json jData;
 	try {
@@ -120,34 +66,64 @@ bool loadColorMap(const std::string& path)
 		return false;
 	}
 
-	for (const auto& col : jData) {
-		StateID_t from = col["from"];
-		StateID_t to = col["to"];
-		const json color = col["color"];
-		Channel r, g, b, a;
-		uint8_t noise, blockType;
-		r = color["r"];
-		g = color["g"];
-		b = color["b"];
-		a = color["a"];
-		noise = color["n"];
-		blockType = col["blockType"];
-		uint8_t brightness = (uint8_t)sqrt(double(r) *  double(r) * .236 + double(g) *  double(g) * .601 + double(b) * double(b) * .163);
-
-		Color_t finalCol{ r, g, b, a, noise, brightness, blockType };
-		Global::colorMap.insert(from, to, finalCol);
+	if (!loadBlockTree(jData["blocks"])) {
+		return false;
 	}
-	Color_t finalCol{ 0, 0, 0, 0, 0, 0, 0 };
-	Global::colorMap.insert(0, 0, finalCol);
 
-	Global::colorMap.balance();
+	const json& models = jData["models"];
+	Global::colorMap.reserve(models.size() + 1);
+	Global::colorMap.emplace_back(0, false, ColorArray{}); // add air to list
 
-	//cachecontent: Air, Stone, Grass, Dirt, Water 
-	Global::colorMap.addToCache(0, 0);
-	Global::colorMap.addToCache(1, 1);
-	Global::colorMap.addToCache(2, 9);
-	Global::colorMap.addToCache(3, 10);
-	Global::colorMap.addToCache(4, 34);
+	for (const auto& model : models) {
+		const uint64_t drawMode = model["drawMode"];
+		const bool isSolidBlock = model["solidBlock"];
+		ColorArray colors;
+
+		const json& jColors = model["colors"];
+		for (const auto col : jColors) {
+			const Channel r = col["r"];
+			const Channel g = col["g"];
+			const Channel b = col["b"];
+			const Channel a = col["a"];
+			const uint8_t n = col["n"];
+			const uint8_t brightness = (uint8_t)sqrt(double(r) *  double(r) * .236 + double(g) *  double(g) * .601 + double(b) * double(b) * .163);
+			colors.addColor(Color_t{ r, g, b, a, n, brightness });
+		}
+
+		Global::colorMap.emplace_back(drawMode, isSolidBlock, colors);
+	}
+
+	//load special block ids
+	const json tags = jData["tags"];
+	for (auto tag = tags.begin(); tag != tags.end(); ++tag) {
+		SpecialBlocks blockEnum;
+		const std::string tagName = tag.key();
+		if (tagName == "leaves") {
+			blockEnum = SpecialBlocks::LEAVES;
+		}
+		else if (tagName == "water") {
+			blockEnum = SpecialBlocks::WATER;
+		}
+		else if (tagName == "lava") {
+			blockEnum = SpecialBlocks::LAVA;
+		}
+		else if (tagName == "torches") {
+			blockEnum = SpecialBlocks::TORCH;
+		}
+		else if (tagName == "snow") {
+			blockEnum = SpecialBlocks::SNOW;
+		}
+		else if (tagName == "grass_block") {
+			blockEnum = SpecialBlocks::GRASS_BLOCK;
+		}
+		else {
+			std::cerr << "Warning: unknown tag " << tagName << " in colors file\n";
+			continue;
+		}
+
+		const json items = tag.value();
+		Global::specialBlockMap[blockEnum] = std::vector<StateID_t>(items.begin(), items.end());
+	}
 
 	return true;
 }

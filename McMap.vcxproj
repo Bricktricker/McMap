@@ -177,7 +177,6 @@
     <ClInclude Include="json.hpp" />
     <ClInclude Include="nbt.h" />
     <ClInclude Include="PNGWriter.h" />
-    <ClInclude Include="RangeMap.h" />
     <ClInclude Include="ThreadPool.h" />
     <ClInclude Include="CachedPNGWriter.h" />
     <ClInclude Include="CachedTiledPNGWriter.h" />

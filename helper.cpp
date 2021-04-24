@@ -61,15 +61,4 @@ namespace helper {
 		return elems;
 	}
 
-	//Fuctions to determinate certain blocks
-	bool inRange(const SpecialBlocks blockType, const StateID_t bID){
-		const auto& ranges = Global::specialBlockMap[blockType];
-		for (const auto range : ranges) {
-			if (bID >= range.first && bID <= range.second) {
-				return true;
-			}
-		}
-
-		return false;
-	}
 }

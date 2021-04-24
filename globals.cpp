@@ -14,9 +14,9 @@ std::vector<uint8_t> Global::light;
 std::vector<uint16_t> Global::heightMap;
 
 std::unordered_map<std::string, Tree<std::string, StateID_t>> Global::blockTree;
-RangeMap<StateID_t, Color_t> Global::colorMap;
+std::vector<Model_t> Global::colorMap;
 
-std::array<std::vector<std::pair<StateID_t, StateID_t>>, SpecialBlocks::NUM_SPECIALBLOCKS> Global::specialBlockMap;
+std::array<std::vector<StateID_t>, SpecialBlocks::NUM_SPECIALBLOCKS> Global::specialBlockMap;
 
 int8_t Global::sectionMin, Global::sectionMax;
 uint8_t Global::mystCraftAge = 0U;

@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 		return 0;
 	}
 	bool wholeworld = false;
-	std::string filename, outfile, tilePath, colorfile, blockfile, infoFile;
+	std::string filename, outfile, tilePath, colorfile, infoFile;
 	bool infoOnly = false;
 	double scaleImage = 1.0;
 
@@ -173,13 +173,6 @@ int main(int argc, char **argv)
 					return 1;
 				}
 				colorfile = NEXTARG;
-			}
-			else if (option == "-blocks") {
-				if (!MOREARGS(1)) {
-					std::cerr << "Error: -blocks needs one argument, ie: -blocks BlockIds.json\n";
-					return 1;
-				}
-				blockfile = NEXTARG;
 			}else if(option == "-threads") {
 				if (!MOREARGS(1) || !helper::isNumeric(POLLARG(1)) || atoi(POLLARG(1)) <= 1) {
 					std::cerr << "Error: " << option << " needs a positive integer argument, ie: " << option << " 4\n";
@@ -267,7 +260,7 @@ int main(int argc, char **argv)
 	// ########## end of command line parsing ##########
 	//if (Global::settings.hell || Global::settings.serverHell || Global::settings.end) Global::useBiomes = false;
 
-	std::cout << "mcmap " << VERSION << ' ' << NUM_BITS << "bit by Zahl & mcmap3 by WRIM & 1.13 support by Philipp\n";
+	std::cout << "mcmap " << VERSION << ' ' << NUM_BITS << "bit by Zahl & mcmap3 by WRIM & 1.13 support by Bricktricker\n";
 
 #if NUM_BITS == 32
 	if (memlimit > 1800 * uint64_t(1024 * 1024)) {
@@ -281,17 +274,10 @@ int main(int argc, char **argv)
 	}
 
 	// Load colors
-	if (blockfile.empty()) {
-		blockfile = "BlockIDs.json";
-	}
-	if (!loadBlockTree(blockfile)) {
-		return 1;
-	}
-
 	if (colorfile.empty()) {
 		colorfile = "colors.json";
 	}
-	if (!loadColorMap(colorfile)) {
+	if (!loadColors(colorfile)) {
 		return 1;
 	}
 
@@ -736,7 +722,7 @@ void optimizeTerrain()
 					if (block != AIR && lowest == 0xFF) { // if it's not air, this is the lowest block to draw
 						lowest = y;
 					}
-					if (col.a == 255 && (col.blockType == 0 || col.blockType == 7)) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration (orig. just checking for alpha value, need to remove white spots behind fences)
+					if (col.isSolidBlock) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration (orig. just checking for alpha value, need to remove white spots behind fences)
 						current = true;
 					}
 					if (block != AIR) highest = y; // if it's not air, it's the new highest block encountered so far
@@ -774,7 +760,7 @@ size_t optimizeTerrainMulti(const size_t startX, const size_t startZ) {
 				if (block != AIR && lowest == 0xFF) { // if it's not air, this is the lowest block to draw
 					lowest = y;
 				}
-				if (col.a == 255 && (col.blockType == 0 || col.blockType == 7)) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration (orig. just checking for alpha value, need to remove white spots behind fences)
+				if (col.isSolidBlock) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration (orig. just checking for alpha value, need to remove white spots behind fences)
 					blocked[(y + numMoves) % Global::MapsizeY] = true;
 				}
 				if (block != AIR) highest = y;
@@ -1026,7 +1012,6 @@ void printHelp(const std::string& binary)
 		<< "                will use incremental rendering or disk caching to stick to\n"
 		<< "                this limit. Default is 1800.\n"
 		<< "  -colors NAME  loads user defined colors from file 'NAME'\n"
-		<< "  -blocks NAME  loads user defined block ids from file 'NAME'\n"
 		<< "  -threads VAL  uses VAL number of threads to load and optimize the world\n"
 		<< "                uses this with a high mem limit for best performance\n"
 		<< "  -north -east -south -west\n"

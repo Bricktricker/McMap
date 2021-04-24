@@ -1,6 +1,8 @@
 #ifndef _DEFINES_
 #define _DEFINES_
 #include <cstdint>
+#include <cassert>
+#include <array>
 
 // Just in case these ever change
 #define CHUNKSIZE_Z 16
@@ -49,6 +51,7 @@
 
 //Data structures for color
 using Channel = uint8_t;
+using StateID_t = uint16_t;
 struct Pixel
 {
 	Channel r, g, b, a;
@@ -58,18 +61,46 @@ static_assert(sizeof(Channel) * 4 == sizeof(Pixel), "Ups!");
 
 struct Color_t {
 	Channel r, g, b, a;
-	uint8_t noise, brightness, blockType;
+	uint8_t noise, brightness;
 
 	Color_t()
-		: r(0), g(0), b(0), a(0), noise(0), brightness(0), blockType(0)
+		: r(0), g(0), b(0), a(0), noise(0), brightness(0)
 	{}
 
-	Color_t(const Channel _r, const Channel _g, const Channel _b, const Channel _a, const Channel _n, const Channel _bright, const Channel _bType)
-		: r(_r), g(_g), b(_b), a(_a), noise(_n), brightness(_bright), blockType(_bType)
+	Color_t(const Channel _r, const Channel _g, const Channel _b, const Channel _a, const uint8_t _n, const uint8_t _bright)
+		: r(_r), g(_g), b(_b), a(_a), noise(_n), brightness(_bright)
 	{}
 
 };
 
-using StateID_t = uint16_t;
+struct ColorArray {
+	std::array<Color_t, 2> colors;
+	StateID_t length;
+
+	ColorArray()
+		: colors(), length(0)
+	{}
+
+	void addColor(const Color_t& color) {
+		assert(length < colors.size());
+		colors[length++] = color;
+	}
+
+	const Color_t& operator[](const size_t index) const {
+		assert(index < length);
+		return colors[index];
+	}
+
+};
+
+struct Model_t {
+	const uint64_t drawMode;
+	const bool isSolidBlock;
+	ColorArray colors;
+
+	Model_t(const uint64_t _drawMode, const bool _isFullBlock, const ColorArray& _colors)
+		: drawMode(_drawMode), isSolidBlock(_isFullBlock), colors(_colors)
+	{}
+};
 
 #endif // !_DEFINES_

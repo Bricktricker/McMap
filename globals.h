@@ -9,7 +9,6 @@
 #include <unordered_map>
 #include "defines.h"
 #include "ThreadPool.h"
-#include "RangeMap.h"
 #include "Tree.h"
 
 enum Orientation {
@@ -32,12 +31,12 @@ enum WorldFormat {
 };
 
 enum SpecialBlocks {
-	GRASS_BLOCK,
+	LEAVES,
 	WATER,
 	LAVA,
-	LEAVES,
 	TORCH,
 	SNOW,
+	GRASS_BLOCK,
 	NUM_SPECIALBLOCKS
 };
 
@@ -71,9 +70,9 @@ public:
 	static std::vector<uint16_t> heightMap; // 2D array to store min and max block height per X/Z - it's 2 bytes per index, upper for highest, lower for lowest (don't ask!)
 
 	static std::unordered_map<std::string, Tree<std::string, StateID_t>> blockTree; //Maps blockState to id
-	static RangeMap<StateID_t, Color_t> colorMap; //maps id to color_t
+	static std::vector<Model_t> colorMap; //maps id to color_t
 
-	static std::array<std::vector<std::pair<StateID_t, StateID_t>>, SpecialBlocks::NUM_SPECIALBLOCKS> specialBlockMap; //BlockType -> StateID range -> (min, max)
+	static std::array<std::vector<StateID_t>, SpecialBlocks::NUM_SPECIALBLOCKS> specialBlockMap; //BlockType -> list of stateIds of that BlockType
 
 	static int8_t sectionMin, sectionMax; //Section borders, 1 Section are 16x16x16 Blocks, values for block height
 	static uint8_t mystCraftAge;

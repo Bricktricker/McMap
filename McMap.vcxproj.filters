@@ -39,9 +39,6 @@
     <ClInclude Include="json.hpp">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="RangeMap.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="Tree.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>

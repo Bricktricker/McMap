@@ -285,7 +285,7 @@ namespace terrain {
 				}
 
 				if (Global::blockTree.find(blockName) == Global::blockTree.end()) {
-					std::cerr << blockName << " is missing in your BlockIDs.json file!\n";
+					std::cerr << blockName << " is missing in your colors file!\n";
 					idList.push_back(0);
 					continue;
 				}
@@ -302,26 +302,19 @@ namespace terrain {
 					for (const auto& item : order) {
 						std::string s;
 						if (!property->getString(item, s)) {
-							if (item == "waterlogged") {
-								s = "false";
-							}else {
-								//Leave it in, but never occurred for me
-								std::cerr << blockName << ':' << item << "-state not in tree\n";
-								stateValues.clear();
-								blockID = 0;
-								break;
-							}
+							std::cerr << "blockstate " << item << " does not exist for block " << blockName << '\n';
+							stateValues.clear();
+							blockID = 0;
+							break;
 						}
 						stateValues.push_back(s);
 					}
 
-					if (!stateValues.empty()) {
-						try {
-							blockID = tree.get(stateValues);
-						}
-						catch (std::out_of_range&) {
-							std::cerr << "Loaded blockstates for " << blockName << " differ from defined blockstates in your BlockIDs.json file\n";
-						}
+					try {
+						blockID = tree.get(stateValues);
+					}
+					catch (std::out_of_range&) {
+						std::cerr << "Loaded blockstates for " << blockName << " differ from defined blockstates in your colors file\n";
 					}
 
 				}else{

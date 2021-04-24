@@ -1,6 +1,6 @@
 # own gitignore
 cache/
-Utilities/__pycache__
+colorgenerator/.vscode
 output.png
 
 # Created by https://www.gitignore.io/api/c++,windows,visualstudio

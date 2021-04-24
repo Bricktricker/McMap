@@ -80,30 +80,33 @@ namespace helper {
 	std::vector<std::string> strSplit(const std::string &s, char delim);
 
 	//Fuctions to determinate certain blocks
-	bool inRange(const SpecialBlocks blockType, const StateID_t bID);
+	inline bool isSpecialBlock(const SpecialBlocks blockType, const StateID_t bID) {
+		const auto& vec = Global::specialBlockMap[blockType];
+		return std::find(vec.begin(), vec.end(), bID) != vec.end();
+	}
 
 	inline bool isGrass(const StateID_t bID){
-		return inRange(SpecialBlocks::GRASS_BLOCK, bID);
+		return isSpecialBlock(SpecialBlocks::GRASS_BLOCK, bID);
 	}
 
 	inline bool isWater(const StateID_t bID){
-		return inRange(SpecialBlocks::WATER, bID);
+		return isSpecialBlock(SpecialBlocks::WATER, bID);
 	}
 
 	inline bool isLava(const StateID_t bID){
-		return inRange(SpecialBlocks::LAVA, bID);
+		return isSpecialBlock(SpecialBlocks::LAVA, bID);
 	}
 
 	inline bool isLeave(const StateID_t bID){
-		return inRange(SpecialBlocks::LEAVES, bID);
+		return isSpecialBlock(SpecialBlocks::LEAVES, bID);
 	}
 
 	inline bool isTorch(const StateID_t bID){
-		return inRange(SpecialBlocks::TORCH, bID);
+		return isSpecialBlock(SpecialBlocks::TORCH, bID);
 	}
 
 	inline bool isSnow(const StateID_t bID){
-		return inRange(SpecialBlocks::SNOW, bID);
+		return isSpecialBlock(SpecialBlocks::SNOW, bID);
 	}
 }
 #endif
