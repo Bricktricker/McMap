@@ -64,6 +64,7 @@ def main():
     parser.add_argument('-g', '--gamedir', help='Path to Minecraft install folder, if not installed in default folder', required=False)
     parser.add_argument('-v', '--version', help='Minecraft version', required=True)
     parser.add_argument('-cg', '--connectedGrass', help='Makes the grass block have grass on the sides', required=False, default=False, action="store_true")
+    parser.add_argument('-t', '--threads', help='Number of threads to use to generate the colors', required=False, default=1, type=int)
     args = parser.parse_args()
 
     # get gamedir if not set by user
@@ -80,8 +81,8 @@ def main():
     print("Generate Blockstates...")
     blocks = blockIDs.getBlockstates(report["report"])
 
-    print("Generate colors...")
-    models = textureGen.genTextureColors(os.path.join(args.gamedir, "versions", args.version, args.version + ".jar"), report["report"])
+    print("Generate colors... (This may take a while)")
+    models = textureGen.genTextureColors(os.path.join(args.gamedir, "versions", args.version, args.version + ".jar"), report["report"], args.threads)
 
     if args.connectedGrass:
         grassBlockId = blocks["minecraft:grass_block"]["states"]["false"] #select non snowy version

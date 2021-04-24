@@ -2,39 +2,39 @@ import zipfile
 import json
 import re
 import sys
+from multiprocessing import Pool
 from PIL import Image, ImageChops
 
 from cube import Cube, Model
-
-def printPercent(val, maxVal):
-    sys.stdout.write('\r')
-    per = (val/maxVal)*100
-    per = round(per, 2)
-    sys.stdout.write("({}%)  ".format(per))
-    sys.stdout.flush()
 
 # initial called function to generate the color list
 # iterates over all blocks and generates a color for each model
 # jar arg: the path to the used [version].jar, which contains the blockstate json files, model json files and the textures
 # report arg: the generated block report from the --reports data run
 # returns a list of dict containing a 'colors' list of one or two colors, an 'id', a 'drawMode' and a 'solidBlock' boolean
-def genTextureColors(jar, report):
+def genTextureColors(jar, report, numThreads):
     colors = []
-    i = 0
-    for blockName, blockVals in report.items():
-        i += 1
-        printPercent(i, len(report))
-        if blockName == "minecraft:air" or blockName == "minecraft:void_air" or blockName == "minecraft:cave_air":
-            continue
-
-        color = genColor(jar, blockName, blockVals)
-        for c in color:
-            if c["solidBlock"]:
-                for x in c["colors"]:
-                    c["solidBlock"] &= x["a"] >= 255
-        colors.extend(color)
-    print("")
+    reportItems = report.items()
+    args = zip([jar] * len(reportItems), reportItems)
+    with Pool(numThreads) as p:
+        results = p.starmap(genTextureColor, args)
+        for c in results:
+            colors.extend(c)
     return colors
+
+# generates the color and sets the "solidBlock" flag if needed
+# returns a list off all colors for this block
+def genTextureColor(jar, arg):
+    (blockName, blockVals) = arg
+    if blockName == "minecraft:air" or blockName == "minecraft:void_air" or blockName == "minecraft:cave_air":
+        return []
+
+    color = genColor(jar, blockName, blockVals)
+    for c in color:
+        if c["solidBlock"]:
+            for x in c["colors"]:
+                c["solidBlock"] &= x["a"] >= 255
+    return color
 
 # removes the "minecraft" namespace part from the name
 def removeNamespace(name):
@@ -92,6 +92,7 @@ def genColor(jar, blockName, blockVals):
                 texturesMap[varName].append(t)
             drawModeMap[varName] = getDrawMode(jar, model, texturesMap[varName])
 
+    ret = []
     if "properties" not in blockVals:
         #simple block, no states
         assert len(texturesMap) == 1
@@ -99,7 +100,7 @@ def genColor(jar, blockName, blockVals):
         key = list(texturesMap.keys())[0]
         texture = texturesMap[key]
         drawTuple = drawModeMap[key]
-        return [{"colors": texture, "id": state["id"], "drawMode": drawTuple[0], "solidBlock": drawTuple[1]}]
+        ret.append({"colors": texture, "id": state["id"], "drawMode": drawTuple[0], "solidBlock": drawTuple[1]})
     else:
         ret = []
         for state in blockVals["states"]:
@@ -107,8 +108,15 @@ def genColor(jar, blockName, blockVals):
             texture = getTextureFromState(texturesMap, propOfState)
             drawTuple = getTextureFromState(drawModeMap, propOfState)
             ret.append({"colors": texture, "id": state["id"], "drawMode": drawTuple[0], "solidBlock": drawTuple[1]})
-        
-        return ret
+
+    #add namespace to rl if its missing
+    for colors in ret:
+        for color in colors["colors"]:
+            name = color["rl"]
+            if not name.startswith("minecraft:"):
+                color["rl"] = "minecraft:" + color["rl"]
+
+    return ret
 
 # findes the right texture from the textureMap, that fits the given blockstate
 # texturesMap arg: a dict, mapping a block state (e.g. 'snowy=false') to a texture list
