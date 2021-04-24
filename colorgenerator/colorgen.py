@@ -63,6 +63,7 @@ def main():
     parser = argparse.ArgumentParser(description='Generate colors.json')
     parser.add_argument('-g', '--gamedir', help='Path to Minecraft install folder, if not installed in default folder', required=False)
     parser.add_argument('-v', '--version', help='Minecraft version', required=True)
+    parser.add_argument('-cg', '--connectedGrass', help='Makes the grass block have grass on the sides', required=False, default=False, action="store_true")
     args = parser.parse_args()
 
     # get gamedir if not set by user
@@ -81,6 +82,13 @@ def main():
 
     print("Generate colors...")
     models = textureGen.genTextureColors(os.path.join(args.gamedir, "versions", args.version, args.version + ".jar"), report["report"])
+
+    if args.connectedGrass:
+        grassBlockId = blocks["minecraft:grass_block"]["states"]["false"] #select non snowy version
+        for i in range(len(models)):
+            if models[i]["id"] == grassBlockId:
+                models[i]["colors"][1] = models[i]["colors"][0]
+                break
 
     # remove duplicate colors
     print("cleanup colors...")

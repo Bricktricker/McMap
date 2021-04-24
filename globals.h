@@ -50,7 +50,6 @@ struct Settings {
 	bool blendAll; // If set, do not assume certain blocks (like grass) are always opaque
 	bool hell, serverHell; // rendering the nether
 	bool end; //rendering the End
-	bool connGrass; //use connected textures for gras rendering
 };
 
 class Global

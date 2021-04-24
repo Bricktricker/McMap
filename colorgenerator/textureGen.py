@@ -33,7 +33,7 @@ def genTextureColors(jar, report):
                 for x in c["colors"]:
                     c["solidBlock"] &= x["a"] >= 255
         colors.extend(color)
-    print("\n")
+    print("")
     return colors
 
 # removes the "minecraft" namespace part from the name
