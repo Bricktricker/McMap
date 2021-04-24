@@ -30,6 +30,14 @@ enum TagType {
 
 template<typename T>
 struct PrimArray {
+	PrimArray()
+		: _data(nullptr), _len(0)
+	{}
+
+	PrimArray(T const * data, const size_t len)
+		: _data(data), _len(len)
+	{}
+
 	T const * _data;
 	size_t _len; //len in number of T's in _data;
 };

@@ -21,9 +21,9 @@ namespace {
 }
 
 namespace terrain {
-	size_t getPalletIndex(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne);
+	size_t getPalletIndex(const std::vector<uint64_t>& arr, const size_t index, const bool denselyPacked);
 	bool loadChunk(const std::vector<uint8_t>& buffer);
-	bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ);
+	bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ, const size_t dataVersion);
 	void allocateTerrain();
 	bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks);
 	inline void lightCave(const int x, const int y, const int z);
@@ -193,14 +193,14 @@ namespace terrain {
 			//Check if we use light
 			if (Global::light.empty()) {
 				if (status != "empty") {
-					return load113Chunk(level, chunkX, chunkZ);
+					return load113Chunk(level, chunkX, chunkZ, dataVersion);
 				}
 			}else {
 				if (dataVersion > 1631) { //1.13.2
-					return load113Chunk(level, chunkX, chunkZ); //try to load them in 1.14.x 
+					return load113Chunk(level, chunkX, chunkZ, dataVersion); //try to load them in 1.14.x 
 				}else {
 					if (status >= "finalized" && status != "liquid_carved") {
-						return load113Chunk(level, chunkX, chunkZ);
+						return load113Chunk(level, chunkX, chunkZ, dataVersion);
 					}
 				}
 			}
@@ -217,7 +217,7 @@ namespace terrain {
 	}
 
 	//Loads 1.13.2+ chunks
-	bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ) {
+	bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ, const size_t dataVersion) {
 		std::list<NBT_Tag*> sections;
 		if (!level->getList("Sections", sections)) {
 			std::cerr << "No sections found in region\n";
@@ -250,26 +250,14 @@ namespace terrain {
 
 			PrimArray<uint8_t> lightdata;
 			if (Global::settings.nightmode || Global::settings.skylight) { // If nightmode, we need the light information too
-				bool ok = sec->getByteArray("BlockLight", lightdata);
-				if (ok && lightdata._len == 0)
-					continue;
-
-				if (!ok || lightdata._len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
-					std::cerr << "No block light\n";
-					continue;
-				}
+				//no need to check the return value. If there is no light in this section the byte array ist not stored
+				sec->getByteArray("BlockLight", lightdata);
 			}
 
 			PrimArray<uint8_t> skydata;
-			if (Global::settings.skylight) { // Skylight desired
-				bool ok = sec->getByteArray("SkyLight", skydata);
-				if (ok && skydata._len == 0)
-					continue;
-
-				if (!ok || skydata._len < (CHUNKSIZE_X * CHUNKSIZE_Z * SECTION_Y) / 2) {
-					std::cerr << "No Sky light";
-					continue;
-				}
+			if (Global::settings.skylight) {
+				//no need to check the return value. If there is no light in this section the byte array ist not stored
+				sec->getByteArray("SkyLight", skydata);
 			}
 
 			std::list<NBT_Tag*> palette;
@@ -358,7 +346,7 @@ namespace terrain {
 						if (Global::sectionMax == yo && y + yoffset >= Global::MapsizeY) break;
 
 						const size_t block1D = x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X;
-						const size_t IDLIstIndex = getPalletIndex(blockStates, block1D, (blockStates.size()*64)/4096);
+						const size_t IDLIstIndex = getPalletIndex(blockStates, block1D, dataVersion < 2529); //snapshot 20w17a = data version 2529
 						const StateID_t block = idList[IDLIstIndex];
 						*targetBlock = block;
 						targetBlock++;
@@ -371,10 +359,10 @@ namespace terrain {
 							}
 						}
 						else if (Global::settings.skylight && (y & 1) == 0) {
-							const uint8_t highlight = ((lightdata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
-							const uint8_t lowlight = ((lightdata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
-							uint8_t highsky = ((skydata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
-							uint8_t lowsky = ((skydata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F);
+							const uint8_t highlight = lightdata._len > 0 ? ((lightdata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F) : 0;
+							const uint8_t lowlight = lightdata._len > 0 ?  ((lightdata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F) : 0;
+							uint8_t highsky = skydata._len > 0 ? ((skydata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F) : 0;
+							uint8_t lowsky = skydata._len > 0 ? ((skydata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F) : 0;
 							if (Global::settings.nightmode) {
 								highsky = helper::clamp(highsky / 3 - 2);
 								lowsky = helper::clamp(lowsky / 3 - 2);
@@ -382,8 +370,12 @@ namespace terrain {
 							*lightByte++ = ((std::max(highlight, highsky) & 0x0F) << 4) | (std::max(lowlight, lowsky) & 0x0F);
 						}
 						else if (Global::settings.nightmode && (y & 1) == 0) {
-							*lightByte++ = ((lightdata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F)
-								| ((lightdata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) << 4);
+							if (lightdata._len > 0) {
+								*lightByte++ = ((lightdata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F)
+									| ((lightdata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) << 4);
+							} else {
+								*lightByte++ = 0;
+							}
 						}
 					} //for y
 				} //for z
@@ -781,12 +773,33 @@ namespace terrain {
 		return true;
 	}
 
-	size_t getPalletIndex(const std::vector<uint64_t>& arr, const size_t index, const size_t lengthOfOne) {
+	//denselyPacked: if set to false uses the new block storage format added in 20w17a
+	//if set to true it uses the old format
+	size_t getPalletIndex(const std::vector<uint64_t>& arr, const size_t index, const bool denselyPacked) {
+		const size_t lengthOfOne = std::max((arr.size() * 64) / 4096, 4ULL);
 	#ifdef _DEBUG
 		const size_t maxObj = (arr.size() * helper::numBits<uint64_t>()) / lengthOfOne;
 		if (maxObj <= index)
 			throw std::out_of_range("out of range");
 	#endif
+
+		if (!denselyPacked) {
+			//use the new block storage format
+			const double tmp = std::log2(arr.size());
+			const size_t entriesPerWord = 64 / lengthOfOne;
+			const size_t arrIdx = index / entriesPerWord;
+
+			uint64_t val = helper::swap_endian(arr[arrIdx]);
+			const size_t startBit = (index % entriesPerWord) * lengthOfOne;
+			const size_t endBit = startBit + lengthOfOne;
+
+			const auto m = startBit & (~0x3F);
+
+			val >>= (startBit - m);
+			const uint64_t mask = ~((~static_cast<uint64_t>(0)) << lengthOfOne);
+			val &= mask;
+			return static_cast<size_t>(val);
+		}
 
 		size_t startBit = index * lengthOfOne;
 		size_t endBit = (startBit + lengthOfOne) - 1;
