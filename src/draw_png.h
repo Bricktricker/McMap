@@ -1,6 +1,4 @@
-#ifndef DRAW_PNG_H_
-#define DRAW_PNG_H_
-
+#pragma once
 #include <fstream>
 #include "defines.h"
 #include "PNGWriter.h"
@@ -11,4 +9,4 @@ namespace draw {
 	uint64_t calcImageSize(const int mapChunksX, const int mapChunksZ, const size_t mapHeight, int &pixelsX, int &pixelsY, const bool tight = false);
 	void blend(Channel* const destination, const Channel* const source);
 }
-#endif
+

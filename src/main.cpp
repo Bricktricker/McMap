@@ -26,6 +26,14 @@
  *
  */
 #define NOMINMAX
+#include <string>
+#include <vector>
+#include <ctime>
+#include <iostream>
+#include <fstream>
+#include <memory>
+#include <algorithm> //std::min, std::max
+
 #include "defines.h"
 #include "draw_png.h"
 #include "colors.h"
@@ -38,17 +46,6 @@
 //PNGWriter
 #include "BasicTiledPNGWriter.h"
 #include "CachedTiledPNGWriter.h"
-
-#include <string>
-#include <vector>
-#include <ctime>
-#include <iostream>
-#include <fstream>
-#include <memory>
-#include <algorithm> //std::min, std::max
-#ifndef _WIN32
-#include <sys/stat.h>
-#endif
 
 namespace
 {

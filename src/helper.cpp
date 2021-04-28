@@ -1,9 +1,9 @@
-#include "helper.h"
-#include "filesystem.h"
 #include <fstream>
 #include <regex>
 #include <cassert>
 #include <limits>
+#include "helper.h"
+#include "filesystem.h"
 
 namespace helper {
 	//clamps value between 0 and 255

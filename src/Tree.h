@@ -1,8 +1,8 @@
-#ifndef _TREE_H_
-#define _TREE_H_
+#pragma once
 
 #include <vector>
 #include <map>
+
 template<typename KeyT,typename ValT>
 class Tree{
 
@@ -73,4 +73,3 @@ public:
 		root.value = ValT{};
 	}
 };
-#endif

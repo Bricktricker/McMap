@@ -1,11 +1,4 @@
 #define NOMINMAX
-#include "ThreadPool.h"
-#include "worldloader.h"
-#include "filesystem.h"
-#include "nbt.h"
-#include "colors.h"
-#include "helper.h"
-
 #include <string>
 #include <zlib.h>
 #include <iostream>
@@ -15,6 +8,14 @@
 #include <limits>
 #include <cstring>
 #include <algorithm>
+#include <filesystem>
+
+#include "ThreadPool.h"
+#include "worldloader.h"
+#include "filesystem.h"
+#include "nbt.h"
+#include "colors.h"
+#include "helper.h"
 
 namespace {
 	static terrain::World world;
@@ -33,18 +34,14 @@ namespace terrain {
 		std::string path = worldPath;
 		path.append("/region");
 
-		myFile file;
-		DIRHANDLE sd = Dir::open(path, file);
-		if (sd != NULL) {
-			do { // Here we finally arrived at the region files
-				if (helper::strEndsWith(file.name, ".mca")) {
-					format = ANVIL;
-					break;
-				} else if (format != REGION && helper::strEndsWith(file.name, ".mcr")) {
-					format = REGION;
-				}
-			} while (Dir::next(sd, path, file));
-			Dir::close(sd);
+		for (const auto& itr : std::filesystem::directory_iterator(path)) {
+			const std::string fileNameStr = itr.path().filename().generic_string();
+			if (helper::strEndsWith(fileNameStr, ".mca")) {
+				format = ANVIL;
+				break;
+			} else if (format != REGION && helper::strEndsWith(fileNameStr, ".mcr")) {
+				format = REGION;
+			}
 		}
 		return format;
 	}
@@ -62,32 +59,30 @@ namespace terrain {
 		string path(fromPath);
 		path.append("/region");
 		std::cout << "Scanning world...\n";
-		myFile region;
-		DIRHANDLE sd = Dir::open(path, region);
-		if (sd != NULL) {
-			do { // Here we finally arrived at the region files
-				if (!region.isdir && region.name[0] == 'r' && region.name[1] == '.') { // Make sure filename is a region
-					std::string s = region.name;
-					if (helper::strEndsWith(s, ".mca")) {
-						// Extract x coordinate from region filename
-						s = s.substr(2);
-						const auto values = helper::strSplit(s, '.');
-						assert(values.size() == 3);
+		for (const auto& itr : std::filesystem::directory_iterator(path)) {
+			if (itr.is_directory()) {
+				continue;
+			}
+			
+			std::string regionStr = itr.path().filename().generic_string();
+			if (regionStr[0] == 'r' && regionStr[1] == '.') { // Make sure filename is a region
+				if (helper::strEndsWith(regionStr, ".mca")) {
+					// Extract x coordinate from region filename
+					const auto s = regionStr.substr(2);
+					const auto values = helper::strSplit(s, '.');
+					assert(values.size() == 3);
 
-						const int valX = std::stoi(values.at(0)) * REGIONSIZE;
-						// Extract z coordinate from region filename
-						const int valZ = std::stoi(values.at(1)) * REGIONSIZE;
-						if (valX > -4000 && valX < 4000 && valZ > -4000 && valZ < 4000) {
-							string full = path + "/" + region.name;
-							world.regions.push_back(Region(full, valX, valZ));
-						}
-						else {
-							std::cerr << "Ignoring bad region at " << valX << ' ' + valZ << '\n';
-						}
+					const int valX = std::stoi(values.at(0)) * REGIONSIZE;
+					// Extract z coordinate from region filename
+					const int valZ = std::stoi(values.at(1)) * REGIONSIZE;
+					if (valX > -4000 && valX < 4000 && valZ > -4000 && valZ < 4000) {
+						string full = path + "/" + regionStr;
+						world.regions.push_back(Region(full, valX, valZ));
+					} else {
+						std::cerr << "Ignoring bad region at " << valX << ' ' + valZ << '\n';
 					}
 				}
-			} while (Dir::next(sd, path, region));
-			Dir::close(sd);
+			}
 		}
 
 		// Read all region files' headers to figure out which chunks actually exist
@@ -513,7 +508,7 @@ namespace terrain {
 			Global::heightMap.shrink_to_fit();
 			Global::heightMap.resize(heightMapSize);
 		}
-		std::fill_n(Global::heightMap.begin(), heightMapSize, 0xff00);
+		std::fill_n(Global::heightMap.begin(), heightMapSize, static_cast<uint16_t>(0xff00));
 
 		std::cout << "Terrain takes up " << std::setprecision(5) << float(Global::Terrainsize * sizeof(StateID_t) / float(1024 * 1024)) << "MiB";
 		if (Global::terrain.size() < Global::Terrainsize) {
@@ -522,7 +517,7 @@ namespace terrain {
 			Global::terrain.resize(Global::Terrainsize);
 		}
 
-		std::fill_n(Global::terrain.begin(), Global::Terrainsize, 0U);// Preset: Air
+		std::fill_n(Global::terrain.begin(), Global::Terrainsize, static_cast<StateID_t>(0U));// Preset: Air
 
 		if (Global::settings.nightmode || Global::settings.underground || Global::settings.blendUnderground || Global::settings.skylight) {
 			const size_t lightsize = Global::MapsizeZ * Global::MapsizeX * ((Global::MapsizeY + (Global::MapminY % 2 == 0 ? 1 : 2)) / 2);
@@ -557,7 +552,7 @@ namespace terrain {
 	}
 
 	void clearLightmap() {
-		std::fill(Global::light.begin(), Global::light.end(), 0x00);
+		std::fill(Global::light.begin(), Global::light.end(), static_cast<uint8_t>(0x00));
 	}
 
 	/**
@@ -776,7 +771,7 @@ namespace terrain {
 	//denselyPacked: if set to false uses the new block storage format added in 20w17a
 	//if set to true it uses the old format
 	size_t getPalletIndex(const std::vector<uint64_t>& arr, const size_t index, const bool denselyPacked) {
-		const size_t lengthOfOne = std::max((arr.size() * 64) / 4096, 4ULL);
+		const size_t lengthOfOne = std::max<size_t>((arr.size() * 64) / 4096, 4);
 	#ifdef _DEBUG
 		const size_t maxObj = (arr.size() * helper::numBits<uint64_t>()) / lengthOfOne;
 		if (maxObj <= index)
@@ -785,7 +780,6 @@ namespace terrain {
 
 		if (!denselyPacked) {
 			//use the new block storage format
-			const double tmp = std::log2(arr.size());
 			const size_t entriesPerWord = 64 / lengthOfOne;
 			const size_t arrIdx = index / entriesPerWord;
 

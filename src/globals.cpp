@@ -6,7 +6,7 @@ size_t Global::MapsizeZ = 0, Global::MapsizeX = 0, Global::Terrainsize = 0;
 int Global::MapminY = 0;
 unsigned int Global::MapsizeY = 256;
 int Global::OffsetY = 2;
-Settings Global::settings = { East, false, false, false, false, 0, false, false, false, false, false};
+Settings Global::settings = { East, false, false, false, false, 0, false, false, false, false };
 
 std::vector<Marker> Global::markers;
 std::vector<StateID_t> Global::terrain;

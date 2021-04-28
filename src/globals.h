@@ -1,5 +1,4 @@
-#ifndef _GLOBALS_H_
-#define _GLOBALS_H_
+#pragma once
 
 #include <vector>
 #include <string>
@@ -78,5 +77,3 @@ public:
 
 	static std::unique_ptr<ThreadPool> threadPool;
 };
-
-#endif

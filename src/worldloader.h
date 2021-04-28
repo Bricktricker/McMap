@@ -1,5 +1,4 @@
-#ifndef _WORLDLOADER_H_
-#define _WORLDLOADER_H_
+#pragma once
 
 #include <string>
 #include <list>
@@ -47,4 +46,3 @@ namespace terrain {
 	};
 
 }
-#endif

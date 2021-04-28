@@ -1,5 +1,4 @@
-#ifndef _NBT_H_
-#define _NBT_H_
+#pragma once
 #include <map>
 #include <list>
 #include <string>
@@ -112,5 +111,3 @@ public:
 	bool good() const noexcept { return _good; }
 
 };
-
-#endif

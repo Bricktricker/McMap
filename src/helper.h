@@ -1,5 +1,4 @@
-#ifndef _HELPER_H_
-#define _HELPER_H_
+#pragma once
 
 #include <string>
 #include <vector>
@@ -109,4 +108,3 @@ namespace helper {
 		return isSpecialBlock(SpecialBlocks::SNOW, bID);
 	}
 }
-#endif

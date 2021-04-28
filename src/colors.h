@@ -1,8 +1,4 @@
-#ifndef _COLORS_
-#define _COLORS_
-
+#pragma once
 #include <string>
 
 bool loadColors(const std::string& path);
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef _DEFINES_
-#define _DEFINES_
+#pragma once
 #include <cstdint>
 #include <cassert>
 #include <array>
@@ -103,4 +102,3 @@ struct Model_t {
 	{}
 };
 
-#endif // !_DEFINES_
