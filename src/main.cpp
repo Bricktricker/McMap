@@ -255,7 +255,7 @@ int main(int argc, char **argv)
 	// ########## end of command line parsing ##########
 	//if (Global::settings.hell || Global::settings.serverHell || Global::settings.end) Global::useBiomes = false;
 
-	std::cout << "mcmap " << VERSION << ' ' << NUM_BITS << "bit by Zahl & mcmap3 by WRIM & 1.13 support by Bricktricker\n";
+	std::cout << "mcmap " << VERSION << ' ' << NUM_BITS << "bit by Zahl & mcmap3 by WRIM & 1.13+ support by Bricktricker\n";
 
 #if NUM_BITS == 32
 	if (memlimit > 1800 * uint64_t(1024 * 1024)) {

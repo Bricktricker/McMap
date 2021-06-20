@@ -24,7 +24,7 @@ namespace {
 namespace terrain {
 	size_t getPalletIndex(const std::vector<uint64_t>& arr, const size_t index, const bool denselyPacked);
 	bool loadChunk(const std::vector<uint8_t>& buffer);
-	bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ, const size_t dataVersion);
+	bool load113Chunk(const NBTtag* level, const int32_t chunkX, const int32_t chunkZ, const size_t dataVersion);
 	void allocateTerrain();
 	bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks);
 	inline void lightCave(const int x, const int y, const int z);
@@ -56,7 +56,7 @@ namespace terrain {
 		Global::ToChunkX   = Global::ToChunkZ = -10000000;
 
 		// Read subdirs now
-		string path(fromPath);
+		std::string path(fromPath);
 		path.append("/region");
 		std::cout << "Scanning world...\n";
 		for (const auto& itr : std::filesystem::directory_iterator(path)) {
@@ -76,7 +76,7 @@ namespace terrain {
 					// Extract z coordinate from region filename
 					const int valZ = std::stoi(values.at(1)) * REGIONSIZE;
 					if (valX > -4000 && valX < 4000 && valZ > -4000 && valZ < 4000) {
-						string full = path + "/" + regionStr;
+						std::string full = path + "/" + regionStr;
 						world.regions.push_back(Region(full, valX, valZ));
 					} else {
 						std::cerr << "Ignoring bad region at " << valX << ' ' + valZ << '\n';
@@ -137,7 +137,6 @@ namespace terrain {
 	}
 
 	bool loadChunk(const std::vector<uint8_t>& buffer) {
-		bool ok = false;
 		if (buffer.size() == 0) { // File
 			std::cerr << "No data in NBT file.\n";
 			return false;
@@ -148,25 +147,28 @@ namespace terrain {
 			return false; // chunk does not exist
 		}
 
-		int32_t dataVersion = 0;
-		if (!chunk.getInt("DataVersion", dataVersion)) {
+		const auto dataVersionOpt = chunk.getInt("DataVersion");
+		if (!dataVersionOpt.has_value()) {
 			std::cerr << "No DataVersion in Chunk\n";
 			return false;
 		}
+		const int32_t dataVersion = dataVersionOpt.value();
 
-		NBT_Tag* level = nullptr;
-		ok = chunk.getCompound("Level", level);
-		if (!ok) {
+		const auto levelOpt = chunk.getCompound("Level");
+		if (!levelOpt.has_value()) {
 			std::cerr << "No level\n";
 			return false;
 		}
-		int32_t chunkX, chunkZ;
-		ok = level->getInt("xPos", chunkX);
-		ok = ok && level->getInt("zPos", chunkZ);
-		if (!ok) {
+		const auto level = levelOpt.value();
+
+		const auto chunkXOpt = level->getInt("xPos");
+		const auto chunkZOpt = level->getInt("zPos");
+		if (!chunkXOpt.has_value() || !chunkZOpt.has_value()) {
 			std::cerr << "No pos\n";
 			return false;
 		}
+		const int32_t chunkX = chunkXOpt.value();
+		const int32_t chunkZ = chunkZOpt.value();
 
 		// Check if chunk is in desired bounds (not a chunk where the filename tells a different position)
 		if (chunkX < Global::FromChunkX || chunkX >= Global::ToChunkX || chunkZ < Global::FromChunkZ || chunkZ >= Global::ToChunkZ) {
@@ -180,11 +182,12 @@ namespace terrain {
 			1.14.x status types: empty, structure_starts, structure_references, biomes, noise, surface, carvers, liquid_carvers, features, light, spawn, heightmaps, full
 			*/
 
-			std::string status;
-			if (!level->getString("Status", status)) {
+			const auto statusOpt = level->getString("Status");
+			if (!statusOpt.has_value()) {
 				std::cerr << "could not find Status in Chunk\n";
 				return false;
 			}
+			const std::string status = statusOpt.value();
 			//Check if we use light
 			if (Global::light.empty()) {
 				if (status != "empty") {
@@ -212,13 +215,14 @@ namespace terrain {
 	}
 
 	//Loads 1.13.2+ chunks
-	bool load113Chunk(NBT_Tag* const level, const int32_t chunkX, const int32_t chunkZ, const size_t dataVersion) {
-		std::list<NBT_Tag*> sections;
-		if (!level->getList("Sections", sections)) {
+	bool load113Chunk(const NBTtag* level, const int32_t chunkX, const int32_t chunkZ, const size_t dataVersion) {
+		const auto sectionsOpt = level->getList("Sections");
+		if (!sectionsOpt.has_value()) {
 			std::cerr << "No sections found in region\n";
 			return false;
 		}
-		if (sections.empty())
+		const auto sections = sectionsOpt.value();
+		if (sections->empty())
 			return false;
 
 		const int offsetz = (chunkZ - Global::FromChunkZ) * CHUNKSIZE_Z; //Blocks into world, from lowest point
@@ -226,71 +230,82 @@ namespace terrain {
 		const size_t yoffsetsomething = (Global::MapminY + SECTION_Y * 10000) % SECTION_Y;
 		assert(yoffsetsomething == 0); //I don't now what this variable does. Always 0
 
-		for (const auto sec : sections) {
-			int8_t yo = -1;
-			if(!sec->getByte("Y", yo)){
+		for (const auto sec : *sections) {
+			const auto yOffsetOpt = sec.getByte("Y");
+			if(!yOffsetOpt.has_value()) {
 				std::cerr << "Y-Offset not found in section\n";
 				return false;
 			}
+			const int32_t yo = yOffsetOpt.value();
 
 			if (yo < Global::sectionMin || yo > Global::sectionMax) continue; //sub-Chunk out of bounds, continue
 			int32_t yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - static_cast<int32_t>(yoffsetsomething); //Blocks into render zone in Y-Axis
 			if (yoffset < 0) yoffset = 0;
 
-			PrimArray<int64_t> blockStatesPrim;
-			if(!sec->getLongArray("BlockStates", blockStatesPrim)) {
+			const auto blockStatesOpt = sec.getLongArray("BlockStates");
+			if(!blockStatesOpt.has_value()) {
 				continue;
 			}
-			std::vector<uint64_t> blockStates((uint64_t*)blockStatesPrim._data, (uint64_t*)blockStatesPrim._data + blockStatesPrim._len);
+			std::vector<uint64_t> blockStates((uint64_t*) blockStatesOpt.value().m_data, (uint64_t*) blockStatesOpt.value().m_data + blockStatesOpt.value().m_len);
 
 			PrimArray<uint8_t> lightdata;
 			if (Global::settings.nightmode || Global::settings.skylight) { // If nightmode, we need the light information too
-				//no need to check the return value. If there is no light in this section the byte array ist not stored
-				sec->getByteArray("BlockLight", lightdata);
+				// If there is no light in this section the byte array ist not stored
+				const auto lightdataOpt = sec.getByteArray("BlockLight");
+				if (lightdataOpt.has_value()) {
+					lightdata = lightdataOpt.value();
+				}
 			}
 
 			PrimArray<uint8_t> skydata;
 			if (Global::settings.skylight) {
-				//no need to check the return value. If there is no light in this section the byte array ist not stored
-				sec->getByteArray("SkyLight", skydata);
+				// If there is no light in this section the byte array ist not stored
+				const auto skydataOpt = sec.getByteArray("SkyLight");
+				if (skydataOpt.has_value()) {
+					skydata = skydataOpt.value();
+				}
 			}
 
-			std::list<NBT_Tag*> palette;
-			if (!sec->getList("Palette", palette)) {
+			const auto paletteOpt = sec.getList("Palette");
+			if (!paletteOpt.has_value()) {
 				continue;
 			}
+			const auto palette = paletteOpt.value();
+
 			std::vector<StateID_t> idList;
-			for (const auto state : palette) {
-				std::string blockName;
-				if (!state->getString("Name", blockName)) {
+			for (const auto state : *palette) {
+				const auto blockNameOpt = state.getString("Name");
+				if (!blockNameOpt.has_value()) {
 					std::cerr << "State has no name\n";
 					continue;
 				}
+				const std::string blockName = blockNameOpt.value();
 
 				if (Global::blockTree.find(blockName) == Global::blockTree.end()) {
 					std::cerr << blockName << " is missing in your colors file!\n";
-					idList.push_back(0);
+					idList.push_back(AIR);
 					continue;
 				}
 
-				NBT_Tag* property;
+				const auto propertiesOpt = state.getCompound("Properties");
 				StateID_t blockID = 0;
-				if (state->getCompound("Properties", property)) {
+				if (propertiesOpt.has_value()) {
 					//has complex properties
+					const auto properties = propertiesOpt.value();
 
 					const auto& tree = Global::blockTree.at(blockName);
 					const auto& order = tree.getOrder();
 					std::vector<std::string> stateValues;
 
-					for (const auto& item : order) {
-						std::string s;
-						if (!property->getString(item, s)) {
-							std::cerr << "blockstate " << item << " does not exist for block " << blockName << '\n';
+					for (const auto& propName : order) {
+						const auto propValue = properties->getString(propName);
+						if (!propValue.has_value()) {
+							std::cerr << "blockstate " << propName << " does not exist for block " << blockName << '\n';
 							stateValues.clear();
 							blockID = 0;
 							break;
 						}
-						stateValues.push_back(s);
+						stateValues.push_back(propValue.value());
 					}
 
 					try {
@@ -354,10 +369,10 @@ namespace terrain {
 							}
 						}
 						else if (Global::settings.skylight && (y & 1) == 0) {
-							const uint8_t highlight = lightdata._len > 0 ? ((lightdata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F) : 0;
-							const uint8_t lowlight = lightdata._len > 0 ?  ((lightdata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F) : 0;
-							uint8_t highsky = skydata._len > 0 ? ((skydata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F) : 0;
-							uint8_t lowsky = skydata._len > 0 ? ((skydata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F) : 0;
+							const uint8_t highlight = lightdata.m_len > 0 ? ((lightdata.m_data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F) : 0;
+							const uint8_t lowlight = lightdata.m_len > 0 ?  ((lightdata.m_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F) : 0;
+							uint8_t highsky = skydata.m_len > 0 ? ((skydata.m_data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F) : 0;
+							uint8_t lowsky = skydata.m_len > 0 ? ((skydata.m_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F) : 0;
 							if (Global::settings.nightmode) {
 								highsky = helper::clamp(highsky / 3 - 2);
 								lowsky = helper::clamp(lowsky / 3 - 2);
@@ -365,9 +380,9 @@ namespace terrain {
 							*lightByte++ = ((std::max(highlight, highsky) & 0x0F) << 4) | (std::max(lowlight, lowsky) & 0x0F);
 						}
 						else if (Global::settings.nightmode && (y & 1) == 0) {
-							if (lightdata._len > 0) {
-								*lightByte++ = ((lightdata._data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F)
-									| ((lightdata._data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) << 4);
+							if (lightdata.m_len > 0) {
+								*lightByte++ = ((lightdata.m_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F)
+									| ((lightdata.m_data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) << 4);
 							} else {
 								*lightByte++ = 0;
 							}

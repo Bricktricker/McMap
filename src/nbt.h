@@ -1,17 +1,13 @@
 #pragma once
 #include <map>
-#include <list>
 #include <string>
-#include <memory>
+#include <optional>
 #include <vector>
+#include <variant>
+#include <string_view>
 
-using std::string;
-
-class NBT_Tag;
-typedef std::map<std::string, std::unique_ptr<NBT_Tag>> tagmap;
-typedef std::list<std::unique_ptr<NBT_Tag>> NBTlist;
-
-enum TagType {
+enum TagType
+{
 	tagUnknown = 0, // Tag_End is not made available, so 0 should never be in any list of available elements
 	tagByte = 1,
 	tagShort = 2,
@@ -27,87 +23,130 @@ enum TagType {
 	tagLongArray = 12
 };
 
+//TODO: replace with std::span in C++20
 template<typename T>
-struct PrimArray {
+struct PrimArray
+{
 	PrimArray()
-		: _data(nullptr), _len(0)
+		: m_data(nullptr), m_len(0)
 	{}
 
 	PrimArray(T const * data, const size_t len)
-		: _data(data), _len(len)
+		: m_data(data), m_len(len)
 	{}
 
-	T const * _data;
-	size_t _len; //len in number of T's in _data;
+	T const * m_data;
+	size_t m_len; //len in number of T's in _data;
 };
 
-class NBT_Tag
+class NBTtag
 {
 	friend class NBT;
+public:
+	using NBTlist = std::vector<NBTtag>;
+	using TagMap = std::map<std::string, NBTtag, std::less<>>;
+
+	using DataHolder = std::variant<
+		TagMap,
+		NBTlist,
+		PrimArray<char>,
+		PrimArray<uint8_t>,
+		PrimArray<int32_t>,
+		PrimArray<int64_t>,
+		int8_t,
+		int16_t,
+		int32_t,
+		int64_t,
+		float,
+		double>;
+
+	DataHolder m_dataHolder;
+	TagType m_type;
+	std::string m_name;
+
+	explicit NBTtag();
+	explicit NBTtag(const std::vector<uint8_t>& data, size_t& pos);
+	explicit NBTtag(const std::vector<uint8_t>& data, size_t& pos, TagType type); //Construct NBTtag from list
+
 private:
-
-	union PrimDataType
-	{
-		int8_t _byte;
-		int16_t _short;
-		int32_t _int;
-		int64_t _long;
-		float _float;
-		double _double;
-	};
-
-	union DataHolder
-	{
-		DataHolder() {};
-		~DataHolder() {};
-
-		tagmap _compound;
-		NBTlist _list;
-		PrimDataType _primDataType;
-		PrimArray<char> _string;
-		PrimArray<uint8_t> _byteArray;
-		PrimArray<int32_t> _intArray;
-		PrimArray<int64_t> _longArray;
-	};
-
-	DataHolder dataHolder;
-	TagType _type;
-	std::string _name;
-
-	explicit NBT_Tag();
-	explicit NBT_Tag(const std::vector<uint8_t>& data, size_t& pos);
-	explicit NBT_Tag(const std::vector<uint8_t>& data, size_t& pos, TagType type); //Construct NBT_Tag from list
 	bool parseData(const std::vector<uint8_t>& data, size_t& pos, bool parseHeader = true);
+
+	template<typename T>
+	std::optional<T> getValue(const std::string_view name, const TagType type) const
+	{
+		if (m_type == tagCompound) {
+			const auto& compound = std::get<TagMap>(m_dataHolder);
+			const auto posVal = compound.find(name);
+			if (posVal != compound.end()) {
+				if (posVal->second.getType() == type) {
+					return std::get<T>(posVal->second.m_dataHolder);
+				}
+			}
+		}
+		return std::nullopt;
+	}
 
 public:
 	void printTags() const;
-	bool getCompound(const string& name, NBT_Tag* &compound);
-	bool getList(const string& name, std::list<NBT_Tag*>& lst);
-	bool getByte(const string& name, int8_t& value);
-	bool getShort(const string& name, int16_t& value);
-	bool getInt(const string& name, int32_t& value);
-	bool getLong(const string& name, int64_t& value);
-	bool getByteArray(const string& name, PrimArray<uint8_t>& data);
-	bool getIntArray(const string& name, PrimArray<int32_t>& data);
-	bool getLongArray(const string& name, PrimArray<int64_t>& data);
-	bool getString(const string& name, std::string& data);
-	TagType getType() const noexcept { return _type; }
-	std::string getName() const noexcept { return _name; };
 
-	virtual ~NBT_Tag();
+	std::optional<const NBTtag*> getCompound(const std::string_view name) const;
+
+	std::optional<const NBTlist*> getList(const std::string_view name) const;
+
+	std::optional<int8_t> getByte(const std::string_view name) const
+	{
+		return getValue<int8_t>(name, tagByte);
+	}
+
+	std::optional<int16_t> getShort(const std::string_view name) const
+	{
+		return getValue<int16_t>(name, tagShort);
+	}
+
+	std::optional<int32_t> getInt(const std::string_view name) const
+	{
+		return getValue<int32_t>(name, tagInt);
+	}
+
+	std::optional<int64_t> getLong(const std::string_view name) const
+	{
+		return getValue<int64_t>(name, tagLong);
+	}
+
+	std::optional<PrimArray<uint8_t>> getByteArray(const std::string_view name) const
+	{
+		return getValue<PrimArray<uint8_t>>(name, tagByteArray);
+	}
+
+	std::optional<PrimArray<int32_t>> getIntArray(const std::string_view name) const
+	{
+		return getValue<PrimArray<int32_t>>(name, tagIntArray);
+	}
+
+	std::optional<PrimArray<int64_t>> getLongArray(const std::string_view name) const
+	{
+		return getValue<PrimArray<int64_t>>(name, tagLongArray);
+	}
+
+	std::optional<std::string> getString(const std::string_view name) const;
+
+	TagType getType() const noexcept { return m_type; }
+	std::string getName() const noexcept { return m_name; };
+
+	virtual ~NBTtag() = default;
 };
 
-class NBT : public NBT_Tag
+class NBT : public NBTtag
 {
 private:
-	const std::vector<uint8_t>& data;
-	bool _good;
+	const std::vector<uint8_t>& m_data;
+	bool m_good;
 public:
 	explicit NBT(const std::vector<uint8_t>& _data);
+	
 	NBT(const NBT&) = delete;
 	NBT& operator=(const NBT&) = delete;
 	virtual ~NBT() = default;
 
-	bool good() const noexcept { return _good; }
-
+	bool good() const noexcept { return m_good; }
 };
