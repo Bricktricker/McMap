@@ -9,7 +9,8 @@
 #include "helper.h"
 #include "filesystem.h"
 
-namespace {
+namespace
+{
 	//Function to write png data to disc
 	void userWriteData(png_structp pngPtr, png_bytep data, png_size_t length)
 	{
@@ -19,9 +20,11 @@ namespace {
 	}
 }
 
-namespace image {
+namespace image
+{
 	// Tiled output, suitable for google maps
-	bool BasicTiledPNGWriter::write(const std::string& path){
+	bool BasicTiledPNGWriter::write(const std::string& path)
+	{
 		std::cout << "Writing to files...\n";
 
 		if (!Dir::createDir(path)) {
@@ -35,9 +38,9 @@ namespace image {
 		const size_t tempWidthChans = tempWidth * CHANSPERPIXEL;
 		const size_t LineWidthChans = m_width * CHANSPERPIXEL;
 
-	#ifdef _DEBUG
+#ifdef _DEBUG
 		std::cout << "Temp width: " << tempWidthChans << ", original width: " << LineWidthChans << '\n';
-	#endif
+#endif
 		std::vector<uint8_t> tempLine(tempWidthChans, 0);
 		// Source pointer
 		size_t srcLine = 0;
@@ -76,9 +79,9 @@ namespace image {
 						if (tileWidth * (tileIndex - sizeOffset[tileSize]) < m_width) {
 							// Open new tile file for a while
 							const std::string tmpString = path + "/x" + std::to_string(int(tileIndex - sizeOffset[tileSize])) + 'y' + std::to_string(int((y / pow(2, 12 - tileSize)))) + 'z' + std::to_string(int(tileSize)) + ".png";
-	#ifdef _DEBUG
-							std::cout << "Starting tile " << tmpString << " of size " << (int)pow(2, 12 - tileSize) << "...\n";
-	#endif
+#ifdef _DEBUG
+							std::cout << "Starting tile " << tmpString << " of size " << (int) pow(2, 12 - tileSize) << "...\n";
+#endif
 							t.fileHandle.open(tmpString, std::ios::out | std::ios::binary);
 							if (t.fileHandle.fail()) {
 								std::cerr << "Error opening file!\n";

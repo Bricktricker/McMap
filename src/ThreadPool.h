@@ -28,7 +28,7 @@ public:
 	auto enqueue(T task, Arguments... args) -> std::future<decltype(task(args...))>
 	{
 		typedef decltype(task(args...)) Ret;
-		auto wrapper = std::make_shared<std::packaged_task<Ret ()>>(std::move(std::bind(task, args...)));
+		auto wrapper = std::make_shared<std::packaged_task<Ret()>>(std::move(std::bind(task, args...)));
 
 		{
 			std::unique_lock<std::mutex> lock{ mEventMutex };
@@ -53,11 +53,9 @@ private:
 
 	void start(const std::size_t numThreads)
 	{
-		for (auto i = 0u; i < numThreads; ++i)
-		{
+		for (auto i = 0u; i < numThreads; ++i) {
 			mThreads.emplace_back([=] {
-				while (true)
-				{
+				while (true) {
 					Task task;
 
 					{

@@ -58,7 +58,8 @@ struct Pixel
 
 static_assert(sizeof(Channel) * 4 == sizeof(Pixel), "Ups!");
 
-struct Color_t {
+struct Color_t
+{
 	Channel r, g, b, a;
 	uint8_t noise, brightness;
 
@@ -72,7 +73,8 @@ struct Color_t {
 
 };
 
-struct ColorArray {
+struct ColorArray
+{
 	std::array<Color_t, 2> colors;
 	StateID_t length;
 
@@ -80,19 +82,22 @@ struct ColorArray {
 		: colors(), length(0)
 	{}
 
-	void addColor(const Color_t& color) {
+	void addColor(const Color_t& color)
+	{
 		assert(length < colors.size());
 		colors[length++] = color;
 	}
 
-	const Color_t& operator[](const size_t index) const {
+	const Color_t& operator[](const size_t index) const
+	{
 		assert(index < length);
 		return colors[index];
 	}
 
 };
 
-struct Model_t {
+struct Model_t
+{
 	const uint64_t drawMode;
 	const bool isSolidBlock;
 	ColorArray colors;

@@ -10,13 +10,13 @@
 
 using nlohmann::json;
 
-void buildTree(std::vector<std::string>& strVec, const json jState, Tree<std::string, StateID_t>& tree) {
+void buildTree(std::vector<std::string>& strVec, const json jState, Tree<std::string, StateID_t>& tree)
+{
 	for (auto itr = jState.begin(); itr != jState.end(); ++itr) {
 		if (itr->is_primitive()) {
 			const StateID_t val = itr.value();
 			tree.add(strVec, itr.key(), val);
-		}
-		else {
+		} else {
 			strVec.push_back(itr.key());
 			buildTree(strVec, *itr, tree);
 			strVec.pop_back();
@@ -29,7 +29,7 @@ bool loadBlockTree(const json& blocks)
 	for (auto block = blocks.begin(); block != blocks.end(); ++block) {
 		const std::string name = block.key();
 		Tree<std::string, StateID_t> tree;
-		
+
 		const auto jOrderItr = block->find("order");
 		if (jOrderItr != block->end()) {
 			tree.setOrder(*jOrderItr);
@@ -37,8 +37,7 @@ bool loadBlockTree(const json& blocks)
 			json jStates = (*block)["states"];
 			std::vector<std::string> vec;
 			buildTree(vec, jStates, tree);
-		}
-		else {
+		} else {
 			tree.add((*block)["states"][""]);
 		}
 
@@ -100,29 +99,28 @@ bool loadColors(const std::string& path)
 		const std::string tagName = tag.key();
 		if (tagName == "leaves") {
 			blockEnum = SpecialBlocks::LEAVES;
-		}
-		else if (tagName == "water") {
+		} else if (tagName == "water") {
 			blockEnum = SpecialBlocks::WATER;
-		}
-		else if (tagName == "lava") {
+		} else if (tagName == "lava") {
 			blockEnum = SpecialBlocks::LAVA;
-		}
-		else if (tagName == "torches") {
+		} else if (tagName == "torches") {
 			blockEnum = SpecialBlocks::TORCH;
-		}
-		else if (tagName == "snow") {
+		} else if (tagName == "snow") {
 			blockEnum = SpecialBlocks::SNOW;
-		}
-		else if (tagName == "grass_block") {
+		} else if (tagName == "grass_block") {
 			blockEnum = SpecialBlocks::GRASS_BLOCK;
-		}
-		else {
+		} else {
 			std::cerr << "Warning: unknown tag " << tagName << " in colors file\n";
 			continue;
 		}
 
 		const json items = tag.value();
 		Global::specialBlockMap[blockEnum] = std::vector<StateID_t>(items.begin(), items.end());
+	}
+
+	if (Global::specialBlockMap.size() != SpecialBlocks::NUM_SPECIALBLOCKS) {
+		std::cerr << "Missing block tags!\n";
+		return false;
 	}
 
 	return true;

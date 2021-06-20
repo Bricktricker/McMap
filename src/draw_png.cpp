@@ -8,7 +8,8 @@
 #include "helper.h"
 
 #define CHANSPERPIXEL image::PNGWriter::CHANSPERPIXEL
-namespace draw {
+namespace draw
+{
 
 	inline void blend(Channel* const destination, const Color_t& source); //Blend color to pixel
 	//inline void blend(Channel* const destination, const Channel* const source); //Blend to pixel
@@ -16,7 +17,8 @@ namespace draw {
 	inline void modColor(Channel* const pos, const int mod);
 	inline void setColor(Channel* const pos, const Color_t& color);
 
-	uint64_t calcImageSize(const size_t mapChunksX, const size_t mapChunksZ, const size_t mapHeight, size_t &pixelsX, size_t &pixelsY, const bool tight){
+	uint64_t calcImageSize(const size_t mapChunksX, const size_t mapChunksZ, const size_t mapHeight, size_t &pixelsX, size_t &pixelsY, const bool tight)
+	{
 		pixelsX = (mapChunksX * CHUNKSIZE_X + mapChunksZ * CHUNKSIZE_Z) * 2 + (tight ? 3 : 10);
 		pixelsY = (mapChunksX * CHUNKSIZE_X + mapChunksZ * CHUNKSIZE_Z + mapHeight * static_cast<size_t>(Global::OffsetY)) + (tight ? 3 : 10);
 		return pixelsX * image::PNGWriter::BYTESPERPIXEL * pixelsY;
@@ -25,7 +27,8 @@ namespace draw {
 	/*
 	fsub: brightnessAdjustment
 	*/
-	void setPixel(const int x, const int y, const StateID_t stateID, const float fsub, image::PNGWriter* pngWriter){
+	void setPixel(const int x, const int y, const StateID_t stateID, const float fsub, image::PNGWriter* pngWriter)
+	{
 		if (x < 0 || static_cast<size_t>(x) >= pngWriter->getWidth()) {
 			return;
 		}
@@ -73,8 +76,7 @@ namespace draw {
 
 				if (pixelColor.a == 255 && !Global::settings.blendAll) {
 					setColor(pos, pixelColor);
-				}
-				else {
+				} else {
 					blend(pos, pixelColor);
 				}
 
@@ -86,7 +88,8 @@ namespace draw {
 
 	}
 
-	void blendPixel(const int x, const int y, const StateID_t stateID, const float fsub, image::PNGWriter* pngWriter){
+	void blendPixel(const int x, const int y, const StateID_t stateID, const float fsub, image::PNGWriter* pngWriter)
+	{
 		if (x < 0 || static_cast<size_t>(x) >= pngWriter->getWidth()) {
 			return;
 		}
@@ -142,12 +145,12 @@ namespace draw {
 
 	void blend(Channel* const destination, const Channel* const source)
 	{
-	#define PALPHA 3
+#define PALPHA 3
 		if (destination[PALPHA] == 0 || source[PALPHA] == 255) { //compare alpha
 			std::memcpy(destination, source, image::PNGWriter::BYTESPERPIXEL);
 			return;
 		}
-	#define BLEND(ca,aa,cb) Channel(((size_t(ca) * size_t(aa)) + (size_t(255 - aa) * size_t(cb))) / 255)
+#define BLEND(ca,aa,cb) Channel(((size_t(ca) * size_t(aa)) + (size_t(255 - aa) * size_t(cb))) / 255)
 		destination[0] = BLEND(source[0], source[PALPHA], destination[0]);
 		destination[1] = BLEND(source[1], source[PALPHA], destination[1]);
 		destination[2] = BLEND(source[2], source[PALPHA], destination[2]);

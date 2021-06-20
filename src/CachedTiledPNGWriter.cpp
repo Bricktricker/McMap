@@ -10,7 +10,8 @@
 #include "draw_png.h"
 #include "filesystem.h"
 
-namespace {
+namespace
+{
 	//Function to write png data to disc
 	void userWriteData(png_structp pngPtr, png_bytep data, png_size_t length)
 	{
@@ -28,13 +29,14 @@ namespace {
 	}
 }
 
-namespace image {
+namespace image
+{
 	CachedTiledPNGWriter::CachedTiledPNGWriter(const size_t origW, const size_t origH)
 		: CachedPNGWriter(origW, origH)
-	{
-	}
+	{}
 
-	bool CachedTiledPNGWriter::compose(const std::string & path, [[maybe_unused]] const double scale) {
+	bool CachedTiledPNGWriter::compose(const std::string & path, [[maybe_unused]] const double scale)
+	{
 		// Tiled output, suitable for google maps
 		std::cout << "Composing final png files...\n";
 
@@ -152,9 +154,9 @@ namespace image {
 						if (tileWidth * (tileIndex - sizeOffset[tileSize]) < m_origW) {
 							// Open new tile file for a while
 							const std::string tmpString = path + "/x" + std::to_string(int(tileIndex - sizeOffset[tileSize])) + 'y' + std::to_string(int((y / pow(2, 12 - tileSize)))) + 'z' + std::to_string(int(tileSize)) + ".png";
-	#ifdef _DEBUG
-							std::cout << "Starting tile " << tmpString << " of size " << (int)pow(2, 12 - tileSize) << "...\n";
-	#endif
+#ifdef _DEBUG
+							std::cout << "Starting tile " << tmpString << " of size " << (int) pow(2, 12 - tileSize) << "...\n";
+#endif
 							t.fileHandle.open(tmpString, std::ios::out | std::ios::binary);
 							if (t.fileHandle.fail()) {
 								std::cerr << "Error opening file!\n";

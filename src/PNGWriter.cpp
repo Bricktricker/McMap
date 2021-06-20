@@ -7,7 +7,8 @@
 #include "PNGWriter.h"
 #include "helper.h"
 
-namespace {
+namespace
+{
 	//Function to write png data to disc
 	void userWriteData(png_structp pngPtr, png_bytep data, png_size_t length)
 	{
@@ -17,13 +18,14 @@ namespace {
 	}
 }
 
-namespace image {
+namespace image
+{
 	PNGWriter::PNGWriter()
 		: m_width(0), m_height(0)
-	{
-	}
+	{}
 
-	bool PNGWriter::reserve(const size_t width, const size_t height){
+	bool PNGWriter::reserve(const size_t width, const size_t height)
+	{
 		const size_t pixSize = width * height * CHANSPERPIXEL;
 		std::cout << "Image dimensions are " << width << 'x' << height << ", 32bpp, " << static_cast<float>(pixSize) / (1024.0f * 1024.0f) << "MiB\n";
 		m_buffer.resize(pixSize, 0U);
@@ -33,7 +35,8 @@ namespace image {
 		return true;
 	}
 
-	bool PNGWriter::write(const std::string& path){
+	bool PNGWriter::write(const std::string& path)
+	{
 		//open file
 		std::fstream fileHandle(path, std::fstream::out | std::fstream::binary);
 		if (fileHandle.fail()) {
@@ -95,19 +98,22 @@ namespace image {
 		return true;
 	}
 
-	Channel* PNGWriter::getPixel(const size_t x, const size_t y) {
+	Channel* PNGWriter::getPixel(const size_t x, const size_t y)
+	{
 		if (x >= m_width || y >= m_height)
 			throw std::out_of_range("getPixel out of range\n");
 
 		return &m_buffer[x*CHANSPERPIXEL + y * (m_width * CHANSPERPIXEL)];
 	}
 
-	void PNGWriter::resize(const double scaleFac) {
+	void PNGWriter::resize(const double scaleFac)
+	{
 		resize(static_cast<size_t>(static_cast<double>(m_width) * scaleFac), static_cast<size_t>(static_cast<double>(m_height) * scaleFac));
 	}
 
 	//https://blog.demofox.org/2015/08/15/resizing-images-with-bicubic-interpolation/
-	void PNGWriter::resize(const size_t newWidth, const size_t newHeight){
+	void PNGWriter::resize(const size_t newWidth, const size_t newHeight)
+	{
 		std::cout << "Resizing image...\n";
 		std::vector<Channel> out(newWidth * newHeight * CHANSPERPIXEL);
 
@@ -135,7 +141,8 @@ namespace image {
 		m_height = newHeight;
 	}
 
-	Channel* PNGWriter::getPixelClamped(int x, int y){
+	Channel* PNGWriter::getPixelClamped(int x, int y)
+	{
 		if (x < 0) x = 0;
 		if (y < 0) y = 0;
 		if (x > static_cast<int>(m_width - 1)) x = static_cast<int>(m_width - 1);
@@ -147,7 +154,8 @@ namespace image {
 	// t is a value that goes from 0 to 1 to interpolate in a C1 continuous way across uniformly sampled data points.
 	// when t is 0, this will return B.  When t is 1, this will return C.  Inbetween values will return an interpolation
 	// between B and C.  A and B are used to calculate slopes at the edges.
-	inline float CubicHermite(const float A, const float B, const float C, const float D, const float t){
+	inline float CubicHermite(const float A, const float B, const float C, const float D, const float t)
+	{
 		const float a = -A / 2.0f + (3.0f*B) / 2.0f - (3.0f*C) / 2.0f + D / 2.0f;
 		const float b = A - (5.0f*B) / 2.0f + 2.0f*C - D / 2.0f;
 		const float c = -A / 2.0f + C / 2.0f;
@@ -156,13 +164,15 @@ namespace image {
 		return a * t*t*t + b * t*t + c * t + d;
 	}
 
-	inline Channel saturate(const float x){
+	inline Channel saturate(const float x)
+	{
 		return x > 255.0f ? 255
 			: x < 0.0f ? 0
 			: Channel(x);
 	}
 
-	std::array<uint8_t, PNGWriter::CHANSPERPIXEL> PNGWriter::SampleBicubic(const float u, const float v){
+	std::array<uint8_t, PNGWriter::CHANSPERPIXEL> PNGWriter::SampleBicubic(const float u, const float v)
+	{
 		// calculate coordinates -> also need to offset by half a pixel to keep image from shifting down and left half a pixel
 		const float x = (u * static_cast<float>(m_width)) - 0.5f;
 		const int xint = int(x);
@@ -199,8 +209,7 @@ namespace image {
 		// interpolate bi-cubically!
 		// Clamp the values since the curve can put the value below 0 or above 255
 		std::array<Channel, PNGWriter::CHANSPERPIXEL> ret;
-		for (size_t i = 0; i < PNGWriter::CHANSPERPIXEL; ++i)
-		{
+		for (size_t i = 0; i < PNGWriter::CHANSPERPIXEL; ++i) {
 			const float col0 = CubicHermite(p00[i], p10[i], p20[i], p30[i], xfract);
 			const float col1 = CubicHermite(p01[i], p11[i], p21[i], p31[i], xfract);
 			const float col2 = CubicHermite(p02[i], p12[i], p22[i], p32[i], xfract);

@@ -143,7 +143,7 @@ private:
 	bool m_good;
 public:
 	explicit NBT(const std::vector<uint8_t>& _data);
-	
+
 	NBT(const NBT&) = delete;
 	NBT& operator=(const NBT&) = delete;
 	virtual ~NBT() = default;

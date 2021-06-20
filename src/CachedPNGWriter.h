@@ -7,7 +7,8 @@
 #include "PNGWriter.h"
 #include "png.h"
 
-namespace image {
+namespace image
+{
 	class CachedPNGWriter : public PNGWriter
 	{
 	public:
@@ -20,7 +21,8 @@ namespace image {
 
 	protected:
 
-		struct ImagePart {
+		struct ImagePart
+		{
 			int x, y;
 			size_t width, height;
 			std::string filename;
@@ -35,7 +37,8 @@ namespace image {
 				: x(part.x), y(part.y), width(part.width), height(part.height), filename(part.filename), file{}, pngPtr(nullptr), pngInfo(nullptr) {}
 
 			//Not needed
-			ImagePart& operator=(const ImagePart& part) {
+			ImagePart& operator=(const ImagePart& part)
+			{
 				this->x = part.x;
 				this->y = part.y;
 				this->width = part.width;

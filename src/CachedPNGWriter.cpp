@@ -17,7 +17,8 @@
 #endif
 
 
-namespace {
+namespace
+{
 	//Function to write png data to disc
 	void userWriteData(png_structp pngPtr, png_bytep data, png_size_t length)
 	{
@@ -35,7 +36,8 @@ namespace {
 	}
 }
 
-namespace image {
+namespace image
+{
 	CachedPNGWriter::CachedPNGWriter(const size_t origW, const size_t origH)
 		: m_origW(origW), m_origH(origH), offsetX(0), offsetY(0)
 	{
@@ -44,7 +46,8 @@ namespace image {
 		}
 	}
 
-	int CachedPNGWriter::addPart(const int startx, const int starty, const int width, const int height){
+	int CachedPNGWriter::addPart(const int startx, const int starty, const int width, const int height)
+	{
 		offsetX = std::min(startx, 0);
 		offsetY = std::min(starty, 0);
 		int localX = startx;
@@ -90,7 +93,8 @@ namespace image {
 		return 0;
 	}
 
-	bool CachedPNGWriter::write([[maybe_unused]] const std::string& path) {
+	bool CachedPNGWriter::write([[maybe_unused]] const std::string& path)
+	{
 		const auto& part = m_partList.back();
 		std::fstream fileHandle(part.filename, std::ios::out | std::ios::binary);
 		if (fileHandle.fail()) {
@@ -137,13 +141,15 @@ namespace image {
 		return true;
 	}
 
-	void CachedPNGWriter::discardPart(){
+	void CachedPNGWriter::discardPart()
+	{
 		m_partList.pop_back();
 		m_height = 0;
 		m_width = 0;
 	}
 
-	bool CachedPNGWriter::compose(const std::string& path, const double scale){
+	bool CachedPNGWriter::compose(const std::string& path, const double scale)
+	{
 		std::cout << "Composing final png file...\n";
 
 		m_origH = static_cast<size_t>(static_cast<double>(m_origH) * scale);
@@ -185,7 +191,7 @@ namespace image {
 
 		png_write_info(pngStruct, pngInfo);
 
-		const size_t tempWidth = (m_origW * CHANSPERPIXEL)+1;
+		const size_t tempWidth = (m_origW * CHANSPERPIXEL) + 1;
 		const size_t tempWidthChans = tempWidth * CHANSPERPIXEL;
 
 		std::vector<uint8_t> lineWrite(tempWidthChans, 0);
@@ -221,7 +227,7 @@ namespace image {
 						std::cerr << "Error creating read struct for temporary image " << img.filename << '\n';
 						return false; // Not really cleaning up here, but program will terminate anyways, so why bother
 					}
-					 img.pngInfo = png_create_info_struct(img.pngPtr);
+					img.pngInfo = png_create_info_struct(img.pngPtr);
 					if (img.pngInfo == nullptr || setjmp(png_jmpbuf(img.pngPtr))) {
 						std::cerr << "Error reading data from temporary image " << img.filename << '\n';
 						return false; // Same here

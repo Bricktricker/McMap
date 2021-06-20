@@ -2,7 +2,8 @@
 
 #include "CachedPNGWriter.h"
 
-namespace image {
+namespace image
+{
 	class CachedTiledPNGWriter : public CachedPNGWriter
 	{
 	public:
@@ -10,13 +11,15 @@ namespace image {
 		bool compose(const std::string& path, const double scale) override;
 	private:
 
-		struct ImageTile {
+		struct ImageTile
+		{
 			std::fstream fileHandle;
 			png_structp pngPtr;
 			png_infop pngInfo;
 
 			ImageTile()
-				: pngPtr(nullptr), pngInfo(nullptr) {}
+				: pngPtr(nullptr), pngInfo(nullptr)
+			{}
 
 		};
 

@@ -10,26 +10,30 @@
 #include "ThreadPool.h"
 #include "Tree.h"
 
-enum Orientation {
+enum Orientation
+{
 	North,
 	East,
 	South,
 	West
 };
 
-struct Marker {
+struct Marker
+{
 	int chunkX, chunkZ, offsetX, offsetZ;
 	uint8_t color;
 };
 
-enum WorldFormat {
+enum WorldFormat
+{
 	ALPHA = 0, //old 0
 	REGION = 1, //old 1
 	ANVIL = 2, //old 2
 	ANVIL13 = 3 //New Anvil format in Minecraft 1.13
 };
 
-enum SpecialBlocks {
+enum SpecialBlocks
+{
 	LEAVES,
 	WATER,
 	LAVA,
@@ -39,7 +43,8 @@ enum SpecialBlocks {
 	NUM_SPECIALBLOCKS
 };
 
-struct Settings {
+struct Settings
+{
 	Orientation orientation; // North, West, South, East
 	bool nightmode;
 	bool underground;

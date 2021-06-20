@@ -4,7 +4,8 @@
 #include <array>
 #include "defines.h"
 
-namespace image {
+namespace image
+{
 	class PNGWriter
 	{
 	public:

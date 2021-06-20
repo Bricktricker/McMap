@@ -3,17 +3,17 @@
  * v2.1a, 09-2011 by Zahl
  *
  * Copyright 2011, Zahl. All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without modification, are
  * permitted provided that the following conditions are met:
- * 
+ *
  *    1. Redistributions of source code must retain the above copyright notice, this list of
  *       conditions and the following disclaimer.
- * 
+ *
  *    2. Redistributions in binary form must reproduce the above copyright notice, this list
  *       of conditions and the following disclaimer in the documentation and/or other materials
  *       provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY ZAHL ''AS IS'' AND ANY EXPRESS OR IMPLIED
  * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
  * FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL ZAHL OR
@@ -43,7 +43,7 @@
 #include "json.hpp"
 #include "helper.h"
 
-//PNGWriter
+ //PNGWriter
 #include "BasicTiledPNGWriter.h"
 #include "CachedTiledPNGWriter.h"
 
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 				Global::ToChunkZ = std::stoi(NEXTARG) + 1;
 			} else if (option == "-night") {
 				Global::settings.nightmode = true;
-			} else if ((option == "-cave") || (option == "-caves") || (option == "-underground") ) {
+			} else if ((option == "-cave") || (option == "-caves") || (option == "-underground")) {
 				Global::settings.underground = true;
 			} else if ((option == "-blendcave") || (option == "-blendcaves")) {
 				Global::settings.blendUnderground = true;
@@ -118,8 +118,7 @@ int main(int argc, char **argv)
 				Global::settings.hell = true;
 			} else if (option == "-end") {
 				Global::settings.end = true;
-			}
-			else if (option == "-serverhell") {
+			} else if (option == "-serverhell") {
 				Global::settings.serverHell = true;
 			} else if (option == "-biomes") {
 				std::cerr << "-biomes no longer supported\n";
@@ -154,21 +153,20 @@ int main(int argc, char **argv)
 					return 1;
 				}
 				memlimitSet = true;
-				memlimit = std::stoul(NEXTARG) * size_t (1024 * 1024);
+				memlimit = std::stoul(NEXTARG) * size_t(1024 * 1024);
 			} else if (option == "-file") {
 				if (!MOREARGS(1)) {
 					std::cerr << "Error: -file needs one argument, ie: -file myworld.png\n";
 					return 1;
 				}
 				outfile = NEXTARG;
-			}
-			else if (option == "-colors") {
+			} else if (option == "-colors") {
 				if (!MOREARGS(1)) {
 					std::cerr << "Error: -colors needs one argument, ie: -colors colors.json\n";
 					return 1;
 				}
 				colorfile = NEXTARG;
-			}else if(option == "-threads") {
+			} else if (option == "-threads") {
 				if (!MOREARGS(1) || !helper::isNumeric(POLLARG(1)) || atoi(POLLARG(1)) <= 1) {
 					std::cerr << "Error: " << option << " needs a positive integer argument, ie: " << option << " 4\n";
 					return 1;
@@ -226,14 +224,13 @@ int main(int argc, char **argv)
 				marker.offsetX = x - (marker.chunkX * CHUNKSIZE_X);
 				marker.offsetZ = z - (marker.chunkZ * CHUNKSIZE_Z);
 				Global::markers.push_back(marker);
-			}
-			else if (option == "-mystcraftage") {
+			} else if (option == "-mystcraftage") {
 				if (!MOREARGS(1)) {
 					std::cerr << "Error: -mystcraftage needs an integer age number argument";
 					return 1;
 				}
 				Global::mystCraftAge = static_cast<uint8_t>(atoi(NEXTARG));
-			}else if(option == "-scale"){
+			} else if (option == "-scale") {
 				if (!MOREARGS(1) || !helper::isNumeric(POLLARG(1))) {
 					std::cerr << "Error: -scale needs a scale argument. eg. 50";
 					return 1;
@@ -241,8 +238,7 @@ int main(int argc, char **argv)
 				scaleImage = std::stod(NEXTARG) / 100.0;
 				if (scaleImage > 1.0) {
 					std::cerr << "Warning: you try to upscale the resulting image!\n";
-				}
-				else if (scaleImage <= 0.0) {
+				} else if (scaleImage <= 0.0) {
 					std::cerr << "Error: -scale needs a postitive scale value > 0. eg. 50";
 					return 1;
 				}
@@ -301,11 +297,11 @@ int main(int argc, char **argv)
 	} else if (Global::mystCraftAge) {
 		std::string tmp = filename + "/DIM_MYST" + std::to_string(Global::mystCraftAge);
 		if (!Dir::dirExists(tmp)) {
-			std::cerr << "Error: This world does not have Age " << Global::mystCraftAge  << "!\n";
+			std::cerr << "Error: This world does not have Age " << Global::mystCraftAge << "!\n";
 			return 1;
 		}
-        filename = tmp;
-    }
+		filename = tmp;
+	}
 
 	// Figure out whether this is the old save format or McRegion or Anvil
 	WorldFormat worldFormat = terrain::getWorldFormat(filename);
@@ -356,9 +352,9 @@ int main(int argc, char **argv)
 
 	if (!infoFile.empty()) {
 		writeInfoFile(infoFile,
-				-cropLeft,
-				-cropTop,
-				bitmapX, bitmapY);
+			-cropLeft,
+			-cropTop,
+			bitmapX, bitmapY);
 		infoFile.clear();
 		if (infoOnly) return 0;
 	}
@@ -372,10 +368,10 @@ int main(int argc, char **argv)
 			// Warn about using incremental rendering if user didn't set limit manually
 			if (!memlimitSet && sizeof(size_t) > 4) {
 				std::cerr << " ***** PLEASE NOTE *****\n"
-				       << "mcmap is using disk cached rendering as it has a default memory limit\n"
-				       << "of " << int(memlimit / (1024 * 1024)) << " MiB. If you want to use more memory to render (=faster) use\n"
-				       << "the -mem switch followed by the amount of memory in MiB to use.\n"
-				       << "Start mcmap without any arguments to get more help.\n";
+					<< "mcmap is using disk cached rendering as it has a default memory limit\n"
+					<< "of " << int(memlimit / (1024 * 1024)) << " MiB. If you want to use more memory to render (=faster) use\n"
+					<< "the -mem switch followed by the amount of memory in MiB to use.\n"
+					<< "Start mcmap without any arguments to get more help.\n";
 			} else {
 				std::cout << "Choosing disk caching strategy...\n";
 			}
@@ -415,16 +411,14 @@ int main(int argc, char **argv)
 		if (!splitImage) {
 			pngWriter = std::make_unique<image::PNGWriter>();
 			pngWriter->reserve(bitmapX, bitmapY);
-		}
-		else {
+		} else {
 			pngWriter = std::make_unique<image::CachedPNGWriter>(bitmapX, bitmapY);
 		}
 	} else {
 		if (!splitImage) {
 			pngWriter = std::make_unique<image::BasicTiledPNGWriter>();
 			pngWriter->reserve(bitmapX, bitmapY);
-		}
-		else {
+		} else {
 			pngWriter = std::make_unique<image::CachedTiledPNGWriter>(bitmapX, bitmapY);
 		}
 
@@ -434,7 +428,7 @@ int main(int argc, char **argv)
 	// Precompute brightness adjustment factor
 	std::vector<float> brightnessLookup(Global::MapsizeY);
 	for (size_t y = 0; y < brightnessLookup.size(); ++y) {
-		brightnessLookup[y] = ((100.0f / (1.0f + expf(- (1.3f * (float(y) * std::min(Global::MapsizeY, size_t(200U)) / Global::MapsizeY) / 16.0f) + 6.0f))) - 91);   // thx Donkey Kong
+		brightnessLookup[y] = ((100.0f / (1.0f + expf(-(1.3f * (float(y) * std::min(Global::MapsizeY, size_t(200U)) / Global::MapsizeY) / 16.0f) + 6.0f))) - 91);   // thx Donkey Kong
 	}
 
 	// Now here's the loop rendering all the required parts of the image.
@@ -454,14 +448,13 @@ int main(int argc, char **argv)
 				const int sizex = (Global::ToChunkX - Global::FromChunkX) * CHUNKSIZE_X * 2 + (Global::ToChunkZ - Global::FromChunkZ) * CHUNKSIZE_Z * 2;
 				const int sizey = static_cast<int>(Global::MapsizeY) * Global::OffsetY + (Global::ToChunkX - Global::FromChunkX) * CHUNKSIZE_X + (Global::ToChunkZ - Global::FromChunkZ) * CHUNKSIZE_Z + 3;
 				if (sizex <= 0 || sizey <= 0) continue; // Don't know if this is right, might also be that the size calulation is plain wrong
-				
+
 				image::CachedPNGWriter* cpngw = dynamic_cast<image::CachedPNGWriter*>(pngWriter.get());
 				const auto ret = cpngw->addPart(bitmapStartX - cropLeft, bitmapStartY - cropTop, sizex, sizey);
 				if (ret == -1) {
 					std::cerr << "Error creating partial image to render.\n";
 					return 1;
-				}
-				else if (ret == 1) {
+				} else if (ret == 1) {
 					continue;
 				}
 			}
@@ -497,12 +490,10 @@ int main(int argc, char **argv)
 				image::CachedPNGWriter* cpngw = dynamic_cast<image::CachedPNGWriter*>(pngWriter.get());
 				cpngw->discardPart();
 				continue;
-			}
-			else if (numberOfChunks == 0 && numSplitsX != 0) {
+			} else if (numberOfChunks == 0 && numSplitsX != 0) {
 				std::cout << "Section is empty, skipping...\n";
 				continue;
-			}
-			else if (!result) {
+			} else if (!result) {
 				std::cerr << "Could not load Section\n";
 			}
 		}
@@ -540,9 +531,9 @@ int main(int argc, char **argv)
 					}
 					// we use light if...
 					if (Global::settings.nightmode // nightmode is active, or
-					      || (Global::settings.skylight // skylight is used and
-					          && (!BLOCK_AT_MAPEDGE(x, z))  // block is not edge of map (or if it is, has non-opaque block above)
-					         )) {
+						|| (Global::settings.skylight // skylight is used and
+							&& (!BLOCK_AT_MAPEDGE(x, z))  // block is not edge of map (or if it is, has non-opaque block above)
+							)) {
 						int l = GETLIGHTAT(x, y, z);  // find out how much light hits that block
 						if (l == 0 && y + 1 == Global::MapsizeY) {
 							l = (Global::settings.nightmode ? 3 : 15);   // quickfix: assume maximum strength at highest level
@@ -589,7 +580,7 @@ int main(int argc, char **argv)
 		if (Global::settings.blendUnderground && !Global::settings.underground) {
 			// Load map data again, since block culling removed most of the blocks
 			if (numSplitsX == 0 && wholeworld && !terrain::loadEntireTerrain()) {
-				std::cerr << "Error loading terrain from '" << filename <<"'\n";
+				std::cerr << "Error loading terrain from '" << filename << "'\n";
 				return 1;
 			} else if (numSplitsX != 0 || !wholeworld) {
 				int i;
@@ -675,7 +666,7 @@ void optimizeTerrain()
 		results.emplace_back(Global::threadPool->enqueue(optimizeTerrainMulti, maxX - 1, maxZ - 1));
 
 		for (size_t x = CHUNKSIZE_X; x < maxX; ++x) {
-			results.emplace_back(Global::threadPool->enqueue(optimizeTerrainMulti, x, maxZ-1));
+			results.emplace_back(Global::threadPool->enqueue(optimizeTerrainMulti, x, maxZ - 1));
 		}
 
 		helper::printProgress(0, results.size());
@@ -739,7 +730,8 @@ void optimizeTerrain()
 #endif
 }
 
-size_t optimizeTerrainMulti(const size_t startX, const size_t startZ) {
+size_t optimizeTerrainMulti(const size_t startX, const size_t startZ)
+{
 	size_t removedBlocks{ 0 };
 	size_t numMoves{ 0 };
 	std::vector<bool> blocked(Global::MapsizeY, false);
@@ -759,8 +751,7 @@ size_t optimizeTerrainMulti(const size_t startX, const size_t startZ) {
 					blocked[(y + numMoves) % Global::MapsizeY] = true;
 				}
 				if (block != AIR) highest = y;
-			}
-			else {
+			} else {
 				if (block != AIR) {
 					++removedBlocks;
 				}
@@ -889,12 +880,12 @@ bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStart
 	if (Global::ToChunkZ > Global::TotalToChunkZ) {
 		Global::ToChunkZ = Global::TotalToChunkZ;
 	}
-	std::cout << "Pass " << currentAreaX + (currentAreaZ * splitX) + 1 << " of " << splitX * splitZ  << "...\n";
+	std::cout << "Pass " << currentAreaX + (currentAreaZ * splitX) + 1 << " of " << splitX * splitZ << "...\n";
 	// Calulate pixel offsets in bitmap. Forgot how this works right after writing it, really.
 	if (Global::settings.orientation == North) {
 		bitmapStartX = (((Global::TotalToChunkZ - Global::TotalFromChunkZ) * CHUNKSIZE_Z) * 2 + 3)   // Center of image..
-		               - ((Global::ToChunkZ - Global::TotalFromChunkZ) * CHUNKSIZE_Z * 2)  // increasing Z pos will move left in bitmap
-		               + ((Global::FromChunkX - Global::TotalFromChunkX) * CHUNKSIZE_X * 2);  // increasing X pos will move right in bitmap
+			- ((Global::ToChunkZ - Global::TotalFromChunkZ) * CHUNKSIZE_Z * 2)  // increasing Z pos will move left in bitmap
+			+ ((Global::FromChunkX - Global::TotalFromChunkX) * CHUNKSIZE_X * 2);  // increasing X pos will move right in bitmap
 		bitmapStartY = 5 + (Global::FromChunkZ - Global::TotalFromChunkZ) * CHUNKSIZE_Z + (Global::FromChunkX - Global::TotalFromChunkX) * CHUNKSIZE_X;
 	} else if (Global::settings.orientation == South) {
 		const int tox = Global::TotalToChunkX - Global::FromChunkX + Global::TotalFromChunkX;
@@ -902,22 +893,22 @@ bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStart
 		const int fromx = tox - (Global::ToChunkX - Global::FromChunkX);
 		const int fromz = toz - (Global::ToChunkZ - Global::FromChunkZ);
 		bitmapStartX = (((Global::TotalToChunkZ - Global::TotalFromChunkZ) * CHUNKSIZE_Z) * 2 + 3)   // Center of image..
-		               - ((toz - Global::TotalFromChunkZ) * CHUNKSIZE_Z * 2)  // increasing Z pos will move left in bitmap
-		               + ((fromx - Global::TotalFromChunkX) * CHUNKSIZE_X * 2);  // increasing X pos will move right in bitmap
+			- ((toz - Global::TotalFromChunkZ) * CHUNKSIZE_Z * 2)  // increasing Z pos will move left in bitmap
+			+ ((fromx - Global::TotalFromChunkX) * CHUNKSIZE_X * 2);  // increasing X pos will move right in bitmap
 		bitmapStartY = 5 + (fromz - Global::TotalFromChunkZ) * CHUNKSIZE_Z + (fromx - Global::TotalFromChunkX) * CHUNKSIZE_X;
 	} else if (Global::settings.orientation == East) {
 		const int tox = Global::TotalToChunkX - Global::FromChunkX + Global::TotalFromChunkX;
 		const int fromx = tox - (Global::ToChunkX - Global::FromChunkX);
 		bitmapStartX = (((Global::TotalToChunkX - Global::TotalFromChunkX) * CHUNKSIZE_X) * 2 + 3)   // Center of image..
-		               - ((tox - Global::TotalFromChunkX) * CHUNKSIZE_X * 2)  // increasing Z pos will move left in bitmap
-		               + ((Global::FromChunkZ - Global::TotalFromChunkZ) * CHUNKSIZE_Z * 2);  // increasing X pos will move right in bitmap
+			- ((tox - Global::TotalFromChunkX) * CHUNKSIZE_X * 2)  // increasing Z pos will move left in bitmap
+			+ ((Global::FromChunkZ - Global::TotalFromChunkZ) * CHUNKSIZE_Z * 2);  // increasing X pos will move right in bitmap
 		bitmapStartY = 5 + (fromx - Global::TotalFromChunkX) * CHUNKSIZE_X + (Global::FromChunkZ - Global::TotalFromChunkZ) * CHUNKSIZE_Z;
 	} else {
 		const int toz = Global::TotalToChunkZ - Global::FromChunkZ + Global::TotalFromChunkZ;
 		const int fromz = toz - (Global::ToChunkZ - Global::FromChunkZ);
 		bitmapStartX = (((Global::TotalToChunkX - Global::TotalFromChunkX) * CHUNKSIZE_X) * 2 + 3)   // Center of image..
-		               - ((Global::ToChunkX - Global::TotalFromChunkX) * CHUNKSIZE_X * 2)  // increasing Z pos will move left in bitmap
-		               + ((fromz - Global::TotalFromChunkZ) * CHUNKSIZE_Z * 2);  // increasing X pos will move right in bitmap
+			- ((Global::ToChunkX - Global::TotalFromChunkX) * CHUNKSIZE_X * 2)  // increasing Z pos will move left in bitmap
+			+ ((fromz - Global::TotalFromChunkZ) * CHUNKSIZE_Z * 2);  // increasing X pos will move right in bitmap
 		bitmapStartY = 5 + (Global::FromChunkX - Global::TotalFromChunkX) * CHUNKSIZE_X + (fromz - Global::TotalFromChunkZ) * CHUNKSIZE_Z;
 	}
 	return false; // not done yet, return false
@@ -932,18 +923,15 @@ void writeInfoFile(const std::string& file, int xo, int yo, size_t bitmapX, size
 		xo += (Global::TotalToChunkZ * CHUNKSIZE_Z - Global::FromChunkX * CHUNKSIZE_X) * 2 + 4;
 		yo -= (Global::TotalFromChunkX * CHUNKSIZE_X + Global::TotalFromChunkZ * CHUNKSIZE_Z) - static_cast<int>(Global::MapsizeY) * Global::OffsetY;
 		direction = "North";
-	}
-	else if (Global::settings.orientation == South) {
+	} else if (Global::settings.orientation == South) {
 		xo += (Global::TotalToChunkX * CHUNKSIZE_X - Global::TotalFromChunkZ * CHUNKSIZE_Z) * 2 + 4;
 		yo += ((Global::TotalToChunkX) * CHUNKSIZE_X + (Global::TotalToChunkZ) * CHUNKSIZE_Z) + static_cast<int>(Global::MapsizeY) * Global::OffsetY;
 		direction = "South";
-	}
-	else if (Global::settings.orientation == East) {
+	} else if (Global::settings.orientation == East) {
 		xo -= (Global::TotalFromChunkX * CHUNKSIZE_X + Global::TotalFromChunkZ * CHUNKSIZE_Z) * Global::OffsetY - 6;
 		yo += ((Global::TotalToChunkX) * CHUNKSIZE_X - Global::TotalFromChunkZ * CHUNKSIZE_Z) + static_cast<int>(Global::MapsizeY) * Global::OffsetY;
 		direction = "East";
-	}
-	else {
+	} else {
 		xo += (Global::TotalToChunkX * CHUNKSIZE_X + Global::TotalToChunkZ * CHUNKSIZE_Z) * Global::OffsetY + 2;
 		yo += ((Global::TotalToChunkZ) * CHUNKSIZE_Z - Global::TotalFromChunkX * CHUNKSIZE_X) + static_cast<int>(Global::MapsizeY) * Global::OffsetY;
 		direction = "West";
