@@ -12,8 +12,8 @@ namespace {
 	void userWriteData(png_structp pngPtr, png_bytep data, png_size_t length)
 	{
 		png_voidp a = png_get_io_ptr(pngPtr);
-		//Cast the pointer to std::ifstream* and read 'length' bytes into 'data'
-		((std::fstream*)a)->write((char*)data, length);
+		//Cast the pointer to std::ifstream* and write 'length' bytes from 'data'
+		static_cast<std::fstream*>(a)->write(reinterpret_cast<char*>(data), static_cast<std::streamsize>(length));
 	}
 }
 
@@ -25,7 +25,7 @@ namespace image {
 
 	bool PNGWriter::reserve(const size_t width, const size_t height){
 		const size_t pixSize = width * height * CHANSPERPIXEL;
-		std::cout << "Image dimensions are " << width << 'x' << height << ", 32bpp, " << float(pixSize / float(1024 * 1024)) << "MiB\n";
+		std::cout << "Image dimensions are " << width << 'x' << height << ", 32bpp, " << static_cast<float>(pixSize) / (1024.0f * 1024.0f) << "MiB\n";
 		m_buffer.resize(pixSize, 0U);
 
 		m_width = width;
@@ -57,9 +57,9 @@ namespace image {
 			return false;
 		}
 
-		png_set_write_fn(pngStruct, (png_voidp)&fileHandle, userWriteData, NULL);
+		png_set_write_fn(pngStruct, static_cast<png_voidp>(&fileHandle), userWriteData, NULL);
 
-		png_set_IHDR(pngStruct, pngInfo, (uint32_t)m_width, (uint32_t)m_height,
+		png_set_IHDR(pngStruct, pngInfo, static_cast<uint32_t>(m_width), static_cast<uint32_t>(m_height),
 			8, PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE,
 			PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
@@ -79,7 +79,7 @@ namespace image {
 				if (y % 25 == 0) {
 					helper::printProgress(y, m_height);
 				}
-				png_write_row(pngStruct, (png_bytep)&m_buffer[srcLine]);
+				png_write_row(pngStruct, &m_buffer[srcLine]);
 				srcLine += m_width * CHANSPERPIXEL;
 			}
 			helper::printProgress(10, 10);
@@ -95,15 +95,15 @@ namespace image {
 		return true;
 	}
 
-	Channel* PNGWriter::getPixel(const size_t x, const size_t y){
+	Channel* PNGWriter::getPixel(const size_t x, const size_t y) {
 		if (x >= m_width || y >= m_height)
 			throw std::out_of_range("getPixel out of range\n");
 
 		return &m_buffer[x*CHANSPERPIXEL + y * (m_width * CHANSPERPIXEL)];
 	}
 
-	void PNGWriter::resize(const double scaleFac){
-		resize(static_cast<size_t>(m_width*scaleFac), static_cast<size_t>(m_height*scaleFac));
+	void PNGWriter::resize(const double scaleFac) {
+		resize(static_cast<size_t>(static_cast<double>(m_width) * scaleFac), static_cast<size_t>(static_cast<double>(m_height) * scaleFac));
 	}
 
 	//https://blog.demofox.org/2015/08/15/resizing-images-with-bicubic-interpolation/
@@ -141,7 +141,7 @@ namespace image {
 		if (x > static_cast<int>(m_width - 1)) x = static_cast<int>(m_width - 1);
 		if (y > static_cast<int>(m_height - 1)) y = static_cast<int>(m_height - 1);
 
-		return &m_buffer[x*CHANSPERPIXEL + y * (m_width * CHANSPERPIXEL)];
+		return &m_buffer[static_cast<size_t>(x) * CHANSPERPIXEL + static_cast<size_t>(y) * (m_width * CHANSPERPIXEL)];
 	}
 
 	// t is a value that goes from 0 to 1 to interpolate in a C1 continuous way across uniformly sampled data points.
@@ -164,13 +164,13 @@ namespace image {
 
 	std::array<uint8_t, PNGWriter::CHANSPERPIXEL> PNGWriter::SampleBicubic(const float u, const float v){
 		// calculate coordinates -> also need to offset by half a pixel to keep image from shifting down and left half a pixel
-		const float x = (u * m_width) - 0.5f;
+		const float x = (u * static_cast<float>(m_width)) - 0.5f;
 		const int xint = int(x);
-		const float xfract = x - floor(x);
+		const float xfract = x - floorf(x);
 
-		const float y = (v * m_height) - 0.5f;
+		const float y = (v * static_cast<float>(m_height)) - 0.5f;
 		const int yint = int(y);
-		const float yfract = y - floor(y);
+		const float yfract = y - floorf(y);
 
 		// 1st row
 		const auto p00 = getPixelClamped(xint - 1, yint - 1);

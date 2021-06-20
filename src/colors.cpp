@@ -86,7 +86,7 @@ bool loadColors(const std::string& path)
 			const Channel b = col["b"];
 			const Channel a = col["a"];
 			const uint8_t n = col["n"];
-			const uint8_t brightness = (uint8_t)sqrt(double(r) *  double(r) * .236 + double(g) *  double(g) * .601 + double(b) * double(b) * .163);
+			const uint8_t brightness = static_cast<uint8_t>(sqrt(double(r) *  double(r) * .236 + double(g) *  double(g) * .601 + double(b) * double(b) * .163));
 			colors.addColor(Color_t{ r, g, b, a, n, brightness });
 		}
 

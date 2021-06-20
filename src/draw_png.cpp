@@ -16,20 +16,20 @@ namespace draw {
 	inline void modColor(Channel* const pos, const int mod);
 	inline void setColor(Channel* const pos, const Color_t& color);
 
-	uint64_t calcImageSize(const int mapChunksX, const int mapChunksZ, const size_t mapHeight, int &pixelsX, int &pixelsY, const bool tight){
+	uint64_t calcImageSize(const size_t mapChunksX, const size_t mapChunksZ, const size_t mapHeight, size_t &pixelsX, size_t &pixelsY, const bool tight){
 		pixelsX = (mapChunksX * CHUNKSIZE_X + mapChunksZ * CHUNKSIZE_Z) * 2 + (tight ? 3 : 10);
-		pixelsY = (mapChunksX * CHUNKSIZE_X + mapChunksZ * CHUNKSIZE_Z + int(mapHeight) * Global::OffsetY) + (tight ? 3 : 10);
-		return uint64_t(pixelsX) * image::PNGWriter::BYTESPERPIXEL * uint64_t(pixelsY);
+		pixelsY = (mapChunksX * CHUNKSIZE_X + mapChunksZ * CHUNKSIZE_Z + mapHeight * static_cast<size_t>(Global::OffsetY)) + (tight ? 3 : 10);
+		return pixelsX * image::PNGWriter::BYTESPERPIXEL * pixelsY;
 	}
 
 	/*
 	fsub: brightnessAdjustment
 	*/
 	void setPixel(const int x, const int y, const StateID_t stateID, const float fsub, image::PNGWriter* pngWriter){
-		if (x < 0 || (size_t)x >= pngWriter->getWidth()) {
+		if (x < 0 || static_cast<size_t>(x) >= pngWriter->getWidth()) {
 			return;
 		}
-		if (y < 0 || (size_t)y >= pngWriter->getHeight()) {
+		if (y < 0 || static_cast<size_t>(y) >= pngWriter->getHeight()) {
 			return;
 		}
 
@@ -60,9 +60,9 @@ namespace draw {
 				if ((pixelDrawMode & 0b110) == 0) {
 					continue;
 				}
-				Channel* pos = pngWriter->getPixel(x + xPos, y + yPos);
+				Channel* pos = pngWriter->getPixel(static_cast<size_t>(x) + xPos, static_cast<size_t>(y) + yPos);
 
-				const size_t colorIdx = static_cast<size_t>(((pixelDrawMode & 0b110) >> 1) - 1);
+				const size_t colorIdx = (((pixelDrawMode & 0b110) >> 1) - 1);
 				const Color_t& pixelColor = colors[colorIdx][pixelDrawMode & 1];
 
 				// In case the user wants noise, calc the strength now, depending on the desired intensity and the block's brightness
@@ -86,11 +86,11 @@ namespace draw {
 
 	}
 
-	void blendPixel(const size_t x, const size_t y, const StateID_t stateID, const float fsub, image::PNGWriter* pngWriter){
-		if (x < 0 || (size_t) x >= pngWriter->getWidth()) {
+	void blendPixel(const int x, const int y, const StateID_t stateID, const float fsub, image::PNGWriter* pngWriter){
+		if (x < 0 || static_cast<size_t>(x) >= pngWriter->getWidth()) {
 			return;
 		}
-		if (y < 0 || (size_t) y >= pngWriter->getHeight()) {
+		if (y < 0 || static_cast<size_t>(y) >= pngWriter->getHeight()) {
 			return;
 		}
 
@@ -120,9 +120,9 @@ namespace draw {
 				if ((pixelDrawMode & 0b110) == 0) {
 					continue;
 				}
-				Channel* pos = pngWriter->getPixel(x + xPos, y + yPos);
+				Channel* pos = pngWriter->getPixel(static_cast<size_t>(x) + xPos, static_cast<size_t>(y) + yPos);
 
-				const size_t colorIdx = static_cast<size_t>(((pixelDrawMode & 0b110) >> 1) - 1);
+				const size_t colorIdx = ((pixelDrawMode & 0b110) >> 1) - 1;
 				const Color_t& pixelColor = colors[colorIdx][pixelDrawMode & 1];
 
 				// In case the user wants noise, calc the strength now, depending on the desired intensity and the block's brightness
@@ -151,7 +151,7 @@ namespace draw {
 		destination[0] = BLEND(source[0], source[PALPHA], destination[0]);
 		destination[1] = BLEND(source[1], source[PALPHA], destination[1]);
 		destination[2] = BLEND(source[2], source[PALPHA], destination[2]);
-		destination[PALPHA] += (size_t(source[PALPHA]) * size_t(255 - destination[PALPHA])) / 255;
+		destination[PALPHA] += static_cast<Channel>((size_t(source[PALPHA]) * size_t(255 - destination[PALPHA])) / 255);
 	}
 
 	inline void blend(Channel* const destination, const Color_t& source)
@@ -167,7 +167,7 @@ namespace draw {
 		destination[0] = BLEND(source.r, source.a, destination[0]);
 		destination[1] = BLEND(source.g, source.a, destination[1]);
 		destination[2] = BLEND(source.b, source.a, destination[2]);
-		destination[PALPHA] += (size_t(source.a) * size_t(255 - destination[PALPHA])) / 255;
+		destination[PALPHA] += static_cast<Channel>((size_t(source.a) * size_t(255 - destination[PALPHA])) / 255);
 	}
 
 	Color_t modColor(const Color_t& color, const int mod)

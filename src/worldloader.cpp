@@ -101,19 +101,19 @@ namespace terrain {
 			}
 			//std::array<uint8_t, REGIONSIZE * REGIONSIZE * 4> buffer;
 			std::vector<uint8_t> buffer(REGIONSIZE * REGIONSIZE * 4, 0);
-			fh.read((char*)buffer.data(), 4 * REGIONSIZE * REGIONSIZE);
+			fh.read(reinterpret_cast<char*>(buffer.data()), 4 * REGIONSIZE * REGIONSIZE);
 			if (fh.fail()) {
 				std::cerr << "Could not read header from " << region.filename << '\n';
 				region.filename.clear();
 				continue;
 			}
 			// Check for existing chunks in region and update bounds
-			for (int i = 0; i < REGIONSIZE * REGIONSIZE; ++i) {
+			for (size_t i = 0; i < REGIONSIZE * REGIONSIZE; ++i) {
 				const uint32_t offset = (helper::swap_endian<uint32_t>(buffer[i] + (buffer[i+1] << 8) + (buffer[i+2] << 16))>>8) * 4096;
 				if (offset == 0) continue;
 
-				const int valX = region.x + i % REGIONSIZE;
-				const int valZ = region.z + i / REGIONSIZE;
+				const int valX = region.x + static_cast<int>(i % REGIONSIZE);
+				const int valZ = region.z + static_cast<int>(i / REGIONSIZE);
 				world.points.push_back(Point(valX, valZ));
 				if (valX < Global::FromChunkX) {
 					Global::FromChunkX = valX;
@@ -152,7 +152,7 @@ namespace terrain {
 			std::cerr << "No DataVersion in Chunk\n";
 			return false;
 		}
-		const int32_t dataVersion = dataVersionOpt.value();
+		const size_t dataVersion = static_cast<size_t>(dataVersionOpt.value());
 
 		const auto levelOpt = chunk.getCompound("Level");
 		if (!levelOpt.has_value()) {
@@ -239,14 +239,15 @@ namespace terrain {
 			const int32_t yo = yOffsetOpt.value();
 
 			if (yo < Global::sectionMin || yo > Global::sectionMax) continue; //sub-Chunk out of bounds, continue
-			int32_t yoffset = (SECTION_Y * (int)(yo - Global::sectionMin)) - static_cast<int32_t>(yoffsetsomething); //Blocks into render zone in Y-Axis
+			int32_t yoffset = (SECTION_Y * (yo - Global::sectionMin)) - static_cast<int32_t>(yoffsetsomething); //Blocks into render zone in Y-Axis
 			if (yoffset < 0) yoffset = 0;
 
 			const auto blockStatesOpt = sec.getLongArray("BlockStates");
 			if(!blockStatesOpt.has_value()) {
 				continue;
 			}
-			std::vector<uint64_t> blockStates((uint64_t*) blockStatesOpt.value().m_data, (uint64_t*) blockStatesOpt.value().m_data + blockStatesOpt.value().m_len);
+			const uint64_t* beginPtr = reinterpret_cast<const uint64_t*>(blockStatesOpt.value().m_data);
+			std::vector<uint64_t> blockStates(beginPtr, beginPtr + blockStatesOpt.value().m_len);
 
 			PrimArray<uint8_t> lightdata;
 			if (Global::settings.nightmode || Global::settings.skylight) { // If nightmode, we need the light information too
@@ -396,8 +397,8 @@ namespace terrain {
 		return true;
 	}
 
-	uint64_t calcTerrainSize(const int chunksX, const int chunksZ){
-		uint64_t size = sizeof(StateID_t) * uint64_t(chunksX+2) * CHUNKSIZE_X * uint64_t(chunksZ+2) * CHUNKSIZE_Z * uint64_t(Global::MapsizeY);
+	uint64_t calcTerrainSize(const size_t chunksX, const size_t chunksZ){
+		uint64_t size = sizeof(StateID_t) * (chunksX+2) * CHUNKSIZE_X * (chunksZ+2) * CHUNKSIZE_Z * (Global::MapsizeY);
 
 		if (Global::settings.nightmode || Global::settings.underground || Global::settings.blendUnderground || Global::settings.skylight) {
 				size += size / 4;
@@ -545,13 +546,13 @@ namespace terrain {
 
 			// Preset: all bright / dark depending on night or day
 			if (Global::settings.nightmode) {
-				std::fill_n(Global::light.begin(), lightsize, 0x11);
+				std::fill_n(Global::light.begin(), lightsize, static_cast<uint8_t>(0x11));
 			}
 			else if (Global::settings.underground) {
-				std::fill_n(Global::light.begin(), lightsize, 0x00);
+				std::fill_n(Global::light.begin(), lightsize, static_cast<uint8_t>(0x00));
 			}
 			else {
-				std::fill_n(Global::light.begin(), lightsize, 0xFF);
+				std::fill_n(Global::light.begin(), lightsize, static_cast<uint8_t>(0xFF));
 			}
 		}
 		std::cout << '\n';
@@ -573,7 +574,7 @@ namespace terrain {
 	/**
 	 * Round down to the nearest multiple of 8, e.g. floor8(-5) == 8
 	 */
-	const inline int floorBiome(const int val) {
+	inline int floorBiome(const int val) {
 		if (val < 0) {
 			return ((val - (CHUNKS_PER_BIOME_FILE - 1)) / CHUNKS_PER_BIOME_FILE) * CHUNKS_PER_BIOME_FILE;
 		}
@@ -583,7 +584,7 @@ namespace terrain {
 	/**
 	 * Round down to the nearest multiple of 32, e.g. floor32(-5) == 32
 	 */
-	const inline int floorRegion(const int val) {
+	inline int floorRegion(const int val) {
 		if (val < 0) {
 			return ((val - (REGIONSIZE - 1)) / REGIONSIZE) * REGIONSIZE;
 		}
@@ -664,9 +665,9 @@ namespace terrain {
 				for (int z = floorRegion(Global::FromChunkZ); z <= floorRegion(Global::ToChunkZ); z += REGIONSIZE) {
 					const std::string path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".mca";
 				
-					results.emplace_back(Global::threadPool->enqueue([&atomicLoadedChunks] (const std::string path) {
+					results.emplace_back(Global::threadPool->enqueue([&atomicLoadedChunks] (const std::string _path) {
 						int load = 0;
-						const bool r = loadRegion(path, false, load);
+						const bool r = loadRegion(_path, false, load);
 						atomicLoadedChunks += load;
 						return r;
 					}, path));
@@ -689,7 +690,7 @@ namespace terrain {
 			for (int x = floorRegion(Global::FromChunkX); x <= maxX; x += REGIONSIZE) {
 				const int maxZ = floorRegion(Global::ToChunkZ);
 				for (int z = floorRegion(Global::FromChunkZ); z <= maxZ; z += REGIONSIZE) {
-					const std::string path = fromPath + "/region/r." + std::to_string(int(x / REGIONSIZE)) + '.' + std::to_string(int(z / REGIONSIZE)) + ".mca";
+					const std::string path = fromPath + "/region/r." + std::to_string(x / REGIONSIZE) + '.' + std::to_string(z / REGIONSIZE) + ".mca";
 					const bool b = loadRegion(path, false, loadedChunks);
 					result |= b;
 				}
@@ -709,7 +710,7 @@ namespace terrain {
 			if (mustExist) std::cerr << "Error opening region file " << file << '\n';
 			return false;
 		}
-		rp.read((char*)buffer.data(), REGIONSIZE * REGIONSIZE * 4);
+		rp.read(reinterpret_cast<char*>(buffer.data()), REGIONSIZE * REGIONSIZE * 4);
 		if (rp.fail()) {
 			std::cerr << "Header too short in " << file << '\n';
 			return false;
@@ -733,12 +734,12 @@ namespace terrain {
 				std::cerr << "Error seeking to chunk in region file " << file << '\n';
 				continue;
 			}
-			rp.read((char*)buffer.data(), 5);
+			rp.read(reinterpret_cast<char*>(buffer.data()), 5);
 			if (rp.fail()) {
 				std::cerr << "Error reading chunk size from region file " << file << '\n';
 				continue;
 			}
-			uint32_t len = helper::swap_endian<uint32_t>(*reinterpret_cast<uint32_t*>(buffer.data()));
+			size_t len = helper::swap_endian<uint32_t>(*reinterpret_cast<uint32_t*>(buffer.data()));
 			uint8_t version = buffer[4];
 			if (len == 0) continue;
 			len--;
@@ -746,17 +747,17 @@ namespace terrain {
 				std::cerr << "Chunk too big in " << file << '\n';
 				continue;
 			}
-			rp.read((char*)buffer.data(), len);
+			rp.read(reinterpret_cast<char*>(buffer.data()), static_cast<std::streamsize>(len));
 			if (rp.fail()) {
 				std::cerr << "Not enough input for chunk in " << file << '\n';
 				continue;
 			}
 			if (version == 1 || version == 2) { // zlib/gzip deflate
 				std::memset(&zlibStream, 0, sizeof(z_stream));
-				zlibStream.next_out = (Bytef*)decompressedBuffer.data();
+				zlibStream.next_out = decompressedBuffer.data();
 				zlibStream.avail_out = DECOMPRESSED_BUFFER;
-				zlibStream.avail_in = len;
-				zlibStream.next_in = (Bytef*)buffer.data();
+				zlibStream.avail_in = static_cast<uInt>(len);
+				zlibStream.next_in = buffer.data();
 
 				inflateInit2(&zlibStream, 32 + MAX_WBITS);
 				int status = inflate(&zlibStream, Z_FINISH); // decompress in one step
@@ -800,7 +801,6 @@ namespace terrain {
 
 			uint64_t val = helper::swap_endian(arr[arrIdx]);
 			const size_t startBit = (index % entriesPerWord) * lengthOfOne;
-			const size_t endBit = startBit + lengthOfOne;
 
 			const auto m = startBit & (~0x3F);
 
@@ -898,8 +898,8 @@ namespace terrain {
 		}
 
 	void uncoverNether() {
-		const int cap = (Global::MapsizeY - Global::MapminY) - 57;
-		const int to = (Global::MapsizeY - Global::MapminY) - 52;
+		const int cap = (static_cast<int>(Global::MapsizeY) - Global::MapminY) - 57;
+		const int to = (static_cast<int>(Global::MapsizeY) - Global::MapminY) - 52;
 		std::cout << "Uncovering Nether...\n";
 		for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) {
 			helper::printProgress(x - CHUNKSIZE_X, Global::MapsizeX);

@@ -39,7 +39,7 @@ namespace helper {
 	/*
 	 Converts big endian values to host-architecture
 	*/
-	template <typename T> //, typename std::enable_if_t<std::is_integral<T>::value>* = nullptr
+	template <typename T, typename std::enable_if_t<std::is_integral<T>::value || std::is_floating_point<T>::value>* = nullptr>
 	T swap_endian(const T u){
 		static_assert (std::numeric_limits<unsigned char>::digits == 8, "CHAR_BIT != 8");
 

@@ -15,7 +15,7 @@ namespace {
 	{
 		png_voidp a = png_get_io_ptr(pngPtr);
 		//Cast the pointer to std::ifstream* and read 'length' bytes into 'data'
-		((std::fstream*)a)->write((char*)data, length);
+		static_cast<std::fstream*>(a)->write(reinterpret_cast<char*>(data), static_cast<std::streamsize>(length));
 	}
 }
 
@@ -73,7 +73,7 @@ namespace image {
 							png_destroy_write_struct(&(t.pngPtr), &(t.pngInfo));
 							t.fileHandle.close();
 						}
-						if (tileWidth * (tileIndex - sizeOffset[tileSize]) < size_t(m_width)) {
+						if (tileWidth * (tileIndex - sizeOffset[tileSize]) < m_width) {
 							// Open new tile file for a while
 							const std::string tmpString = path + "/x" + std::to_string(int(tileIndex - sizeOffset[tileSize])) + 'y' + std::to_string(int((y / pow(2, 12 - tileSize)))) + 'z' + std::to_string(int(tileSize)) + ".png";
 	#ifdef _DEBUG
@@ -100,7 +100,7 @@ namespace image {
 								return false;
 							}
 
-							png_set_write_fn(t.pngPtr, (png_voidp)&t.fileHandle, userWriteData, NULL);
+							png_set_write_fn(t.pngPtr, static_cast<png_voidp>(&t.fileHandle), userWriteData, NULL);
 							//png_init_io(t.pngPtr, t.fileHandle);
 							png_set_IHDR(t.pngPtr, t.pngInfo,
 								uint32_t(pow(2, 12 - tileSize)), uint32_t(pow(2, 12 - tileSize)),
@@ -116,7 +116,7 @@ namespace image {
 				const size_t tileWidth = static_cast<size_t>(pow(2, 12 - tileSize));
 				for (size_t tileIndex = sizeOffset[tileSize]; tileIndex < sizeOffset[tileSize + 1]; ++tileIndex) {
 					if (tile[tileIndex].fileHandle.fail() || !tile[tileIndex].fileHandle.is_open()) continue;
-					png_write_row(tile[tileIndex].pngPtr, png_bytep(&tempLine[tileWidth * (tileIndex - sizeOffset[tileSize]) * CHANSPERPIXEL]));
+					png_write_row(tile[tileIndex].pngPtr, &tempLine[tileWidth * (tileIndex - sizeOffset[tileSize]) * CHANSPERPIXEL]);
 				}
 			} // done writing line
 		} // done with whole image
@@ -129,7 +129,7 @@ namespace image {
 				if (tile[tileIndex].fileHandle.fail() || !tile[tileIndex].fileHandle.is_open()) continue;
 				const size_t imgEnd = (((m_height - 1) / tileWidth) + 1) * tileWidth;
 				for (size_t i = m_height; i < imgEnd; ++i) {
-					png_write_row(tile[tileIndex].pngPtr, png_bytep(tempLine.data())); //writes just 0's
+					png_write_row(tile[tileIndex].pngPtr, tempLine.data()); //writes just 0's
 				}
 				png_write_end(tile[tileIndex].pngPtr, NULL);
 				png_destroy_write_struct(&(tile[tileIndex].pngPtr), &(tile[tileIndex].pngInfo));

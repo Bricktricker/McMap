@@ -22,8 +22,8 @@ namespace {
 	void userWriteData(png_structp pngPtr, png_bytep data, png_size_t length)
 	{
 		png_voidp a = png_get_io_ptr(pngPtr);
-		//Cast the pointer to std::ifstream* and read 'length' bytes into 'data'
-		((std::fstream*)a)->write((char*)data, length);
+		//Cast the pointer to std::ifstream* and write 'length' bytes from 'data'
+		static_cast<std::fstream*>(a)->write(reinterpret_cast<char*>(data), static_cast<std::streamsize>(length));
 	}
 
 	//Function to read pngt data from disc
@@ -31,7 +31,7 @@ namespace {
 	{
 		png_voidp a = png_get_io_ptr(pngPtr);
 		//Cast the pointer to std::ifstream* and read 'length' bytes into 'data'
-		((std::fstream*)a)->read((char*)data, length);
+		static_cast<std::fstream*>(a)->read(reinterpret_cast<char*>(data), static_cast<std::streamsize>(length));
 	}
 }
 
@@ -72,16 +72,25 @@ namespace image {
 			return 1;
 		}
 
-		const std::string name = "cache/" + std::to_string(localX) + '.' + std::to_string(localY) + '.' + std::to_string(localWidth) + '.' + std::to_string(localHeight) + '.' + std::to_string((int)time(NULL)) + ".png";
+		std::stringstream ss;
+		ss << "cache/"
+			<< std::to_string(localX) << '.'
+			<< std::to_string(localY) << '.'
+			<< std::to_string(localWidth) << '.'
+			<< std::to_string(localHeight) << '.'
+			<< std::to_string(time(NULL))
+			<< ".png";
+		const std::string name = ss.str();
+
 		m_partList.emplace_back(name, localX, localY, localWidth, localHeight);
 
-		if (!this->reserve(localWidth, localHeight))
+		if (!this->reserve(static_cast<size_t>(localWidth), static_cast<size_t>(localHeight)))
 			return -1;
 
 		return 0;
 	}
 
-	bool CachedPNGWriter::write(const std::string& path){
+	bool CachedPNGWriter::write([[maybe_unused]] const std::string& path) {
 		const auto& part = m_partList.back();
 		std::fstream fileHandle(part.filename, std::ios::out | std::ios::binary);
 		if (fileHandle.fail()) {
@@ -106,16 +115,16 @@ namespace image {
 			return false;
 		}
 
-		png_set_write_fn(pngStruct, (png_voidp)&fileHandle, userWriteData, NULL);
+		png_set_write_fn(pngStruct, static_cast<png_voidp>(&fileHandle), userWriteData, NULL);
 		png_set_compression_level(pngStruct, Z_BEST_SPEED);
-		png_set_IHDR(pngStruct, pngInfo, (uint32_t)part.width, (uint32_t)part.height,
+		png_set_IHDR(pngStruct, pngInfo, static_cast<uint32_t>(part.width), static_cast<uint32_t>(part.height),
 			8, PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE,
 			PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 		png_write_info(pngStruct, pngInfo);
 
 		size_t line = 0;
 		for (size_t y = 0; y < part.height; ++y) {
-			png_write_row(pngStruct, (png_bytep)&m_buffer.at(line));
+			png_write_row(pngStruct, &m_buffer.at(line));
 			line += m_width * CHANSPERPIXEL;
 		}
 
@@ -137,8 +146,8 @@ namespace image {
 	bool CachedPNGWriter::compose(const std::string& path, const double scale){
 		std::cout << "Composing final png file...\n";
 
-		m_origH = static_cast<size_t>(m_origH * scale);
-		m_origW = static_cast<size_t>(m_origW * scale);
+		m_origH = static_cast<size_t>(static_cast<double>(m_origH) * scale);
+		m_origW = static_cast<size_t>(static_cast<double>(m_origW) * scale);
 
 		std::fstream outHandle(path, std::ios::out | std::ios::binary);
 		if (outHandle.fail()) {
@@ -162,16 +171,16 @@ namespace image {
 			return false;
 		}
 
-		png_set_write_fn(pngStruct, (png_voidp)&outHandle, userWriteData, NULL);
+		png_set_write_fn(pngStruct, static_cast<png_voidp>(&outHandle), userWriteData, NULL);
 
-		png_set_IHDR(pngStruct, pngInfo, (uint32_t)m_origW, (uint32_t)m_origH,
+		png_set_IHDR(pngStruct, pngInfo, static_cast<uint32_t>(m_origW), static_cast<uint32_t>(m_origH),
 			8, PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE,
 			PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
 		png_text title_text;
 		title_text.compression = PNG_TEXT_COMPRESSION_NONE;
-		title_text.key = (png_charp)"Software";
-		title_text.text = (png_charp)"mcmap";
+		title_text.key = png_charp("Software"); // we need to cast from const char* to char*
+		title_text.text = png_charp("mcmap"); // we need to cast from const char* to char*
 		png_set_text(pngStruct, pngInfo, &title_text, 1);
 
 		png_write_info(pngStruct, pngInfo);
@@ -185,7 +194,7 @@ namespace image {
 		// Prepare an array of png structs that will output simultaneously to the various tiles
 		for (size_t y = 0; y < m_origH; ++y) {
 			if (y % 100 == 0) {
-				helper::printProgress(size_t(y), size_t(m_origH));
+				helper::printProgress(y, m_origH);
 			}
 			// paint each image on this one
 			std::fill(lineWrite.begin(), lineWrite.end(), 0);
@@ -218,13 +227,13 @@ namespace image {
 						return false; // Same here
 					}
 
-					png_set_read_fn(img.pngPtr, (png_voidp)&img.file, userReadData);
+					png_set_read_fn(img.pngPtr, static_cast<png_voidp>(&img.file), userReadData);
 					png_read_info(img.pngPtr, img.pngInfo);
 					// Check if image dimensions match what is expected
 					int type, interlace, comp, filter, bitDepth;
 					png_uint_32 width, height;
 					png_uint_32 ret = png_get_IHDR(img.pngPtr, img.pngInfo, &width, &height, &bitDepth, &type, &interlace, &comp, &filter);
-					if (ret == 0 || width != (png_uint_32)img.width || height != (png_uint_32)img.height) {
+					if (ret == 0 || width != static_cast<png_uint_32>(img.width) || height != static_cast<png_uint_32>(img.height)) {
 						std::cerr << "Temp image " << img.filename << " has wrong dimensions; expected " << img.width << 'x' << img.height << ", got " << width << 'x' << height << '\n';
 						return false;
 					}
@@ -232,11 +241,11 @@ namespace image {
 				}
 
 				// Read next line from current image chunk
-				png_read_row(img.pngPtr, (png_bytep)lineRead.data(), nullptr);
+				png_read_row(img.pngPtr, lineRead.data(), nullptr);
 				// Now this puts all the pixels in the right spot of the current line of the final image
-				const size_t end = (img.x + img.width) * CHANSPERPIXEL;
+				const size_t end = (static_cast<size_t>(img.x) + img.width) * CHANSPERPIXEL;
 				size_t read = 0;
-				for (size_t write = (img.x * CHANSPERPIXEL); write < end; write += CHANSPERPIXEL) {
+				for (size_t write = static_cast<size_t>(img.x) * CHANSPERPIXEL; write < end; write += CHANSPERPIXEL) {
 					draw::blend(&lineWrite[write], &lineRead[read]);
 					read += CHANSPERPIXEL;
 				}
@@ -250,7 +259,7 @@ namespace image {
 			}
 
 			// Done composing this line, write to final image
-			png_write_row(pngStruct, (png_bytep)lineWrite.data());
+			png_write_row(pngStruct, lineWrite.data());
 
 		}// Y-Loop
 

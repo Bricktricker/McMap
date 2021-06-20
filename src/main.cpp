@@ -60,9 +60,9 @@ void optimizeTerrain();
 size_t optimizeTerrainMulti(const size_t startX, const size_t startZ);
 void undergroundMode(bool explore);
 bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStartY);
-void writeInfoFile(const std::string& file, int xo, int yo, int bitmapx, int bitmapy);
-static const inline int floorChunkX(const int val);
-static const inline int floorChunkZ(const int val);
+void writeInfoFile(const std::string& file, int xo, int yo, size_t bitmapx, size_t bitmapy);
+static inline int floorChunkX(const int val);
+static inline int floorChunkZ(const int val);
 void printHelp(const std::string& binary);
 
 int main(int argc, char **argv)
@@ -140,7 +140,7 @@ int main(int argc, char **argv)
 					std::cerr << "Error: " << option << " needs an integer argument, ie: " << option << " 100\n";
 					return 1;
 				}
-				Global::MapsizeY = std::stoi(NEXTARG);
+				Global::MapsizeY = std::stoul(NEXTARG);
 				if (option == "-max")  Global::MapsizeY++;
 			} else if (option == "-min") {
 				if (!MOREARGS(1) || !helper::isNumeric(POLLARG(1))) {
@@ -154,7 +154,7 @@ int main(int argc, char **argv)
 					return 1;
 				}
 				memlimitSet = true;
-				memlimit = size_t (std::stoi(NEXTARG)) * size_t (1024 * 1024);
+				memlimit = std::stoul(NEXTARG) * size_t (1024 * 1024);
 			} else if (option == "-file") {
 				if (!MOREARGS(1)) {
 					std::cerr << "Error: -file needs one argument, ie: -file myworld.png\n";
@@ -232,7 +232,7 @@ int main(int argc, char **argv)
 					std::cerr << "Error: -mystcraftage needs an integer age number argument";
 					return 1;
 				}
-				Global::mystCraftAge = atoi(NEXTARG);
+				Global::mystCraftAge = static_cast<uint8_t>(atoi(NEXTARG));
 			}else if(option == "-scale"){
 				if (!MOREARGS(1) || !helper::isNumeric(POLLARG(1))) {
 					std::cerr << "Error: -scale needs a scale argument. eg. 50";
@@ -322,12 +322,12 @@ int main(int argc, char **argv)
 		std::cerr << "Nothing to render: -from X Z has to be <= -to X Z\n";
 		return 1;
 	}
-	if (Global::MapsizeY - Global::MapminY < 1) {
+	if (static_cast<int>(Global::MapsizeY) - Global::MapminY < 1) {
 		std::cerr << "Nothing to render: -min Y has to be < -max/-height Y\n";
 		return 1;
 	}
-	Global::sectionMin = Global::MapminY >> SECTION_Y_SHIFT;
-	Global::sectionMax = (Global::MapsizeY - 1) >> SECTION_Y_SHIFT;
+	Global::sectionMin = static_cast<int8_t>(Global::MapminY >> SECTION_Y_SHIFT);
+	Global::sectionMax = static_cast<int8_t>((Global::MapsizeY - 1) >> SECTION_Y_SHIFT);
 	Global::MapsizeY -= Global::MapminY;
 	std::cout << "MinY: " << Global::MapminY << " ... MaxY: " << Global::MapsizeY << " ... MinSecY: " << std::to_string(Global::sectionMin) << " ... MaxSecY: " << std::to_string(Global::sectionMax) << '\n';
 	// Whole area to be rendered, in chunks
@@ -337,13 +337,13 @@ int main(int argc, char **argv)
 	Global::TotalToChunkX = Global::ToChunkX;
 	Global::TotalToChunkZ = Global::ToChunkZ;
 	// Don't allow ridiculously small values for big maps
-	if (memlimit && memlimit < 200000000 && memlimit < size_t(Global::MapsizeX * Global::MapsizeZ * 150000)) {
+	if (memlimit && memlimit < 200000000 && memlimit < Global::MapsizeX * Global::MapsizeZ * 150000) {
 		std::cerr << "Need at least " << int(float(Global::MapsizeX) * Global::MapsizeZ * .15f + 1) << " MiB of RAM to render a map of that size.\n";
 		return 1;
 	}
 
 	// Mem check
-	int bitmapX, bitmapY; //number of Pixels in the final image
+	size_t bitmapX, bitmapY; //number of Pixels in the final image
 	uint64_t bitmapBytes = draw::calcImageSize(Global::ToChunkX - Global::FromChunkX, Global::ToChunkZ - Global::FromChunkZ, Global::MapsizeY, bitmapX, bitmapY, false);
 	// Cropping
 	int cropLeft = 0, cropRight = 0, cropTop = 0, cropBottom = 0;
@@ -351,7 +351,7 @@ int main(int argc, char **argv)
 		terrain::calcBitmapOverdraw(cropLeft, cropRight, cropTop, cropBottom);
 		bitmapX -= (cropLeft + cropRight);
 		bitmapY -= (cropTop + cropBottom);
-		bitmapBytes = uint64_t(bitmapX) * image::PNGWriter::BYTESPERPIXEL * uint64_t(bitmapY);
+		bitmapBytes = bitmapX * image::PNGWriter::BYTESPERPIXEL * bitmapY;
 	}
 
 	if (!infoFile.empty()) {
@@ -384,9 +384,9 @@ int main(int argc, char **argv)
 		}
 		// Split up map more and more, until the mem requirements are satisfied
 		for (numSplitsX = 1, numSplitsZ = 2;;) {
-			int subAreaX = ((Global::TotalToChunkX - Global::TotalFromChunkX) + (numSplitsX - 1)) / numSplitsX;
-			int subAreaZ = ((Global::TotalToChunkZ - Global::TotalFromChunkZ) + (numSplitsZ - 1)) / numSplitsZ;
-			int subBitmapX, subBitmapY;
+			const size_t subAreaX = ((Global::TotalToChunkX - Global::TotalFromChunkX) + (numSplitsX - 1)) / numSplitsX;
+			size_t subAreaZ = ((Global::TotalToChunkZ - Global::TotalFromChunkZ) + (numSplitsZ - 1)) / numSplitsZ;
+			size_t subBitmapX, subBitmapY;
 			if (splitImage && draw::calcImageSize(subAreaX, subAreaZ, Global::MapsizeY, subBitmapX, subBitmapY, true) + terrain::calcTerrainSize(subAreaX, subAreaZ) <= memlimit) {
 				break; // Found a suitable partitioning
 			} else if (!splitImage && bitmapBytes + terrain::calcTerrainSize(subAreaX, subAreaZ) <= memlimit) {
@@ -434,7 +434,7 @@ int main(int argc, char **argv)
 	// Precompute brightness adjustment factor
 	std::vector<float> brightnessLookup(Global::MapsizeY);
 	for (size_t y = 0; y < brightnessLookup.size(); ++y) {
-		brightnessLookup[y] = ((100.0f / (1.0f + exp(- (1.3f * (float(y) * std::min(Global::MapsizeY, 200U) / Global::MapsizeY) / 16.0f) + 6.0f))) - 91);   // thx Donkey Kong
+		brightnessLookup[y] = ((100.0f / (1.0f + expf(- (1.3f * (float(y) * std::min(Global::MapsizeY, size_t(200U)) / Global::MapsizeY) / 16.0f) + 6.0f))) - 91);   // thx Donkey Kong
 	}
 
 	// Now here's the loop rendering all the required parts of the image.
@@ -452,7 +452,7 @@ int main(int argc, char **argv)
 			if (splitImage) {
 				bitmapStartX += 2;
 				const int sizex = (Global::ToChunkX - Global::FromChunkX) * CHUNKSIZE_X * 2 + (Global::ToChunkZ - Global::FromChunkZ) * CHUNKSIZE_Z * 2;
-				const int sizey = (int)Global::MapsizeY * Global::OffsetY + (Global::ToChunkX - Global::FromChunkX) * CHUNKSIZE_X + (Global::ToChunkZ - Global::FromChunkZ) * CHUNKSIZE_Z + 3;
+				const int sizey = static_cast<int>(Global::MapsizeY) * Global::OffsetY + (Global::ToChunkX - Global::FromChunkX) * CHUNKSIZE_X + (Global::ToChunkZ - Global::FromChunkZ) * CHUNKSIZE_Z + 3;
 				if (sizex <= 0 || sizey <= 0) continue; // Don't know if this is right, might also be that the size calulation is plain wrong
 				
 				image::CachedPNGWriter* cpngw = dynamic_cast<image::CachedPNGWriter*>(pngWriter.get());
@@ -560,9 +560,9 @@ int main(int argc, char **argv)
 							//if (y + 2 < Global::MapsizeY) l = MAX(l, GETLIGHTAT(x, y + 2, z) - 1);
 						}
 						if (!Global::settings.skylight) { // Night
-							brightnessAdjustment -= (100 - l * 8);
+							brightnessAdjustment -= static_cast<float>(100 - l * 8);
 						} else { // Day
-							brightnessAdjustment -= (210 - l * 14);
+							brightnessAdjustment -= static_cast<float>(210 - l * 14);
 						}
 					}
 
@@ -606,9 +606,9 @@ int main(int argc, char **argv)
 			for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) {
 				helper::printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
 				for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
-					const size_t bmpPosX = (Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX) - cropLeft;
-					size_t bmpPosY = Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY) - cropTop;
-					for (unsigned int y = 0; y < std::min(Global::MapsizeY, 64U); ++y) {
+					const int bmpPosX = (static_cast<int>(Global::MapsizeZ) - static_cast<int>(z) - CHUNKSIZE_Z) * 2 + (static_cast<int>(x) - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX) - cropLeft;
+					int bmpPosY = static_cast<int>(Global::MapsizeY) * Global::OffsetY + static_cast<int>(z) + static_cast<int>(x) - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY) - cropTop;
+					for (unsigned int y = 0; y < std::min(Global::MapsizeY, size_t(64U)); ++y) {
 						const StateID_t c = BLOCKAT(x, y, z);
 						if (c != AIR) { // If block is not air (colors[c][3] != 0)
 							draw::blendPixel(bmpPosX, bmpPosY, c, float(y + 30) * .0048f, pngWriter.get());
@@ -723,7 +723,7 @@ void optimizeTerrain()
 					if (block != AIR) highest = y; // if it's not air, it's the new highest block encountered so far
 				}
 			}
-			HEIGHTAT(x, z) = (((uint16_t)highest + 1) << 8) | (uint16_t)lowest; // cram them both into a 16bit int
+			HEIGHTAT(x, z) = ((static_cast<uint16_t>(highest & 0xff) + 1) << 8) | static_cast<uint16_t>(lowest & 0xff); // cram them both into a 16bit int
 			blocked[(offsetY % Global::MapsizeY) + (offsetZ % modZ)] = false;
 			offsetZ += Global::MapsizeY;
 		}
@@ -766,7 +766,7 @@ size_t optimizeTerrainMulti(const size_t startX, const size_t startZ) {
 				}
 			}
 		} //y-loop end
-		HEIGHTAT(x, z) = (((uint16_t)highest + 1) << 8) | (uint16_t)lowest;
+		HEIGHTAT(x, z) = ((static_cast<uint16_t>(highest & 0xff) + 1) << 8) | static_cast<uint16_t>(lowest & 0xff);
 		blocked[numMoves%Global::MapsizeY] = false;
 		numMoves += 1;
 		x -= 1;
@@ -788,7 +788,7 @@ void undergroundMode(bool explore)
 		for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) {
 			helper::printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
 			for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
-				for (size_t y = 0; y < std::min(Global::MapsizeY, 64U) - 1; y++) {
+				for (size_t y = 0; y < std::min(Global::MapsizeY, size_t(64U)) - 1; y++) {
 					if (helper::isTorch(BLOCKAT(x, y, z))) {
 						// Torch
 						BLOCKAT(x, y, z) = AIR;
@@ -828,7 +828,7 @@ void undergroundMode(bool explore)
 		for (size_t z = 0; z < Global::MapsizeZ; ++z) {
 			size_t ground = 0;
 			size_t cave = 0;
-			for (int y = Global::MapsizeY - 1; y >= 0; --y) {
+			for (int y = static_cast<int>(Global::MapsizeY) - 1; y >= 0; --y) {
 				StateID_t c = BLOCKAT(x, y, z);
 				if (c != AIR && cave > 0) { // Found a cave, leave floor
 					if (helper::isGrass(c) || helper::isLeave(c) || helper::isSnow(c) || GETLIGHTAT(x, y, z) == 0) {
@@ -889,7 +889,7 @@ bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStart
 	if (Global::ToChunkZ > Global::TotalToChunkZ) {
 		Global::ToChunkZ = Global::TotalToChunkZ;
 	}
-	std::cout << "Pass " << int(currentAreaX + (currentAreaZ * splitX) + 1) << " of " << int(splitX * splitZ)  << "...\n";
+	std::cout << "Pass " << currentAreaX + (currentAreaZ * splitX) + 1 << " of " << splitX * splitZ  << "...\n";
 	// Calulate pixel offsets in bitmap. Forgot how this works right after writing it, really.
 	if (Global::settings.orientation == North) {
 		bitmapStartX = (((Global::TotalToChunkZ - Global::TotalFromChunkZ) * CHUNKSIZE_Z) * 2 + 3)   // Center of image..
@@ -923,29 +923,29 @@ bool prepareNextArea(int splitX, int splitZ, int &bitmapStartX, int &bitmapStart
 	return false; // not done yet, return false
 }
 
-void writeInfoFile(const std::string& file, int xo, int yo, int bitmapX, int bitmapY)
+void writeInfoFile(const std::string& file, int xo, int yo, size_t bitmapX, size_t bitmapY)
 {
 	nlohmann::json data;
 
 	std::string direction;
 	if (Global::settings.orientation == North) {
 		xo += (Global::TotalToChunkZ * CHUNKSIZE_Z - Global::FromChunkX * CHUNKSIZE_X) * 2 + 4;
-		yo -= (Global::TotalFromChunkX * CHUNKSIZE_X + Global::TotalFromChunkZ * CHUNKSIZE_Z) - Global::MapsizeY * Global::OffsetY;
+		yo -= (Global::TotalFromChunkX * CHUNKSIZE_X + Global::TotalFromChunkZ * CHUNKSIZE_Z) - static_cast<int>(Global::MapsizeY) * Global::OffsetY;
 		direction = "North";
 	}
 	else if (Global::settings.orientation == South) {
 		xo += (Global::TotalToChunkX * CHUNKSIZE_X - Global::TotalFromChunkZ * CHUNKSIZE_Z) * 2 + 4;
-		yo += ((Global::TotalToChunkX) * CHUNKSIZE_X + (Global::TotalToChunkZ) * CHUNKSIZE_Z) + Global::MapsizeY * Global::OffsetY;
+		yo += ((Global::TotalToChunkX) * CHUNKSIZE_X + (Global::TotalToChunkZ) * CHUNKSIZE_Z) + static_cast<int>(Global::MapsizeY) * Global::OffsetY;
 		direction = "South";
 	}
 	else if (Global::settings.orientation == East) {
 		xo -= (Global::TotalFromChunkX * CHUNKSIZE_X + Global::TotalFromChunkZ * CHUNKSIZE_Z) * Global::OffsetY - 6;
-		yo += ((Global::TotalToChunkX) * CHUNKSIZE_X - Global::TotalFromChunkZ * CHUNKSIZE_Z) + Global::MapsizeY * Global::OffsetY;
+		yo += ((Global::TotalToChunkX) * CHUNKSIZE_X - Global::TotalFromChunkZ * CHUNKSIZE_Z) + static_cast<int>(Global::MapsizeY) * Global::OffsetY;
 		direction = "East";
 	}
 	else {
 		xo += (Global::TotalToChunkX * CHUNKSIZE_X + Global::TotalToChunkZ * CHUNKSIZE_Z) * Global::OffsetY + 2;
-		yo += ((Global::TotalToChunkZ) * CHUNKSIZE_Z - Global::TotalFromChunkX * CHUNKSIZE_X) + Global::MapsizeY * Global::OffsetY;
+		yo += ((Global::TotalToChunkZ) * CHUNKSIZE_Z - Global::TotalFromChunkX * CHUNKSIZE_X) + static_cast<int>(Global::MapsizeY) * Global::OffsetY;
 		direction = "West";
 	}
 	yo += 4;
@@ -968,7 +968,7 @@ void writeInfoFile(const std::string& file, int xo, int yo, int bitmapX, int bit
 /**
  * Round down to the nearest multiple of 16
  */
-static const inline int floorChunkX(const int val)
+static inline int floorChunkX(const int val)
 {
 	return val & ~(CHUNKSIZE_X - 1);
 }
@@ -976,7 +976,7 @@ static const inline int floorChunkX(const int val)
 /**
  * Round down to the nearest multiple of 16
  */
-static const inline int floorChunkZ(const int val)
+static inline int floorChunkZ(const int val)
 {
 	return val & ~(CHUNKSIZE_Z - 1);
 }

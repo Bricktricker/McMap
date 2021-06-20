@@ -12,7 +12,7 @@ namespace terrain {
 	bool scanWorldDirectory(const std::string& fromPath);
 	bool loadTerrain(const std::string& fromPath, int &loadedChunks);
 	bool loadEntireTerrain();
-	uint64_t calcTerrainSize(const int chunksX, const int chunksZ);
+	uint64_t calcTerrainSize(const size_t chunksX, const size_t chunksZ);
 	void clearLightmap();
 	void deallocateTerrain();
 	void calcBitmapOverdraw(int &left, int &right, int &top, int &bottom); //Berechnet ueberschnitt auf allen 4 Seiten

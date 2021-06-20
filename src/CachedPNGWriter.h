@@ -28,7 +28,7 @@ namespace image {
 			png_structp pngPtr;
 			png_infop pngInfo;
 
-			ImagePart(const std::string& _file, const int _x, const int _y, const int _w, const int _h)
+			ImagePart(const std::string& _file, const int _x, const int _y, const size_t _w, const size_t _h)
 				: x(_x), y(_y), width(_w), height(_h), filename(_file), file{}, pngPtr(nullptr), pngInfo(nullptr) {}
 
 			ImagePart(const ImagePart& part)

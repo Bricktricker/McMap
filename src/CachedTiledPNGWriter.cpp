@@ -15,8 +15,8 @@ namespace {
 	void userWriteData(png_structp pngPtr, png_bytep data, png_size_t length)
 	{
 		png_voidp a = png_get_io_ptr(pngPtr);
-		//Cast the pointer to std::ifstream* and read 'length' bytes into 'data'
-		((std::fstream*)a)->write((char*)data, length);
+		//Cast the pointer to std::ifstream* and write 'length' bytes from 'data'
+		static_cast<std::fstream*>(a)->write(reinterpret_cast<char*>(data), static_cast<std::streamsize>(length));
 	}
 
 	//Function to read pngt data from disc
@@ -24,7 +24,7 @@ namespace {
 	{
 		png_voidp a = png_get_io_ptr(pngPtr);
 		//Cast the pointer to std::ifstream* and read 'length' bytes into 'data'
-		((std::fstream*)a)->read((char*)data, length);
+		static_cast<std::fstream*>(a)->read(reinterpret_cast<char*>(data), static_cast<std::streamsize>(length));
 	}
 }
 
@@ -34,7 +34,7 @@ namespace image {
 	{
 	}
 
-	bool CachedTiledPNGWriter::compose(const std::string & path, const double scale) {
+	bool CachedTiledPNGWriter::compose(const std::string & path, [[maybe_unused]] const double scale) {
 		// Tiled output, suitable for google maps
 		std::cout << "Composing final png files...\n";
 
@@ -65,7 +65,7 @@ namespace image {
 
 		for (size_t y = 0; y < m_origH; ++y) {
 			if (y % 100 == 0) {
-				helper::printProgress(size_t(y), size_t(m_origH));
+				helper::printProgress(y, m_origH);
 			}
 			// paint each image on this one
 			std::fill(lineWrite.begin(), lineWrite.end(), 0);
@@ -96,14 +96,14 @@ namespace image {
 						return false; // Same here
 					}
 
-					png_set_read_fn(img.pngPtr, (png_voidp)&img.file, userReadData);
+					png_set_read_fn(img.pngPtr, static_cast<png_voidp>(&img.file), userReadData);
 					png_read_info(img.pngPtr, img.pngInfo);
 
 					// Check if image dimensions match what is expected
 					int type, interlace, comp, filter, bitDepth;
 					png_uint_32 width, height;
 					png_uint_32 ret = png_get_IHDR(img.pngPtr, img.pngInfo, &width, &height, &bitDepth, &type, &interlace, &comp, &filter);
-					if (ret == 0 || width != (png_uint_32)img.width || height != (png_uint_32)img.height) {
+					if (ret == 0 || width != static_cast<png_uint_32>(img.width) || height != static_cast<png_uint_32>(img.height)) {
 						std::cerr << "Temp image " << img.filename << " has wrong dimensions; expected " << std::to_string(img.width) << 'x' << std::to_string(img.height) << ", got " << width << 'x' << height << '\n';
 						return false;
 					}
@@ -113,11 +113,11 @@ namespace image {
 					continue;   // Not your turn, image!
 				}
 				// Read next line from current image chunk
-				png_read_row(img.pngPtr, (png_bytep)lineRead.data(), NULL);
+				png_read_row(img.pngPtr, lineRead.data(), NULL);
 				// Now this puts all the pixels in the right spot of the current line of the final image
-				const size_t end = (img.x + img.width) * CHANSPERPIXEL;
+				const size_t end = (static_cast<size_t>(img.x) + img.width) * CHANSPERPIXEL;
 				size_t read = 0;
-				for (size_t write = (img.x * CHANSPERPIXEL); write < end; write += CHANSPERPIXEL) {
+				for (size_t write = static_cast<size_t>(img.x) * CHANSPERPIXEL; write < end; write += CHANSPERPIXEL) {
 					draw::blend(&lineWrite[write], &lineRead[read]);
 					read += CHANSPERPIXEL;
 				}
@@ -149,7 +149,7 @@ namespace image {
 							png_destroy_write_struct(&(t.pngPtr), &(t.pngInfo));
 							t.fileHandle.close();
 						}
-						if (tileWidth * (tileIndex - sizeOffset[tileSize]) < size_t(m_origW)) {
+						if (tileWidth * (tileIndex - sizeOffset[tileSize]) < m_origW) {
 							// Open new tile file for a while
 							const std::string tmpString = path + "/x" + std::to_string(int(tileIndex - sizeOffset[tileSize])) + 'y' + std::to_string(int((y / pow(2, 12 - tileSize)))) + 'z' + std::to_string(int(tileSize)) + ".png";
 	#ifdef _DEBUG
@@ -176,7 +176,7 @@ namespace image {
 								png_destroy_write_struct(&(t.pngPtr), NULL);
 								return false;
 							}
-							png_set_write_fn(t.pngPtr, (png_voidp)&t.fileHandle, userWriteData, NULL);
+							png_set_write_fn(t.pngPtr, static_cast<png_voidp>(&t.fileHandle), userWriteData, NULL);
 							png_set_IHDR(t.pngPtr, t.pngInfo,
 								uint32_t(pow(2, 12 - tileSize)), uint32_t(pow(2, 12 - tileSize)),
 								8, PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE,
@@ -191,7 +191,7 @@ namespace image {
 				const size_t tileWidth = static_cast<size_t>(pow(2, 12 - tileSize));
 				for (size_t tileIndex = sizeOffset[tileSize]; tileIndex < sizeOffset[tileSize + 1]; ++tileIndex) {
 					if (tile[tileIndex].fileHandle.fail() || !tile[tileIndex].fileHandle.is_open()) continue;
-					png_write_row(tile[tileIndex].pngPtr, png_bytep(&lineWrite[tileWidth * (tileIndex - sizeOffset[tileSize]) * CHANSPERPIXEL]));
+					png_write_row(tile[tileIndex].pngPtr, &lineWrite[tileWidth * (tileIndex - sizeOffset[tileSize]) * CHANSPERPIXEL]);
 				}
 			} // done writing line
 
@@ -206,7 +206,7 @@ namespace image {
 				if (!tile[tileIndex].fileHandle.is_open()) continue;
 				const size_t imgEnd = (((m_origH - 1) / tileWidth) + 1) * tileWidth;
 				for (size_t i = m_origH; i < imgEnd; ++i) {
-					png_write_row(tile[tileIndex].pngPtr, png_bytep(lineWrite.data()));
+					png_write_row(tile[tileIndex].pngPtr, lineWrite.data());
 				}
 				png_write_end(tile[tileIndex].pngPtr, NULL);
 				png_destroy_write_struct(&(tile[tileIndex].pngPtr), &(tile[tileIndex].pngInfo));

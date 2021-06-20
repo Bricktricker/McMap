@@ -44,7 +44,7 @@
 template<typename T>
 T readBuffer(const std::vector<uint8_t>& data, size_t& pos)
 {
-	T val = helper::swap_endian<T>(*reinterpret_cast<const T*>(&data[pos]));
+	const T val = helper::swap_endian<T>(*reinterpret_cast<const T*>(&data[pos]));
 	pos += sizeof(T);
 	return val;
 }
@@ -87,11 +87,11 @@ NBTtag::NBTtag(const std::vector<uint8_t>& data, size_t& pos)
 bool NBTtag::parseData(const std::vector<uint8_t>& data, size_t& pos, bool parseHeader)
 {
 	if (parseHeader) {
-		m_type = (TagType) data[pos];
+		m_type = static_cast<TagType>(data[pos]);
 		pos++;
-		uint16_t strLen = readBuffer<uint16_t>(data, pos);
+		const uint16_t strLen = readBuffer<uint16_t>(data, pos);
 		if (strLen > 0) {
-			m_name = std::string((char*) &data[pos], strLen);
+			m_name = std::string(reinterpret_cast<const char*>(&data[pos]), strLen);
 			pos += strLen;
 		}
 	}
@@ -117,22 +117,22 @@ bool NBTtag::parseData(const std::vector<uint8_t>& data, size_t& pos, bool parse
 		break;
 	case tagByteArray:
 	{
-		uint32_t len = readBuffer<uint32_t>(data, pos);
+		const uint32_t len = readBuffer<uint32_t>(data, pos);
 		m_dataHolder.emplace<PrimArray<uint8_t>>(&data[pos], len);
 		pos += len;
 		break;
 	}
 	case tagString:
 	{
-		uint16_t len = readBuffer<uint16_t>(data, pos);
+		const uint16_t len = readBuffer<uint16_t>(data, pos);
 		m_dataHolder.emplace<PrimArray<char>>(reinterpret_cast<const char*>(&data[pos]), len);
 		pos += len;
 		break;
 	}
 	case tagList:
 	{
-		TagType t = (TagType) readBuffer<uint8_t>(data, pos);
-		uint32_t len = readBuffer<uint32_t>(data, pos);
+		const TagType t = static_cast<TagType>(readBuffer<uint8_t>(data, pos));
+		const uint32_t len = readBuffer<uint32_t>(data, pos);
 		auto& list = m_dataHolder.emplace<NBTlist>();
 		list.reserve(len);
 		for (uint32_t i = 0; i < len; i++) {
@@ -152,14 +152,14 @@ bool NBTtag::parseData(const std::vector<uint8_t>& data, size_t& pos, bool parse
 	}
 	case tagIntArray:
 	{
-		uint32_t len = readBuffer<uint32_t>(data, pos);
+		const uint32_t len = readBuffer<uint32_t>(data, pos);
 		m_dataHolder.emplace<PrimArray<int32_t>>(reinterpret_cast<const int32_t*>(&data[pos]), len);
 		pos += len * sizeof(int32_t);
 		break;
 	}
 	case tagLongArray:
 	{
-		uint32_t len = readBuffer<uint32_t>(data, pos);
+		const uint32_t len = readBuffer<uint32_t>(data, pos);
 		m_dataHolder.emplace<PrimArray<int64_t>>(reinterpret_cast<const int64_t*>(&data[pos]), len);
 		pos += len * sizeof(int64_t);
 		break;

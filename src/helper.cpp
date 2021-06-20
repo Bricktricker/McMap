@@ -14,7 +14,7 @@ namespace helper {
 		if (val > 255) {
 			return 255;
 		}
-		return (uint8_t)val;
+		return static_cast<uint8_t>(val);
 	}
 
 	void printProgress(const size_t current, const size_t max){
@@ -24,12 +24,12 @@ namespace helper {
 			lastp = -10;
 			lastt = 0;
 		}
-		time_t now = time(NULL);
+		const time_t now = time(NULL);
 		if (now > lastt || current == max) {
-			float proc = (float(current) / float(max)) * 100.0f;
+			const float proc = (float(current) / float(max)) * 100.0f;
 			if (proc > lastp + 0.99f || current == max) {
 				// Keep user updated but don't spam the console
-				printf("[%.2f%%]\r", proc);
+				printf("[%.2f%%]\r", static_cast<double>(proc));
 				fflush(stdout);
 				lastt = now;
 				lastp = proc;
