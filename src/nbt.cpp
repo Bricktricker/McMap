@@ -14,26 +14,10 @@
  // on linux, static linking works too, of course, but shouldn't be needed
 
  /* A few words on this class:
-  * It is written in a half-way OO manner. That is, it breaks
-  * some best practice rules. For example, for speed and efficiency
-  * reasons, it shares memory across classes and even returns pointers
-  * to memory locations inside the memory block owned by the NBT class.
-  * That's why you should keep two things in mind:
-  * 1) The pointer returned by getByteArray() lies inside a memory
-  * block that belongs to the NBT class. NEVER try to delete it, and
-  * do NOT use it anymore after you deleted the instance of NBT (or
-  * after you left the scope of a local instance)
-  *
-  * Rule of thumb: Only use the pointer returned by getByteArray
-  * in a temporary context, never store it unless
-  * you know what you're doing.
-  * All the other get-methods return a copy of the requested data
-  * (if found), so you're safe here...
   *
   * There is no way (yet) to list all available tags, simply because
   * it isn't needed here. It shouldn't be too much work to add that
   * if you need it.
-  *
   * --
   * You may use and modify this class in you own projects, just
   * keep a note in your source code that you used/modified my class.
@@ -118,14 +102,15 @@ bool NBTtag::parseData(const std::vector<uint8_t>& data, size_t& pos, bool parse
 	case tagByteArray:
 	{
 		const uint32_t len = readBuffer<uint32_t>(data, pos);
-		m_dataHolder.emplace<PrimArray<uint8_t>>(&data[pos], len);
+		m_dataHolder.emplace<std::vector<uint8_t>>(&data[pos], &data[pos] + len);
 		pos += len;
 		break;
 	}
 	case tagString:
 	{
 		const uint16_t len = readBuffer<uint16_t>(data, pos);
-		m_dataHolder.emplace<PrimArray<char>>(reinterpret_cast<const char*>(&data[pos]), len);
+		const char* beginPtr = reinterpret_cast<const char*>(&data[pos]);
+		m_dataHolder.emplace<std::string>(beginPtr, len);
 		pos += len;
 		break;
 	}
@@ -153,14 +138,16 @@ bool NBTtag::parseData(const std::vector<uint8_t>& data, size_t& pos, bool parse
 	case tagIntArray:
 	{
 		const uint32_t len = readBuffer<uint32_t>(data, pos);
-		m_dataHolder.emplace<PrimArray<int32_t>>(reinterpret_cast<const int32_t*>(&data[pos]), len);
+		const int32_t* beginPtr = reinterpret_cast<const int32_t*>(&data[pos]);
+		m_dataHolder.emplace<std::vector<int32_t>>(beginPtr, beginPtr + len);
 		pos += len * sizeof(int32_t);
 		break;
 	}
 	case tagLongArray:
 	{
 		const uint32_t len = readBuffer<uint32_t>(data, pos);
-		m_dataHolder.emplace<PrimArray<int64_t>>(reinterpret_cast<const int64_t*>(&data[pos]), len);
+		const int64_t* beginPtr = reinterpret_cast<const int64_t*>(&data[pos]);
+		m_dataHolder.emplace<std::vector<int64_t>>(beginPtr, beginPtr + len);
 		pos += len * sizeof(int64_t);
 		break;
 	}
@@ -219,15 +206,15 @@ std::optional<const NBTtag::NBTlist*> NBTtag::getList(const std::string_view nam
 	return std::nullopt;
 }
 
-std::optional<std::string> NBTtag::getString(const std::string_view name) const
+std::optional<std::string_view> NBTtag::getString(const std::string_view name) const
 {
 	if (m_type == tagCompound) {
 		const auto& compound = std::get<TagMap>(m_dataHolder);
 		const auto posVal = compound.find(name);
 		if (posVal != compound.end()) {
 			if (posVal->second.getType() == tagString) {
-				const auto span = std::get<PrimArray<char>>(posVal->second.m_dataHolder);
-				return std::string(span.m_data, span.m_len);
+				const auto& str = std::get<std::string>(posVal->second.m_dataHolder);
+				return std::string_view(str.data(), str.size());
 			}
 		}
 	}

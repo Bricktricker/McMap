@@ -49,10 +49,10 @@ public:
 	using DataHolder = std::variant<
 		TagMap,
 		NBTlist,
-		PrimArray<char>,
-		PrimArray<uint8_t>,
-		PrimArray<int32_t>,
-		PrimArray<int64_t>,
+		std::string,
+		std::vector<uint8_t>,
+		std::vector<int32_t>,
+		std::vector<int64_t>,
 		int8_t,
 		int16_t,
 		int32_t,
@@ -80,6 +80,22 @@ private:
 			if (posVal != compound.end()) {
 				if (posVal->second.getType() == type) {
 					return std::get<T>(posVal->second.m_dataHolder);
+				}
+			}
+		}
+		return std::nullopt;
+	}
+
+	template<typename T>
+	std::optional<PrimArray<T>> getArray(const std::string_view name, const TagType type) const
+	{
+		if (m_type == tagCompound) {
+			const auto& compound = std::get<TagMap>(m_dataHolder);
+			const auto posVal = compound.find(name);
+			if (posVal != compound.end()) {
+				if (posVal->second.getType() == type) {
+					const std::vector<T>& vec = std::get<std::vector<T>>(posVal->second.m_dataHolder);
+					return PrimArray(vec.data(), vec.size());
 				}
 			}
 		}
@@ -115,20 +131,20 @@ public:
 
 	std::optional<PrimArray<uint8_t>> getByteArray(const std::string_view name) const
 	{
-		return getValue<PrimArray<uint8_t>>(name, tagByteArray);
+		return getArray<uint8_t>(name, tagByteArray);
 	}
 
 	std::optional<PrimArray<int32_t>> getIntArray(const std::string_view name) const
 	{
-		return getValue<PrimArray<int32_t>>(name, tagIntArray);
+		return getArray<int32_t>(name, tagIntArray);
 	}
 
 	std::optional<PrimArray<int64_t>> getLongArray(const std::string_view name) const
 	{
-		return getValue<PrimArray<int64_t>>(name, tagLongArray);
+		return getArray<int64_t>(name, tagLongArray);
 	}
 
-	std::optional<std::string> getString(const std::string_view name) const;
+	std::optional<std::string_view> getString(const std::string_view name) const;
 
 	TagType getType() const noexcept { return m_type; }
 	std::string getName() const noexcept { return m_name; };

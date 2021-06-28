@@ -191,7 +191,7 @@ namespace terrain
 				std::cerr << "could not find Status in Chunk\n";
 				return false;
 			}
-			const std::string status = statusOpt.value();
+			const std::string_view status = statusOpt.value();
 			//Check if we use light
 			if (!Global::useLightmap()) {
 				if (status != "empty") {
@@ -284,7 +284,7 @@ namespace terrain
 					std::cerr << "State has no name\n";
 					continue;
 				}
-				const std::string blockName = blockNameOpt.value();
+				const std::string blockName = std::string(blockNameOpt.value()); // create a string, because we cant use a string_view for lookup in a std::unordered_map
 
 				if (Global::blockTree.find(blockName) == Global::blockTree.end()) {
 					std::cerr << blockName << " is missing in your colors file!\n";
@@ -310,7 +310,7 @@ namespace terrain
 							blockID = 0;
 							break;
 						}
-						stateValues.push_back(propValue.value());
+						stateValues.emplace_back(propValue.value());
 					}
 
 					try {
