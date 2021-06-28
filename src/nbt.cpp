@@ -36,7 +36,7 @@ T readBuffer(const std::vector<uint8_t>& data, size_t& pos)
 ///-------------------------------------------
 
 NBT::NBT(const std::vector<uint8_t>& _data)
-	: m_data(_data), m_good(true)
+	: m_good(true)
 {
 	m_type = tagUnknown;
 	size_t pos = 0;

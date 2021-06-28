@@ -9,6 +9,7 @@
 #include <cstring>
 #include <algorithm>
 #include <filesystem>
+#include <functional>
 
 #include "ThreadPool.h"
 #include "worldloader.h"
@@ -25,10 +26,25 @@ namespace
 namespace terrain
 {
 	size_t getPalletIndex(const std::vector<uint64_t>& arr, const size_t index, const bool denselyPacked);
-	bool loadChunk(const std::vector<uint8_t>& buffer);
+	bool loadTerrainInChunk(const NBTtag& chunk);
 	bool load113Chunk(const NBTtag* level, const int32_t chunkX, const int32_t chunkZ, const size_t dataVersion);
-	bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks);
 	inline void lightCave(const int x, const int y, const int z);
+
+	void loadRegion(const std::string_view file, const std::function<void(const NBTtag&)> chunkHandler);
+
+	bool loadTerrainInRegion(const std::string_view file, int &loadedChunks)
+	{
+		bool success = false;
+		loadedChunks = 0;
+		loadRegion(file, [&](const NBTtag& chunk) {
+			const bool loaded = loadTerrainInChunk(chunk);
+			if (loaded) {
+				loadedChunks++;
+				success = true;
+			}
+		});
+		return success;
+	}
 
 	WorldFormat getWorldFormat(const std::string& worldPath)
 	{
@@ -139,18 +155,8 @@ namespace terrain
 		return true;
 	}
 
-	bool loadChunk(const std::vector<uint8_t>& buffer)
+	bool loadTerrainInChunk(const NBTtag& chunk)
 	{
-		if (buffer.size() == 0) { // File
-			std::cerr << "No data in NBT file.\n";
-			return false;
-		}
-		NBT chunk(buffer);
-		if (!chunk.good()) {
-			std::cerr << "Error loading chunk.\n";
-			return false; // chunk does not exist
-		}
-
 		const auto dataVersionOpt = chunk.getInt("DataVersion");
 		if (!dataVersionOpt.has_value()) {
 			std::cerr << "No DataVersion in Chunk\n";
@@ -570,8 +576,8 @@ namespace terrain
 			for (regionList::iterator it = world.regions.begin(); it != world.regions.end(); ++it) {
 				Region& region = (*it);
 				results.emplace_back(Global::threadPool->enqueue([](Region reg) {
-					int i = 0;
-					return loadRegion(reg.filename, true, i);
+					int i;
+					return loadTerrainInRegion(reg.filename, i);
 				}, region));
 
 			}
@@ -593,7 +599,7 @@ namespace terrain
 				Region& region = (*it);
 				helper::printProgress(count++, max);
 				int i;
-				result |= loadRegion(region.filename, true, i);
+				result |= loadTerrainInRegion(region.filename, i);
 			}
 			helper::printProgress(10, 10);
 			return result;
@@ -625,7 +631,7 @@ namespace terrain
 
 					results.emplace_back(Global::threadPool->enqueue([&atomicLoadedChunks](const std::string _path) {
 						int load = 0;
-						const bool r = loadRegion(_path, false, load);
+						const bool r = loadTerrainInRegion(_path, load);
 						atomicLoadedChunks += load;
 						return r;
 					}, path));
@@ -649,7 +655,7 @@ namespace terrain
 				const int maxZ = floorRegion(Global::ToChunkZ);
 				for (int z = floorRegion(Global::FromChunkZ); z <= maxZ; z += REGIONSIZE) {
 					const std::string path = fromPath + "/region/r." + std::to_string(x / REGIONSIZE) + '.' + std::to_string(z / REGIONSIZE) + ".mca";
-					const bool b = loadRegion(path, false, loadedChunks);
+					const bool b = loadTerrainInRegion(path, loadedChunks);
 					result |= b;
 				}
 				helper::printProgress(size_t(x + tmpMin), size_t(floorRegion(Global::ToChunkX) + tmpMin));
@@ -659,20 +665,20 @@ namespace terrain
 		return result;
 	}
 
-	bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks)
+	void loadRegion(const std::string_view file, const std::function<void(const NBTtag&)> chunkHandler)
 	{
 		using chunkMap = std::map<uint32_t, uint32_t>;
 		std::vector<uint8_t> buffer(COMPRESSED_BUFFER);
 		std::vector<uint8_t> decompressedBuffer(DECOMPRESSED_BUFFER);
 		std::ifstream rp(file, std::ios::binary);
 		if (rp.fail()) {
-			if (mustExist) std::cerr << "Error opening region file " << file << '\n';
-			return false;
+			std::cerr << "Error opening region file " << file << '\n';
+			return;
 		}
 		rp.read(reinterpret_cast<char*>(buffer.data()), REGIONSIZE * REGIONSIZE * 4);
 		if (rp.fail()) {
 			std::cerr << "Header too short in " << file << '\n';
-			return false;
+			return;
 		}
 		// Sort chunks using a map, so we access the file as sequential as possible
 		chunkMap localChunks;
@@ -682,7 +688,7 @@ namespace terrain
 			localChunks[offset] = i;
 		}
 		if (localChunks.size() == 0) {
-			return false;
+			return;
 		}
 		z_stream zlibStream;
 		for (chunkMap::iterator ci = localChunks.begin(); ci != localChunks.end(); ++ci) {
@@ -730,17 +736,20 @@ namespace terrain
 				len = zlibStream.total_out;
 				if (len == 0) {
 					std::cerr << "cold not decompress region! Error\n";
+					continue;
 				}
 			} else {
 				std::cerr << "Unsupported Region version: " << (int) version << '\n';
 				continue;
 			}
 			std::vector<uint8_t> buf(decompressedBuffer.begin(), decompressedBuffer.begin() + len);
-			if (loadChunk(buf)) {
-				loadedChunks++;
+			NBT chunk(buf);
+			if (!chunk.good()) {
+				std::cerr << "Error loading chunk.\n";
+				return;
 			}
+			chunkHandler(chunk);
 		}
-		return true;
 	}
 
 	//denselyPacked: if set to false uses the new block storage format added in 20w17a

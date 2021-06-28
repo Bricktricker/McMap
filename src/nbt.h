@@ -155,7 +155,6 @@ public:
 class NBT : public NBTtag
 {
 private:
-	const std::vector<uint8_t>& m_data;
 	bool m_good;
 public:
 	explicit NBT(const std::vector<uint8_t>& _data);
