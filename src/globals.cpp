@@ -9,9 +9,12 @@ int Global::OffsetY = 2;
 Settings Global::settings = { East, false, false, false, false, 0, false, false, false, false };
 
 std::vector<Marker> Global::markers;
+WorldStorage Global::worldStorage;
+/*
 std::vector<StateID_t> Global::terrain;
 std::vector<uint8_t> Global::light;
 std::vector<uint16_t> Global::heightMap;
+*/
 
 std::unordered_map<std::string, Tree<std::string, StateID_t>> Global::blockTree;
 std::vector<Model_t> Global::colorMap;

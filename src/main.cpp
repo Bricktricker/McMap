@@ -507,19 +507,33 @@ int main(int argc, char **argv)
 			undergroundMode(false);
 		}
 
-		optimizeTerrain();
+		//optimizeTerrain();
 
 		// Finally, render terrain to file
 		std::cout << "Drawing map...\n";
-		for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) { //iterate over all blocks, ignore outer Chunks
-			helper::printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
-			for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
-				const int bmpPosX = int((Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX - cropLeft));
-				int bmpPosY = int(Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY - cropTop)) + 2 - (HEIGHTAT(x, z) & 0xFF) * Global::OffsetY;
-				const unsigned int max = (HEIGHTAT(x, z) & 0xFF00) >> 8;
-				for (unsigned int y = int8_t(HEIGHTAT(x, z)); y < max; ++y) {
+		const int minX = Global::worldStorage.minX();
+		const int maxX = Global::worldStorage.maxX();
+		const int minY = Global::worldStorage.minY();
+		const int maxY = Global::worldStorage.maxY();
+		const int minZ = Global::worldStorage.minZ();
+		const int maxZ = Global::worldStorage.maxZ();
+		const int numXBlocks = 1 + maxX - minX;
+		const int numZBlocks = 1 + maxZ - minZ;
+		const int numYBlocks = 1 + maxY - minY;
+		//iterate over all blocks, ignore outer Chunks
+		for (int x = minX; x < maxX + 1; ++x) { //size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x
+			helper::printProgress(1 + x - minX, numXBlocks);
+			for (int z = minZ; z < maxZ + 1; ++z) { //size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z
+				//int((Global::MapsizeZ - z - CHUNKSIZE_Z) * 2 + (x - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX - cropLeft));
+				const int bmpPosX = (numZBlocks - (1 + z - minZ)) * 2 + ((1 + x - minX)) * 2 + (splitImage ? -2 : bitmapStartX - cropLeft);
+				const auto heightPacked = Global::worldStorage.getHeightPacked(x, z);
+				const int max = std::min(int((heightPacked & 0xFFFF0000) >> 16), maxY); //(HEIGHTAT(x, z) & 0xFF00) >> 8; // expanded to 2 bytes per value
+				const int min = std::max(int(heightPacked & 0xFFFF), minY);
+				//int(Global::MapsizeY * Global::OffsetY + z + x - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY - cropTop)) + 2 - (HEIGHTAT(x, z) & 0xFF) * Global::OffsetY;
+				int bmpPosY = (Global::MapsizeY * Global::OffsetY + (1 + z - minZ) + (1 + x - minX) + (splitImage ? 0 : bitmapStartY - cropTop)) + 2 - min * Global::OffsetY;
+				for (int y = min; y < max + 1; ++y) { //unsigned int y = int8_t(HEIGHTAT(x, z)); y < max; ++y
 					bmpPosY -= Global::OffsetY;
-					const StateID_t c = BLOCKAT(x, y, z);
+					const StateID_t c = Global::worldStorage.getBlock(x, y, z); //BLOCKAT(x, y, z);
 					if (c == AIR) {
 						continue;
 					}
@@ -534,20 +548,20 @@ int main(int argc, char **argv)
 						|| (Global::settings.skylight // skylight is used and
 							&& (!BLOCK_AT_MAPEDGE(x, z))  // block is not edge of map (or if it is, has non-opaque block above)
 							)) {
-						int l = GETLIGHTAT(x, y, z);  // find out how much light hits that block
+						int l = Global::worldStorage.getLight(x, y, z); //GETLIGHTAT(x, y, z);  // find out how much light hits that block
 						if (l == 0 && y + 1 == Global::MapsizeY) {
 							l = (Global::settings.nightmode ? 3 : 15);   // quickfix: assume maximum strength at highest level
 						} else {
 							const bool up = y + 1 < Global::MapsizeY;
-							if (x + 1 < Global::MapsizeX && (!up || BLOCKAT(x + 1, y + 1, z) == 0)) {
-								l = std::max(l, GETLIGHTAT(x + 1, y, z));
-								if (x + 2 < Global::MapsizeX) l = std::max(l, GETLIGHTAT(x + 2, y, z) - 1);
+							if (x + 1 < Global::MapsizeX && (!up || Global::worldStorage.getBlock(x + 1, y + 1, z) == 0)) {
+								l = std::max(l, int(Global::worldStorage.getLight(x + 1, y, z)));
+								if (x + 2 < Global::MapsizeX) l = std::max(l, Global::worldStorage.getLight(x + 2, y, z) - 1);
 							}
-							if (z + 1 < Global::MapsizeZ && (!up || BLOCKAT(x, y + 1, z + 1) == 0)) {
-								l = std::max(l, GETLIGHTAT(x, y, z + 1));
-								if (z + 2 < Global::MapsizeZ) l = std::max(l, GETLIGHTAT(x, y, z + 2) - 1);
+							if (z + 1 < Global::MapsizeZ && (!up || Global::worldStorage.getBlock(x, y + 1, z + 1) == 0)) {
+								l = std::max(l, int(Global::worldStorage.getLight(x, y, z + 1)));
+								if (z + 2 < Global::MapsizeZ) l = std::max(l, Global::worldStorage.getLight(x, y, z + 2) - 1);
 							}
-							if (up) l = std::max(l, GETLIGHTAT(x, y + 1, z));
+							if (up) l = std::max(l, int(Global::worldStorage.getLight(x, y + 1, z)));
 							//if (y + 2 < Global::MapsizeY) l = MAX(l, GETLIGHTAT(x, y + 2, z) - 1);
 						}
 						if (!Global::settings.skylight) { // Night
@@ -559,12 +573,12 @@ int main(int argc, char **argv)
 
 					// Edge detection (this means where terrain goes 'down' and the side of the block is not visible)
 					if (y != 0) {
-						const StateID_t b = BLOCKAT(x - 1, y - 1, z - 1);
+						const StateID_t b = Global::worldStorage.getBlock(x - 1, y - 1, z - 1);
 						if ((y + 1 < Global::MapsizeY)  // In bounds?
-							&& BLOCKAT(x, y + 1, z) == AIR  // Only if block above is air
-							&& BLOCKAT(x - 1, y + 1, z - 1) == AIR  // and block above and behind is air
+							&& Global::worldStorage.getBlock(x, y + 1, z) == AIR  // Only if block above is air
+							&& Global::worldStorage.getBlock(x - 1, y + 1, z - 1) == AIR  // and block above and behind is air
 							&& (b == AIR || b == c)   // block behind (from pov) this one is same type or air
-							&& (BLOCKAT(x - 1, y, z) == AIR || BLOCKAT(x, y, z - 1) == AIR)) {   // block TL/TR from this one is air = edge
+							&& (Global::worldStorage.getBlock(x - 1, y, z) == AIR || Global::worldStorage.getBlock(x, y, z - 1) == AIR)) {   // block TL/TR from this one is air = edge
 							brightnessAdjustment += 13;
 						}
 					}
@@ -600,7 +614,7 @@ int main(int argc, char **argv)
 					const int bmpPosX = (static_cast<int>(Global::MapsizeZ) - static_cast<int>(z) - CHUNKSIZE_Z) * 2 + (static_cast<int>(x) - CHUNKSIZE_X) * 2 + (splitImage ? -2 : bitmapStartX) - cropLeft;
 					int bmpPosY = static_cast<int>(Global::MapsizeY) * Global::OffsetY + static_cast<int>(z) + static_cast<int>(x) - CHUNKSIZE_Z - CHUNKSIZE_X + (splitImage ? 0 : bitmapStartY) - cropTop;
 					for (unsigned int y = 0; y < std::min(Global::MapsizeY, size_t(64U)); ++y) {
-						const StateID_t c = BLOCKAT(x, y, z);
+						const StateID_t c = Global::worldStorage.getBlock(x, y, z);
 						if (c != AIR) { // If block is not air (colors[c][3] != 0)
 							draw::blendPixel(bmpPosX, bmpPosY, c, float(y + 30) * .0048f, pngWriter.get());
 						}
@@ -653,10 +667,15 @@ int main(int argc, char **argv)
 void optimizeTerrain()
 {
 	std::cout << "Optimizing terrain...\n";
-	const size_t maxX = Global::MapsizeX - CHUNKSIZE_X;
-	const size_t maxZ = Global::MapsizeZ - CHUNKSIZE_Z;
+	const int maxX = Global::worldStorage.maxX(); //Global::MapsizeX - CHUNKSIZE_X;
+	const int minX = Global::worldStorage.minX();
+	const int maxY = Global::worldStorage.maxY();
+	const int minY = Global::worldStorage.minY();
+	assert(minY == 0);
+	const int maxZ = Global::worldStorage.maxZ(); //Global::MapsizeZ - CHUNKSIZE_Z;
+	const int minZ = Global::worldStorage.minZ();
 
-	if (Global::threadPool) {
+	if (Global::threadPool && false) {
 		std::vector<std::future<size_t>> results;
 		size_t blocksRemoved = 0;
 
@@ -683,18 +702,19 @@ void optimizeTerrain()
 	}
 
 	size_t gBlocksRemoved = 0;
-	const size_t modZ = maxZ * Global::MapsizeY;
+	const int numXBlocks = 1 + maxX - minX;
+	const size_t modZ = static_cast<size_t>(numXBlocks * (1 + maxY - minY)); //maxZ * Global::MapsizeY;
 	std::vector<bool> blocked(modZ, false);
 	size_t offsetZ = 0, offsetY = 0, offsetGlobal = 0;
-	for (size_t x = maxX - 1; x >= CHUNKSIZE_X; --x) {
-		helper::printProgress(maxX - (x + 1), maxX);
+	for (int x = maxX; x >= minX; --x) { //size_t x = maxX - 1; x >= CHUNKSIZE_X; --x
+		helper::printProgress(numXBlocks - (1 + x - minX), numXBlocks);
 		offsetZ = offsetGlobal;
-		for (size_t z = CHUNKSIZE_Z; z < maxZ; ++z) {
-			size_t highest = 0, lowest = 0xFF; // remember lowest and highest block which are visible to limit the Y-for-loop later
-			for (size_t y = 0; y < Global::MapsizeY; ++y) { // Go up
-				const StateID_t block = BLOCKAT(x, y, z); // Get the block at that point
+		for (int z = minZ; z < maxZ+1; ++z) { //size_t z = CHUNKSIZE_Z; z < maxZ; ++z
+			int16_t highest = minY, lowest = maxY; // remember lowest and highest block which are visible to limit the Y-for-loop later
+			for (int y = minY; y < maxY+1; ++y) { // Go up
+				const StateID_t block = Global::worldStorage.getBlock(x, y, z); // Get the block at that point
 
-				const size_t oldIndex = ((y + offsetY) % Global::MapsizeY) + (offsetZ % modZ);
+				const size_t oldIndex = (((y - minY) + offsetY) % (maxY + 1)) + (offsetZ % modZ);
 				//const size_t newIndex = fast_mod<size_t>(y + offsetY, Global::MapsizeY) + fast_mod(offsetZ, modZ);
 				//newIndex should be faster, but not sure
 
@@ -705,7 +725,7 @@ void optimizeTerrain()
 					}
 				} else { // block is not hidden by another block
 					const auto col = Global::colorMap[block];
-					if (block != AIR && lowest == 0xFF) { // if it's not air, this is the lowest block to draw
+					if (block != AIR && lowest == maxY) { // if it's not air, this is the lowest block to draw
 						lowest = y;
 					}
 					if (col.isSolidBlock) { // Block is not hidden, do not remove, but mark spot as blocked for next iteration (orig. just checking for alpha value, need to remove white spots behind fences)
@@ -714,7 +734,8 @@ void optimizeTerrain()
 					if (block != AIR) highest = y; // if it's not air, it's the new highest block encountered so far
 				}
 			}
-			HEIGHTAT(x, z) = ((static_cast<uint16_t>(highest & 0xff) + 1) << 8) | static_cast<uint16_t>(lowest & 0xff); // cram them both into a 16bit int
+			Global::worldStorage.setHeight(x, z, lowest, highest);
+			//HEIGHTAT(x, z) = ((static_cast<uint16_t>(highest & 0xff) + 1) << 8) | static_cast<uint16_t>(lowest & 0xff); // cram them both into a 16bit int
 			blocked[(offsetY % Global::MapsizeY) + (offsetZ % modZ)] = false;
 			offsetZ += Global::MapsizeY;
 		}
@@ -732,6 +753,7 @@ void optimizeTerrain()
 
 size_t optimizeTerrainMulti(const size_t startX, const size_t startZ)
 {
+	/*
 	size_t removedBlocks{ 0 };
 	size_t numMoves{ 0 };
 	std::vector<bool> blocked(Global::MapsizeY, false);
@@ -765,7 +787,8 @@ size_t optimizeTerrainMulti(const size_t startX, const size_t startZ)
 	}
 
 	return removedBlocks;
-
+	*/
+	return 0;
 }
 
 void undergroundMode(bool explore)
@@ -773,16 +796,18 @@ void undergroundMode(bool explore)
 	// This wipes out all blocks that are not caves/tunnels
 	//int cnt[256];
 	//memset(cnt, 0, sizeof(cnt));
+	//TODO: implement
+	return;
 	std::cout << "Exploring underground...\n";
 	if (explore) {
-		terrain::clearLightmap();
+		Global::worldStorage.clearLightMap();
 		for (size_t x = CHUNKSIZE_X; x < Global::MapsizeX - CHUNKSIZE_X; ++x) {
 			helper::printProgress(x - CHUNKSIZE_X, Global::MapsizeX);
 			for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
 				for (size_t y = 0; y < std::min(Global::MapsizeY, size_t(64U)) - 1; y++) {
-					if (helper::isTorch(BLOCKAT(x, y, z))) {
+					if (helper::isTorch(Global::worldStorage.getBlock(x, y, z))) {
 						// Torch
-						BLOCKAT(x, y, z) = AIR;
+						Global::worldStorage.setBlock(x, y, z, AIR);
 						for (int ty = int(y) - 9; ty < int(y) + 9; ty += 2) { // The trick here is to only take into account
 							if (ty < 0) {
 								continue;   // areas around torches.
@@ -804,7 +829,7 @@ void undergroundMode(bool explore)
 									if (tx >= int(Global::MapsizeX) - CHUNKSIZE_X) {
 										break;
 									}
-									SETLIGHTNORTH(tx, ty, tz) = 0xFF;
+									//SETLIGHTNORTH(tx, ty, tz) = 0xFF;
 								}
 							}
 						}
@@ -820,9 +845,9 @@ void undergroundMode(bool explore)
 			size_t ground = 0;
 			size_t cave = 0;
 			for (int y = static_cast<int>(Global::MapsizeY) - 1; y >= 0; --y) {
-				StateID_t c = BLOCKAT(x, y, z);
+				StateID_t c = Global::worldStorage.getBlock(x, y, z);
 				if (c != AIR && cave > 0) { // Found a cave, leave floor
-					if (helper::isGrass(c) || helper::isLeave(c) || helper::isSnow(c) || GETLIGHTAT(x, y, z) == 0) {
+					if (helper::isGrass(c) || helper::isLeave(c) || helper::isSnow(c) || Global::worldStorage.getLight(x, y, z) == 0) {
 						c = AIR; // But never count snow or leaves
 					} //else cnt[*c]++;
 					if (!helper::isWater(c)) {
@@ -830,7 +855,7 @@ void undergroundMode(bool explore)
 					}
 				} else if (c != AIR) { // Block is not air, count up "ground"
 					c = AIR;
-					if (/*c != LOG &&*/ !helper::isLeave(c) && !helper::isSnow(c) && /*c != WOOD &&*/ !helper::isWater(c)) {
+					if (/*c != LOG &&*/ !helper::isLeave(c) && !helper::isSnow(c) && !helper::isWater(c)) {
 						++ground;
 					}
 				} else if (ground < 3) { // Block is air, if there was not enough ground above, don't treat that as a cave

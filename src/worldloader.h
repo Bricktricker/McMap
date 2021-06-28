@@ -14,13 +14,12 @@ namespace terrain
 	bool loadTerrain(const std::string& fromPath, int &loadedChunks);
 	bool loadEntireTerrain();
 	uint64_t calcTerrainSize(const size_t chunksX, const size_t chunksZ);
-	void clearLightmap();
 	void deallocateTerrain();
 	void calcBitmapOverdraw(int &left, int &right, int &top, int &bottom); //Calculates overdraw on all 4 sites
 	//void loadBiomeMap(const std::string& path); //no longer supported
 	void uncoverNether();
 
-	// This will hold all chunks (<1.3) or region files (>=1.3) discovered while scanning world dir
+	// This will hold all region files discovered while scanning world dir
 	struct Region
 	{
 		int x; //x-val in filename

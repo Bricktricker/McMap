@@ -9,6 +9,7 @@
 #include "defines.h"
 #include "ThreadPool.h"
 #include "Tree.h"
+#include "WorldStorage.h"
 
 enum Orientation
 {
@@ -63,14 +64,17 @@ public:
 	static int FromChunkX, FromChunkZ, ToChunkX, ToChunkZ; // Current area of world being rendered
 	static size_t MapsizeZ, MapsizeX, Terrainsize; // size of that area in blocks (no offset)
 	static int MapminY; //minimum height to render from
-	static size_t MapsizeY; //maximum height to render (max CHUNKSIZE_Y (256))
+	static size_t MapsizeY; //maximum height to render (max CHUNKSIZE_Y)
 	static int OffsetY; // y pixel offset in the final image for one y step in 3d array (2)
 	static Settings settings; //Used settings
 
 	static std::vector<Marker> markers;
+	static WorldStorage worldStorage;
+	/*
 	static std::vector<StateID_t> terrain;
 	static std::vector<uint8_t>	light; // 3D arrays holding terrain/lightmap
 	static std::vector<uint16_t> heightMap; // 2D array to store min and max block height per X/Z - it's 2 bytes per index, upper for highest, lower for lowest (don't ask!)
+	*/
 
 	static std::unordered_map<std::string, Tree<std::string, StateID_t>> blockTree; //Maps blockState to id
 	static std::vector<Model_t> colorMap; //maps id to color_t
@@ -81,4 +85,8 @@ public:
 	static uint8_t mystCraftAge;
 
 	static std::unique_ptr<ThreadPool> threadPool;
+
+	static bool useLightmap() {
+		return settings.nightmode || settings.underground || settings.blendUnderground || settings.skylight;
+	}
 };

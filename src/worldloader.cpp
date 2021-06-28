@@ -27,7 +27,6 @@ namespace terrain
 	size_t getPalletIndex(const std::vector<uint64_t>& arr, const size_t index, const bool denselyPacked);
 	bool loadChunk(const std::vector<uint8_t>& buffer);
 	bool load113Chunk(const NBTtag* level, const int32_t chunkX, const int32_t chunkZ, const size_t dataVersion);
-	void allocateTerrain();
 	bool loadRegion(const std::string& file, const bool mustExist, int &loadedChunks);
 	inline void lightCave(const int x, const int y, const int z);
 
@@ -68,7 +67,7 @@ namespace terrain
 				continue;
 			}
 
-			std::string regionStr = itr.path().filename().generic_string();
+			const std::string regionStr = itr.path().filename().generic_string();
 			if (regionStr[0] == 'r' && regionStr[1] == '.') { // Make sure filename is a region
 				if (helper::strEndsWith(regionStr, ".mca")) {
 					// Extract x coordinate from region filename
@@ -194,7 +193,7 @@ namespace terrain
 			}
 			const std::string status = statusOpt.value();
 			//Check if we use light
-			if (Global::light.empty()) {
+			if (!Global::useLightmap()) {
 				if (status != "empty") {
 					return load113Chunk(level, chunkX, chunkZ, dataVersion);
 				}
@@ -231,8 +230,8 @@ namespace terrain
 		if (sections->empty())
 			return false;
 
-		const int offsetz = (chunkZ - Global::FromChunkZ) * CHUNKSIZE_Z; //Blocks into world, from lowest point
-		const int offsetx = (chunkX - Global::FromChunkX) * CHUNKSIZE_X; //Blocks into world, from lowest point
+		const int offsetz = chunkZ * 16; //(chunkZ - Global::FromChunkZ) * CHUNKSIZE_Z; //Blocks into world, from lowest point
+		const int offsetx = chunkX * 16; //(chunkX - Global::FromChunkX) * CHUNKSIZE_X; //Blocks into world, from lowest point
 		const size_t yoffsetsomething = (Global::MapminY + SECTION_Y * 10000) % SECTION_Y;
 		assert(yoffsetsomething == 0); //I don't now what this variable does. Always 0
 
@@ -245,8 +244,7 @@ namespace terrain
 			const int32_t yo = yOffsetOpt.value();
 
 			if (yo < Global::sectionMin || yo > Global::sectionMax) continue; //sub-Chunk out of bounds, continue
-			int32_t yoffset = (SECTION_Y * (yo - Global::sectionMin)) - static_cast<int32_t>(yoffsetsomething); //Blocks into render zone in Y-Axis
-			if (yoffset < 0) yoffset = 0;
+			const int yoffset = yo * 16; //(SECTION_Y * (yo - Global::sectionMin)) - static_cast<int32_t>(yoffsetsomething); //Blocks into render zone in Y-Axis
 
 			const auto blockStatesOpt = sec.getLongArray("BlockStates");
 			if (!blockStatesOpt.has_value()) {
@@ -333,9 +331,11 @@ namespace terrain
 			//Now IDList is build up, no run through all block in sub-Chunk
 			for (int x = 0; x < CHUNKSIZE_X; ++x) {
 				for (int z = 0; z < CHUNKSIZE_Z; ++z) {
-					StateID_t* targetBlock = nullptr;
-					uint8_t* lightByte = nullptr;
+					// StateID_t* targetBlock = nullptr; //TODO: remove
+					// uint8_t* lightByte = nullptr; //TODO: remove
 
+					//TODO: currently always uses NORTH orientation
+					/*
 					if (Global::settings.orientation == East) {
 						targetBlock = &BLOCKEAST(x + offsetx, yoffset, z + offsetz); //BLOCKEAST
 						if (Global::settings.skylight || Global::settings.nightmode) lightByte = &SETLIGHTEAST(x + offsetx, yoffset, z + offsetz);
@@ -353,6 +353,8 @@ namespace terrain
 						if (Global::settings.skylight || Global::settings.nightmode) lightByte = &SETLIGHTWEST(x + offsetx, yoffset, z + offsetz);
 						//if (g_UseBiomes) BIOMEWEST(x + offsetx, z + offsetz) = biomesdata[x + (z * CHUNKSIZE_X)];
 					}
+					*/
+
 					//set targetBlock
 					for (size_t y = 0; y < SECTION_Y; ++y) {
 						// In bounds check
@@ -362,8 +364,7 @@ namespace terrain
 						const size_t block1D = x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X;
 						const size_t IDLIstIndex = getPalletIndex(blockStates, block1D, dataVersion < 2529); //snapshot 20w17a = data version 2529
 						const StateID_t block = idList[IDLIstIndex];
-						*targetBlock = block;
-						targetBlock++;
+						Global::worldStorage.setBlock(x + offsetx, yoffset + y, z + offsetz, block);
 						// Light
 						if (Global::settings.underground) {
 							if (helper::isTorch(block)) {
@@ -380,13 +381,15 @@ namespace terrain
 								highsky = helper::clamp(highsky / 3 - 2);
 								lowsky = helper::clamp(lowsky / 3 - 2);
 							}
-							*lightByte++ = ((std::max(highlight, highsky) & 0x0F) << 4) | (std::max(lowlight, lowsky) & 0x0F);
+							const uint8_t lightValue = ((std::max(highlight, highsky) & 0x0F) << 4) | (std::max(lowlight, lowsky) & 0x0F);
+							Global::worldStorage.setLight(x + offsetx, yoffset + y, z + offsetz, lightValue);
 						} else if (Global::settings.nightmode && (y & 1) == 0) {
 							if (lightdata.m_len > 0) {
-								*lightByte++ = ((lightdata.m_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F)
+								const uint8_t lightValue = ((lightdata.m_data[(x + (z + (y * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) & 0x0F)
 									| ((lightdata.m_data[(x + (z + ((y + 1) * CHUNKSIZE_Z)) * CHUNKSIZE_X) / 2] >> ((x & 1) * 4)) << 4);
+								Global::worldStorage.setLight(x + offsetx, yoffset + y, z + offsetz, lightValue);
 							} else {
-								*lightByte++ = 0;
+								Global::worldStorage.setLight(x + offsetx, yoffset + y, z + offsetz, 0);
 							}
 						}
 					} //for y
@@ -398,6 +401,7 @@ namespace terrain
 		return true;
 	}
 
+	//TODO: this computes the maximum ammount of bytes we need, for a 256 blocks high map
 	uint64_t calcTerrainSize(const size_t chunksX, const size_t chunksZ)
 	{
 		uint64_t size = sizeof(StateID_t) * (chunksX + 2) * CHUNKSIZE_X * (chunksZ + 2) * CHUNKSIZE_Z * (Global::MapsizeY);
@@ -518,61 +522,9 @@ namespace terrain
 		}
 	}
 
-	void allocateTerrain()
-	{
-		const size_t heightMapSize = Global::MapsizeX * Global::MapsizeZ;
-		Global::Terrainsize = Global::MapsizeX * Global::MapsizeY * Global::MapsizeZ;
-
-		if (Global::heightMap.size() < heightMapSize) {
-			Global::heightMap.clear();
-			Global::heightMap.shrink_to_fit();
-			Global::heightMap.resize(heightMapSize);
-		}
-		std::fill_n(Global::heightMap.begin(), heightMapSize, static_cast<uint16_t>(0xff00));
-
-		std::cout << "Terrain takes up " << std::setprecision(5) << float(Global::Terrainsize * sizeof(StateID_t) / float(1024 * 1024)) << "MiB";
-		if (Global::terrain.size() < Global::Terrainsize) {
-			Global::terrain.clear();
-			Global::terrain.shrink_to_fit();
-			Global::terrain.resize(Global::Terrainsize);
-		}
-
-		std::fill_n(Global::terrain.begin(), Global::Terrainsize, static_cast<StateID_t>(0U));// Preset: Air
-
-		if (Global::settings.nightmode || Global::settings.underground || Global::settings.blendUnderground || Global::settings.skylight) {
-			const size_t lightsize = Global::MapsizeZ * Global::MapsizeX * ((Global::MapsizeY + (Global::MapminY % 2 == 0 ? 1 : 2)) / 2);
-			std::cout << ", lightmap " << std::setprecision(5) << float(lightsize / float(1024 * 1024)) << "MiB";
-			if (Global::light.size() < lightsize || Global::light.size() * 0.9f > lightsize) {
-				Global::light.clear();
-				Global::light.shrink_to_fit();
-				Global::light.resize(lightsize);
-			}
-
-			// Preset: all bright / dark depending on night or day
-			if (Global::settings.nightmode) {
-				std::fill_n(Global::light.begin(), lightsize, static_cast<uint8_t>(0x11));
-			} else if (Global::settings.underground) {
-				std::fill_n(Global::light.begin(), lightsize, static_cast<uint8_t>(0x00));
-			} else {
-				std::fill_n(Global::light.begin(), lightsize, static_cast<uint8_t>(0xFF));
-			}
-		}
-		std::cout << '\n';
-	}
-
 	void deallocateTerrain()
 	{
-		Global::heightMap.clear();
-		Global::heightMap.shrink_to_fit();
-		Global::terrain.clear();
-		Global::terrain.shrink_to_fit();
-		Global::light.clear();
-		Global::light.shrink_to_fit();
-	}
-
-	void clearLightmap()
-	{
-		std::fill(Global::light.begin(), Global::light.end(), static_cast<uint8_t>(0x00));
+		Global::worldStorage.clear();
 	}
 
 	/**
@@ -609,7 +561,6 @@ namespace terrain
 			//no regions loaded
 			return false;
 		}
-		allocateTerrain();
 		const size_t max = world.regions.size();
 		std::cout << "Loading all chunks..\n";
 
@@ -659,7 +610,6 @@ namespace terrain
 		if (fromPath.empty()) {
 			return false;
 		}
-		allocateTerrain();
 
 		std::cout << "Loading all chunks..\n";
 		bool result = false;
@@ -853,6 +803,7 @@ namespace terrain
 
 	inline void lightCave(const int x, const int y, const int z)
 	{
+		//TODO: fix light setting for orientation != North
 		for (int ty = y - 9; ty < y + 9; ty += 2) { // The trick here is to only take into account
 			const int oty = ty - Global::MapminY;
 			if (oty < 0) {
@@ -876,7 +827,7 @@ namespace terrain
 						if (tz >= int(Global::MapsizeX) - CHUNKSIZE_X) {
 							break;
 						}
-						SETLIGHTEAST(tx, oty, tz) = 0xFF;
+						//SETLIGHTEAST(tx, oty, tz) = 0xFF;
 					} else if (Global::settings.orientation == North) {
 						if (tx >= int(Global::MapsizeX) - CHUNKSIZE_X) {
 							break;
@@ -884,7 +835,7 @@ namespace terrain
 						if (tz >= int(Global::MapsizeZ) - CHUNKSIZE_Z) {
 							break;
 						}
-						SETLIGHTNORTH(tx, oty, tz) = 0xFF;
+						Global::worldStorage.setLight(tx, oty, tz, 0xFF);
 					} else if (Global::settings.orientation == South) {
 						if (tx >= int(Global::MapsizeX) - CHUNKSIZE_X) {
 							break;
@@ -892,7 +843,7 @@ namespace terrain
 						if (tz >= int(Global::MapsizeZ) - CHUNKSIZE_Z) {
 							break;
 						}
-						SETLIGHTSOUTH(tx, oty, tz) = 0xFF;
+						//SETLIGHTSOUTH(tx, oty, tz) = 0xFF;
 					} else {
 						if (tx >= int(Global::MapsizeZ) - CHUNKSIZE_Z) {
 							break;
@@ -900,7 +851,7 @@ namespace terrain
 						if (tz >= int(Global::MapsizeX) - CHUNKSIZE_X) {
 							break;
 						}
-						SETLIGHTWEST(tx, oty, tz) = 0xFF;
+						//SETLIGHTWEST(tx, oty, tz) = 0xFF;
 					}
 				}
 			}
@@ -909,6 +860,9 @@ namespace terrain
 
 	void uncoverNether()
 	{
+		return;
+		//TODO: reimplement
+		/*
 		const int cap = (static_cast<int>(Global::MapsizeY) - Global::MapminY) - 57;
 		const int to = (static_cast<int>(Global::MapsizeY) - Global::MapminY) - 52;
 		std::cout << "Uncovering Nether...\n";
@@ -917,7 +871,7 @@ namespace terrain
 			for (size_t z = CHUNKSIZE_Z; z < Global::MapsizeZ - CHUNKSIZE_Z; ++z) {
 				// Remove blocks on top, otherwise there is not much to see here
 				int massive = 0;
-				StateID_t* bp = &Global::terrain[((z + (x * Global::MapsizeZ) + 1) * Global::MapsizeY) - 1];
+				StateID_t* bp = &Global::terrain[((z + (x * Global::MapsizeZ) + 1) * Global::MapsizeY) - 1]; //BLOCKAT(x, 0, z+1)
 				int i;
 				for (i = 0; i < to; ++i) { // Go down 74 blocks from the ceiling to see if there is anything except solid
 					if (massive && (*bp == AIR || helper::isLava(*bp))) {
@@ -942,5 +896,6 @@ namespace terrain
 			}
 		}
 		helper::printProgress(10, 10);
+		*/
 	}
 }

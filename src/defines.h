@@ -6,14 +6,15 @@
 // Just in case these ever change
 #define CHUNKSIZE_Z 16
 #define CHUNKSIZE_X 16
-#define CHUNKSIZE_Y 256 //old 128
+//#define CHUNKSIZE_Y 256 //old 128
 #define SECTION_Y 16
 #define SECTION_Y_SHIFT 4
 #define CHUNKS_PER_BIOME_FILE 32
 #define REGIONSIZE 32
 // Some macros for easier array access
 // First: Block array
-#define BLOCKAT(x,y,z) Global::terrain[(y) + ((z) + ((x) * Global::MapsizeZ)) * Global::MapsizeY] //Sortierung: Erst Y, dann Z, dann X
+/*
+#define BLOCKAT(x,y,z) Global::terrain[(y) + ((z) + ((x) * Global::MapsizeZ)) * Global::MapsizeY] //Sorting: first Y, than Z, than X
 #define BLOCKEAST(x,y,z) Global::terrain[(y) + ((Global::MapsizeZ - ((x) + 1)) + ((z) * Global::MapsizeZ)) * Global::MapsizeY]
 #define BLOCKWEST(x,y,z) Global::terrain[(y) + ((x) + ((Global::MapsizeX - ((z) + 1)) * Global::MapsizeZ)) * Global::MapsizeY]
 #define BLOCKNORTH(x,y,z) Global::terrain[(y) + ((z) + ((x) * Global::MapsizeZ)) * Global::MapsizeY]
@@ -26,6 +27,7 @@
 #define SETLIGHTSOUTH(x,y,z) Global::light[((y) / 2) + ((Global::MapsizeZ - ((z) + 1)) + ((Global::MapsizeX - ((x) + 1)) * Global::MapsizeZ)) * ((Global::MapsizeY + 1) / 2)]
 // Heightmap array
 #define HEIGHTAT(x,z) Global::heightMap[(z) + ((x) * Global::MapsizeZ)]
+*/
 
 //determinate 64Bit or 32Bit
 #if defined(_WIN32) || defined(_WIN64)
